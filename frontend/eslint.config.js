@@ -22,5 +22,8 @@ export default defineConfig([
 
   js.configs.recommended,
   ...pluginVue.configs['flat/essential'],
+  {
+    'vue/multi-word-component-names': 'off',
+  },
   skipFormatting,
 ])

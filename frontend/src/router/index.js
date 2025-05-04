@@ -1,6 +1,6 @@
+import About from '@/views/About.vue'
+import Home from '@/views/Home.vue'
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '@/views/HomeView.vue'
-import AboutView from '@/views/AboutView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -9,45 +9,45 @@ const router = createRouter({
     {
       path: '/',
       name: 'Home',
-      component: HomeView,
+      component: Home,
     },
     {
       path: '/destinations',
       name: 'Destinations',
-      component: AboutView,
+      component: About,
     },
     {
       path: '/destinations/:id',
       name: 'DetailDestinations',
-      component: AboutView,
+      component: About,
       props: true,
     },
     {
       path: '/suggest',
       name: 'Suggest',
-      component: AboutView,
+      component: About,
     },
     {
       path: '/review',
       name: 'Review',
-      component: AboutView,
+      component: About,
     },
     {
       path: '/about',
       name: 'About',
-      component: AboutView,
+      component: About,
     },
 
     // User Profile
     {
       path: '/profile',
-      component: AboutView,
+      component: About,
       children: [
-        { path: '', name: 'Profile', component: AboutView },
-        { path: 'wishlist', name: 'Wishlist', component: AboutView },
-        { path: 'reviews', name: 'UserReviews', component: AboutView },
-        { path: 'suggestions', name: 'UserSuggestions', component: AboutView },
-        { path: 'suggestions/:id', name: 'SuggestionDetail', component: AboutView },
+        { path: '', name: 'Profile', component: About },
+        { path: 'wishlist', name: 'Wishlist', component: About },
+        { path: 'reviews', name: 'UserReviews', component: About },
+        { path: 'suggestions', name: 'UserSuggestions', component: About },
+        { path: 'suggestions/:id', name: 'SuggestionDetail', component: About },
       ],
     },
   ],
