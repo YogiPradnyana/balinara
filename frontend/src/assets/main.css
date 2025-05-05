@@ -1,1 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Overpass:ital,wght@0,100..900;1,100..900&display=swap');
 @import 'tailwindcss';
+
+@theme {
+  --font-pr: 'Montserrat', 'sans-serif';
+  --font-se: 'Overpass', 'sans-serif';
+  --color-pr-50: #ecf4f0;
+  --color-pr-100: #c6ded3;
+  --color-pr-200: #a0c8b6;
+  --color-pr-300: #79b298;
+  --color-pr-400: #66a789;
+  --color-pr-500: #40916c;
+  --color-pr-600: #3a8361;
+  --color-pr-700: #337456;
+  --color-pr-800: #2d664c;
+  --color-pr-900: #265741;
+  --color-se-50: #ecf4f4;
+  --color-se-100: #c6ddde;
+  --color-se-200: #a0c7c8;
+  --color-se-300: #79b0b2;
+  --color-se-400: #66a5a7;
+  --color-se-500: #408e91;
+  --color-se-600: #3a8083;
+  --color-se-700: #337274;
+  --color-se-800: #2d6366;
+  --color-se-900: #265557;
+  --color-sur-50: #ffffff;
+  --color-sur-100: #ecf4f0;
+  --color-sur-200: #d9e9e2;
+  --color-sur-300: #c6ded3;
+  --color-sur-400: #b3d3c5;
+  --color-neu-50: #ffffff;
+  --color-neu-100: #e9e9e9;
+  --color-neu-200: #d3d3d3;
+  --color-neu-300: #bcbcbc;
+  --color-neu-400: #a6a6a6;
+  --color-neu-500: #909090;
+  --color-neu-600: #7a7a7a;
+  --color-neu-700: #646464;
+  --color-neu-800: #4d4d4d;
+  --color-neu-900: #212121;
+}
