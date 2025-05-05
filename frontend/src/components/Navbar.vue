@@ -16,7 +16,7 @@ import Search from './icons/Search.vue'
           <Search />
           <input
             type="text"
-            class="w-full text-sm leading-5 text-neu-500"
+            class="w-full text-sm leading-5 placeholder:text-neu-500 focus:outline-none"
             placeholder="Type something here..."
           />
         </div>

@@ -4,10 +4,11 @@ import Navbar from '@/components/Navbar.vue'
 </script>
 
 <template>
-  <header>
+  <header class="font-pr text-neu-900">
     <Navbar />
   </header>
 
-  <div class=""></div>
-  <RouterView />
+  <div class="px-[140px] relative font-pr text-neu-900 overflow-hidden">
+    <RouterView />
+  </div>
 </template>
