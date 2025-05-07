@@ -8,7 +8,7 @@ import Navbar from '@/components/Navbar.vue'
     <Navbar />
   </header>
 
-  <div class="px-[140px] relative font-pr text-neu-900 overflow-hidden">
+  <div class="relative font-pr text-neu-900 overflow-hidden">
     <RouterView />
   </div>
 </template>
