@@ -56,6 +56,7 @@ import Threads from '@/components/icons/social-media/Threads.vue'
         </div>
       </div>
     </main>
+
     <section class="mt-30 flex-col flex gap-3">
       <div
         class="px-4 text-pr-500 py-2 flex gap-2 w-fit items-center justify-center font-medium outline-pr-500 outline rounded-full"
@@ -78,95 +79,131 @@ import Threads from '@/components/icons/social-media/Threads.vue'
       </div>
       <div class="mt-8 whitespace-nowrap">
         <div class="flex gap-8 w-fit">
-          <div class="relative overflow-hidden w-[340px] h-[460px] rounded-4xl">
-            <img
-              src="@/assets/images/ulun-danu-beratan.webp"
-              alt="Ubud Village"
-              class="object-cover w-full h-full"
-            />
-            <div
-              class="flex flex-col justify-between absolute bottom-0 left-0 top-0 right-0 items-end p-3"
-            >
-              <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
-                <Heart class="text-neu-900" />
-              </div>
-              <div class="flex justify-between items-end w-full">
-                <div
-                  class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-sm bg-sur-50 rounded-full text-neu-900"
-                >
-                  Ulun Danu Beratan
-                  <ArrowUpRight class="size-4" />
+          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl">
+            <div class="relative h-full w-full hover:h-86 transition-all duration-500 ease-in-out">
+              <img
+                src="@/assets/images/ulun-danu-beratan.webp"
+                alt="Ubud Village"
+                class="object-cover w-full h-full rounded-4xl transition-transform duration-500 ease-in-out"
+              />
+              <div
+                class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
+              >
+                <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
+                  <Heart class="text-neu-900" />
                 </div>
-                <p class="text-[10px] text-neu-50">Photo by unsplash</p>
+                <div class="flex justify-between items-end w-full">
+                  <div
+                    class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
+                  >
+                    Ulun Danu Beratan
+                    <ArrowUpRight class="size-4" />
+                  </div>
+                  <p class="text-[10px] text-neu-50">Photo by unsplash</p>
+                </div>
+              </div>
+              <div class="w-full px-2">
+                <h3 class="text-lg mt-4 leading-7 text-neu-900 font-semibold">Ulun Danu Beratan</h3>
+                <p class="text-neu-600 mt-1 line-clamp-2 whitespace-normal">
+                  Ulun Danu Beratan is a stunning Balinese Hindu temple located on Lake Beratan,
+                  appearing to float.
+                </p>
               </div>
             </div>
           </div>
-          <div class="relative overflow-hidden w-[340px] h-[460px] rounded-4xl">
-            <img
-              src="@/assets/images/ulun-danu-beratan.webp"
-              alt="Ubud Village"
-              class="object-cover w-full h-full"
-            />
-            <div
-              class="flex flex-col justify-between absolute bottom-0 left-0 top-0 right-0 items-end p-3"
-            >
-              <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
-                <Heart class="text-neu-900" />
-              </div>
-              <div class="flex justify-between items-end w-full">
-                <div
-                  class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-sm bg-sur-50 rounded-full text-neu-900"
-                >
-                  Ulun Danu Beratan
-                  <ArrowUpRight class="size-4" />
+          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl">
+            <div class="relative h-full w-full hover:h-86 transition-all duration-500 ease-in-out">
+              <img
+                src="@/assets/images/ulun-danu-beratan.webp"
+                alt="Ubud Village"
+                class="object-cover w-full h-full rounded-4xl transition-transform duration-500 ease-in-out"
+              />
+              <div
+                class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
+              >
+                <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
+                  <Heart class="text-neu-900" />
                 </div>
-                <p class="text-[10px] text-neu-50">Photo by unsplash</p>
+                <div class="flex justify-between items-end w-full">
+                  <div
+                    class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
+                  >
+                    Ulun Danu Beratan
+                    <ArrowUpRight class="size-4" />
+                  </div>
+                  <p class="text-[10px] text-neu-50">Photo by unsplash</p>
+                </div>
+              </div>
+              <div class="w-full px-2">
+                <h3 class="text-lg mt-4 leading-7 text-neu-900 font-semibold">Ulun Danu Beratan</h3>
+                <p class="text-neu-600 mt-1 line-clamp-2 whitespace-normal">
+                  Ulun Danu Beratan is a stunning Balinese Hindu temple located on Lake Beratan,
+                  appearing to float.
+                </p>
               </div>
             </div>
           </div>
-          <div class="relative overflow-hidden w-[340px] h-[460px] rounded-4xl">
-            <img
-              src="@/assets/images/ulun-danu-beratan.webp"
-              alt="Ubud Village"
-              class="object-cover w-full h-full"
-            />
-            <div
-              class="flex flex-col justify-between absolute bottom-0 left-0 top-0 right-0 items-end p-3"
-            >
-              <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
-                <Heart class="text-neu-900" />
-              </div>
-              <div class="flex justify-between items-end w-full">
-                <div
-                  class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-sm bg-sur-50 rounded-full text-neu-900"
-                >
-                  Ulun Danu Beratan
-                  <ArrowUpRight class="size-4" />
+          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl">
+            <div class="relative h-full w-full hover:h-86 transition-all duration-500 ease-in-out">
+              <img
+                src="@/assets/images/ulun-danu-beratan.webp"
+                alt="Ubud Village"
+                class="object-cover w-full h-full rounded-4xl transition-transform duration-500 ease-in-out"
+              />
+              <div
+                class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
+              >
+                <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
+                  <Heart class="text-neu-900" />
                 </div>
-                <p class="text-[10px] text-neu-50">Photo by unsplash</p>
+                <div class="flex justify-between items-end w-full">
+                  <div
+                    class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
+                  >
+                    Ulun Danu Beratan
+                    <ArrowUpRight class="size-4" />
+                  </div>
+                  <p class="text-[10px] text-neu-50">Photo by unsplash</p>
+                </div>
+              </div>
+              <div class="w-full px-2">
+                <h3 class="text-lg mt-4 leading-7 text-neu-900 font-semibold">Ulun Danu Beratan</h3>
+                <p class="text-neu-600 mt-1 line-clamp-2 whitespace-normal">
+                  Ulun Danu Beratan is a stunning Balinese Hindu temple located on Lake Beratan,
+                  appearing to float.
+                </p>
               </div>
             </div>
           </div>
-          <div class="relative overflow-hidden w-[340px] h-[460px] rounded-4xl">
-            <img
-              src="@/assets/images/ulun-danu-beratan.webp"
-              alt="Ubud Village"
-              class="object-cover w-full h-full"
-            />
-            <div
-              class="flex flex-col justify-between absolute bottom-0 left-0 top-0 right-0 items-end p-3"
-            >
-              <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
-                <Heart class="text-neu-900" />
-              </div>
-              <div class="flex justify-between items-end w-full">
-                <div
-                  class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-sm bg-sur-50 rounded-full text-neu-900"
-                >
-                  Ulun Danu Beratan
-                  <ArrowUpRight class="size-4" />
+          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl">
+            <div class="relative h-full w-full hover:h-86 transition-all duration-500 ease-in-out">
+              <img
+                src="@/assets/images/ulun-danu-beratan.webp"
+                alt="Ubud Village"
+                class="object-cover w-full h-full rounded-4xl transition-transform duration-500 ease-in-out"
+              />
+              <div
+                class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
+              >
+                <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
+                  <Heart class="text-neu-900" />
                 </div>
-                <p class="text-[10px] text-neu-50">Photo by unsplash</p>
+                <div class="flex justify-between items-end w-full">
+                  <div
+                    class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
+                  >
+                    Ulun Danu Beratan
+                    <ArrowUpRight class="size-4" />
+                  </div>
+                  <p class="text-[10px] text-neu-50">Photo by unsplash</p>
+                </div>
+              </div>
+              <div class="w-full px-2">
+                <h3 class="text-lg mt-4 leading-7 text-neu-900 font-semibold">Ulun Danu Beratan</h3>
+                <p class="text-neu-600 mt-1 line-clamp-2 whitespace-normal">
+                  Ulun Danu Beratan is a stunning Balinese Hindu temple located on Lake Beratan,
+                  appearing to float.
+                </p>
               </div>
             </div>
           </div>

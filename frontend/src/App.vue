@@ -4,9 +4,7 @@ import Navbar from '@/components/Navbar.vue'
 </script>
 
 <template>
-  <header class="font-pr text-neu-900">
-    <Navbar />
-  </header>
+  <Navbar />
 
   <div class="relative font-pr text-neu-900 overflow-hidden">
     <RouterView />
