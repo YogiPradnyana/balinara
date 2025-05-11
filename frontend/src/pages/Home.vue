@@ -79,8 +79,10 @@ import Threads from '@/components/icons/social-media/Threads.vue'
       </div>
       <div class="mt-8 whitespace-nowrap">
         <div class="flex gap-8 w-fit">
-          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl">
-            <div class="relative h-full w-full hover:h-86 transition-all duration-500 ease-in-out">
+          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl group">
+            <div
+              class="relative h-full w-full group-hover:h-86 transition-all duration-500 ease-in-out"
+            >
               <img
                 src="@/assets/images/ulun-danu-beratan.webp"
                 alt="Ubud Village"
@@ -111,8 +113,10 @@ import Threads from '@/components/icons/social-media/Threads.vue'
               </div>
             </div>
           </div>
-          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl">
-            <div class="relative h-full w-full hover:h-86 transition-all duration-500 ease-in-out">
+          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl group">
+            <div
+              class="relative h-full w-full group-hover:h-86 transition-all duration-500 ease-in-out"
+            >
               <img
                 src="@/assets/images/ulun-danu-beratan.webp"
                 alt="Ubud Village"
@@ -143,8 +147,10 @@ import Threads from '@/components/icons/social-media/Threads.vue'
               </div>
             </div>
           </div>
-          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl">
-            <div class="relative h-full w-full hover:h-86 transition-all duration-500 ease-in-out">
+          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl group">
+            <div
+              class="relative h-full w-full group-hover:h-86 transition-all duration-500 ease-in-out"
+            >
               <img
                 src="@/assets/images/ulun-danu-beratan.webp"
                 alt="Ubud Village"
@@ -175,8 +181,10 @@ import Threads from '@/components/icons/social-media/Threads.vue'
               </div>
             </div>
           </div>
-          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl">
-            <div class="relative h-full w-full hover:h-86 transition-all duration-500 ease-in-out">
+          <div class="overflow-hidden w-[340px] h-[460px] rounded-4xl group">
+            <div
+              class="relative h-full w-full group-hover:h-86 transition-all duration-500 ease-in-out"
+            >
               <img
                 src="@/assets/images/ulun-danu-beratan.webp"
                 alt="Ubud Village"
