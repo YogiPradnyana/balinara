@@ -44,7 +44,7 @@ const toggleSidebar = () => {
 
   <!-- Mobile Sidebar -->
   <aside
-    class="fixed top-0 left-0 w-9/12 h-full flex flex-col p-4 justify-between rounded-r-2xl bg-white z-64 transform transition-transform duration-300 md:hidden"
+    class="fixed top-0 left-0 w-9/12 h-full flex flex-col p-4 justify-between rounded-r-2xl bg-white z-64 transform transition-transform duration-500 ease-in-out md:hidden"
     :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
   >
     <div>
@@ -52,7 +52,7 @@ const toggleSidebar = () => {
         <Exit @click="isSidebarOpen = false" />
       </div>
       <div class="px-2 mt-4 flex flex-col gap-4 font-pr">
-        <div class="gap-3 flex items-center">
+        <!-- <div class="gap-3 flex items-center">
           <img
             src="@/assets/images/User Avatar.jpg"
             alt="User Profile"
@@ -64,7 +64,10 @@ const toggleSidebar = () => {
               Udin Surudin
             </p>
           </div>
-        </div>
+        </div> -->
+        <h1 class="text-2xl md:text-3xl font-se font-semibold leading-[38px]">
+          Bali<span class="text-pr-500">nara</span>
+        </h1>
 
         <div class="bg-neu-100 h-[1px] w-full"></div>
         <ul class="flex flex-col text-neu-800 gap-4">
