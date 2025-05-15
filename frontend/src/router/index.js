@@ -1,4 +1,5 @@
 import About from '@/pages/About.vue'
+import DetailDestination from '@/pages/DetailDestination.vue'
 import Home from '@/pages/Home.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -19,7 +20,7 @@ const router = createRouter({
     {
       path: '/destinations/:id',
       name: 'DetailDestinations',
-      component: About,
+      component: DetailDestination,
       props: true,
     },
     {

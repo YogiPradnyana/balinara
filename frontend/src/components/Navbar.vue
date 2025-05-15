@@ -44,7 +44,7 @@ const toggleSidebar = () => {
 
   <!-- Mobile Sidebar -->
   <aside
-    class="fixed top-0 left-0 w-9/12 h-full flex flex-col p-4 justify-between rounded-r-2xl bg-white z-64 transform transition-transform duration-500 ease-in-out md:hidden"
+    class="fixed top-0 left-0 w-9/12 h-full flex flex-col p-4 justify-between rounded-r-2xl bg-white z-64 transform transition-transform duration-500 ease-in-out sm:hidden"
     :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
   >
     <div>
@@ -90,13 +90,13 @@ const toggleSidebar = () => {
   <!-- Before Scroll Navbar (Desktop) -->
   <nav
     v-if="!isSticky"
-    class="px-6 md:px-[100px] font-pr border-b-[1.6px] border-neu-100 md:border-none"
+    class="px-6 sm:px-12 lg:px-[100px] font-pr border-b-[1.6px] border-neu-100 sm:border-none"
   >
     <div
-      class="md:px-10 py-4 flex justify-between items-center md:border-b-[1.6px] md:border-neu-100"
+      class="sm:px-4 lg:px-10 py-4 flex justify-between items-center sm:border-b-[1.6px] sm:border-neu-100"
     >
       <!-- Burger Icon (Mobile) -->
-      <div class="md:hidden">
+      <div class="sm:hidden">
         <button @click="toggleSidebar" aria-label="Toggle sidebar">
           <svg
             class="w-6 h-6 text-gray-700"
@@ -114,7 +114,7 @@ const toggleSidebar = () => {
       </h1>
 
       <!-- Nav Items (Desktop) -->
-      <ul class="hidden md:flex gap-[60px] items-center">
+      <ul class="hidden sm:flex sm:gap-8 lg:gap-[60px] items-center">
         <li>Discover</li>
         <li>Review</li>
         <li>About</li>
@@ -122,7 +122,7 @@ const toggleSidebar = () => {
 
       <!-- Sign In (Desktop) -->
       <div
-        class="hidden cursor-pointer md:flex px-4.5 py-2.5 gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
+        class="hidden cursor-pointer sm:flex px-4.5 py-2.5 gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
         @click="isLoginOpen = true"
       >
         <Login />
@@ -134,16 +134,16 @@ const toggleSidebar = () => {
   <!-- After Scroll Navbar (Sticky Top) -->
   <nav
     :class="[
-      'fixed top-0 left-0 right-0 z-50 transition-all duration-500 font-pr bg-white px-6 md:px-[100px] border-b-[1.6px] border-neu-100 md:border-none',
+      'fixed top-0 left-0 right-0 z-50 transition-all duration-500 font-pr bg-white px-6 sm:px-12 lg:px-[100px] border-b-[1.6px] border-neu-100 sm:border-none',
       isSticky ? 'translate-y-0 opacity-100' : '-translate-y-40 opacity-0',
     ]"
   >
     <div
-      class="md:px-10 py-4 flex justify-between gap-4 md:gap-0 items-center md:border-b-[1.6px] md:border-neu-100"
+      class="sm:px-2 lg:px-10 py-4 flex justify-between gap-4 items-center sm:border-b-[1.6px] sm:border-neu-100"
     >
       <div class="flex items-center gap-1">
         <!-- Burger Icon (Mobile) -->
-        <div class="md:hidden">
+        <div class="sm:hidden">
           <button @click="toggleSidebar" aria-label="Toggle sidebar">
             <svg
               class="w-6 h-6 text-gray-700"
@@ -156,16 +156,16 @@ const toggleSidebar = () => {
             </svg>
           </button>
         </div>
-        <h1 class="text-xl md:text-3xl font-se font-semibold leading-[38px]">
+        <h1 class="text-xl md:text-2xl lg:text-3xl font-se font-semibold leading-[38px]">
           Bali<span class="text-pr-500">nara</span>
         </h1>
       </div>
 
       <form
-        class="flex md:max-w-[560px] w-full items-center justify-between rounded-full outline outline-neu-200 p-1"
+        class="flex sm:max-w-[560px] w-full items-center justify-between rounded-full outline outline-neu-200 p-1"
       >
         <div class="wrapper gap-2 ps-1.5 flex items-center w-full">
-          <Search class="size-7 md:size-5" />
+          <Search class="min-w-5" />
           <input
             type="text"
             class="w-full text-xs md:text-sm leading-5 placeholder:text-neu-500 focus:outline-none"
@@ -174,23 +174,25 @@ const toggleSidebar = () => {
         </div>
         <button
           type="submit"
-          class="px-4 md:px-6 py-1.5 flex gap-2 items-center justify-center font-medium leading-6 text-sm md:text-[16px] bg-pr-500 rounded-full text-neu-50"
+          class="px-4 md:px-6 py-1.5 flex text-sm lg:text-base gap-2 items-center justify-center font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
         >
           Search
         </button>
       </form>
 
-      <ul class="hidden md:flex gap-[60px] items-center">
+      <ul
+        class="hidden sm:flex text-base sm:text-sm lg:text-base gap-4 lg:gap-8 xl:gap-[60px] items-center"
+      >
         <li>Discover</li>
         <li>Review</li>
         <li>About</li>
       </ul>
 
       <div
-        class="hidden md:flex px-4.5 py-2.5 gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
+        class="hidden whitespace-nowrap sm:flex px-4.5 py-2.5 text-sm lg:text-base gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
         @click="isLoginOpen = true"
       >
-        <Login />
+        <Login class="hidden lg:flex" />
         Sign in
       </div>
     </div>
