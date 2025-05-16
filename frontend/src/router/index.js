@@ -24,13 +24,13 @@ const router = createRouter({
       props: true,
     },
     {
-      path: '/suggest',
-      name: 'Suggest',
+      path: '/suggest-spot',
+      name: 'SuggestSpot',
       component: About,
     },
     {
-      path: '/review',
-      name: 'Review',
+      path: '/write-review',
+      name: 'WriteReview',
       component: About,
     },
     {

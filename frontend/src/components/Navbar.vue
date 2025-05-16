@@ -70,7 +70,7 @@ const toggleSidebar = () => {
         </h1>
 
         <div class="bg-neu-100 h-[1px] w-full"></div>
-        <ul class="flex flex-col text-neu-800 gap-4">
+        <ul class="flex flex-col font-medium text-neu-700 gap-4">
           <li>Discover</li>
           <li>Review</li>
           <li>About</li>
@@ -109,15 +109,70 @@ const toggleSidebar = () => {
           </svg>
         </button>
       </div>
-      <h1 class="text-2xl md:text-3xl font-se font-semibold leading-[38px]">
+      <RouterLink
+        :to="{ name: 'Home' }"
+        class="text-2xl md:text-3xl font-se font-semibold leading-[38px]"
+      >
         Bali<span class="text-pr-500">nara</span>
-      </h1>
+      </RouterLink>
 
       <!-- Nav Items (Desktop) -->
-      <ul class="hidden sm:flex sm:gap-8 lg:gap-[60px] items-center">
-        <li>Discover</li>
-        <li>Review</li>
-        <li>About</li>
+      <ul class="hidden sm:flex sm:gap-8 lg:gap-[60px] items-center font-medium text-neu-700">
+        <li class="flex flex-col items-center justify-center group">
+          <RouterLink
+            :to="{ name: 'Destinations' }"
+            class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+            >Discover</RouterLink
+          >
+          <span
+            class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
+          ></span>
+        </li>
+        <li
+          id="dropdownHoverButton"
+          data-dropdown-toggle="dropdownHoverNav"
+          data-dropdown-trigger="hover"
+          data-dropdown-placement="bottom-start"
+          class="cursor-pointer flex flex-col items-center justify-center group"
+        >
+          <span class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+            >Review</span
+          >
+          <span
+            class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
+          ></span>
+        </li>
+
+        <!-- Dropdown menu -->
+        <div id="dropdownHoverNav" class="z-50 hidden bg-sur-50 rounded-2xl p-2 shadow-md">
+          <ul class="flex flex-col gap-2" aria-labelledby="dropdownHoverButton">
+            <li>
+              <RouterLink
+                :to="{ name: 'WriteReview' }"
+                class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                >Suggest a spot</RouterLink
+              >
+            </li>
+            <li>
+              <RouterLink
+                :to="{ name: 'SuggestSpot' }"
+                class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                >Write a review</RouterLink
+              >
+            </li>
+          </ul>
+        </div>
+
+        <li class="flex flex-col items-center justify-center group">
+          <RouterLink
+            :to="{ name: 'About' }"
+            class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+            >About</RouterLink
+          >
+          <span
+            class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
+          ></span>
+        </li>
       </ul>
 
       <!-- Sign In (Desktop) -->
@@ -156,9 +211,12 @@ const toggleSidebar = () => {
             </svg>
           </button>
         </div>
-        <h1 class="text-xl md:text-2xl lg:text-3xl font-se font-semibold leading-[38px]">
+        <RouterLink
+          :to="{ name: 'Home' }"
+          class="text-xl md:text-2xl lg:text-3xl font-se font-semibold leading-[38px]"
+        >
           Bali<span class="text-pr-500">nara</span>
-        </h1>
+        </RouterLink>
       </div>
 
       <form
@@ -181,11 +239,63 @@ const toggleSidebar = () => {
       </form>
 
       <ul
-        class="hidden sm:flex text-base sm:text-sm lg:text-base gap-4 lg:gap-8 xl:gap-[60px] items-center"
+        class="hidden sm:flex text-base sm:text-sm lg:text-base gap-4 lg:gap-8 xl:gap-[60px] items-center font-medium text-neu-700"
       >
-        <li>Discover</li>
-        <li>Review</li>
-        <li>About</li>
+        <li class="flex flex-col items-center justify-center group">
+          <RouterLink
+            :to="{ name: 'Destinations' }"
+            class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+            >Discover</RouterLink
+          >
+          <span
+            class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
+          ></span>
+        </li>
+        <li
+          id="dropdownHoverButton"
+          data-dropdown-toggle="dropdownHoverNav"
+          data-dropdown-trigger="hover"
+          data-dropdown-placement="bottom-start"
+          class="cursor-pointer flex flex-col items-center justify-center group"
+        >
+          <span class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+            >Review</span
+          >
+          <span
+            class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
+          ></span>
+        </li>
+
+        <!-- Dropdown menu -->
+        <div id="dropdownHoverNav" class="z-50 hidden bg-sur-50 rounded-2xl p-2 shadow-md">
+          <ul class="flex flex-col gap-2" aria-labelledby="dropdownHoverButton">
+            <li>
+              <RouterLink
+                :to="{ name: 'WriteReview' }"
+                class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                >Suggest a spot</RouterLink
+              >
+            </li>
+            <li>
+              <RouterLink
+                :to="{ name: 'SuggestSpot' }"
+                class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                >Write a review</RouterLink
+              >
+            </li>
+          </ul>
+        </div>
+
+        <li class="flex flex-col items-center justify-center group">
+          <RouterLink
+            :to="{ name: 'About' }"
+            class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+            >About</RouterLink
+          >
+          <span
+            class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
+          ></span>
+        </li>
       </ul>
 
       <div
