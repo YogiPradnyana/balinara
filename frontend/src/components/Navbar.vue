@@ -130,7 +130,7 @@ const toggleSidebar = () => {
         </li>
         <li
           id="dropdownHoverButton"
-          data-dropdown-toggle="dropdownHoverNav"
+          data-dropdown-toggle="dropdownHoverNavbar"
           data-dropdown-trigger="hover"
           data-dropdown-placement="bottom-start"
           class="cursor-pointer flex flex-col items-center justify-center group"
@@ -144,20 +144,20 @@ const toggleSidebar = () => {
         </li>
 
         <!-- Dropdown menu -->
-        <div id="dropdownHoverNav" class="z-50 hidden bg-sur-50 rounded-2xl p-2 shadow-md">
+        <div id="dropdownHoverNavbar" class="z-50 hidden bg-sur-50 rounded-2xl p-2 shadow-md">
           <ul class="flex flex-col gap-2" aria-labelledby="dropdownHoverButton">
             <li>
               <RouterLink
                 :to="{ name: 'WriteReview' }"
                 class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                >Suggest a spot</RouterLink
+                >Write a review</RouterLink
               >
             </li>
             <li>
               <RouterLink
                 :to="{ name: 'SuggestSpot' }"
                 class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                >Write a review</RouterLink
+                >Suggest a spot</RouterLink
               >
             </li>
           </ul>
@@ -273,14 +273,14 @@ const toggleSidebar = () => {
               <RouterLink
                 :to="{ name: 'WriteReview' }"
                 class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                >Suggest a spot</RouterLink
+                >Write a review</RouterLink
               >
             </li>
             <li>
               <RouterLink
                 :to="{ name: 'SuggestSpot' }"
                 class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                >Write a review</RouterLink
+                >Suggest a spot</RouterLink
               >
             </li>
           </ul>

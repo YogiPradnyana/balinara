@@ -1,6 +1,7 @@
 import About from '@/pages/About.vue'
 import DetailDestination from '@/pages/DetailDestination.vue'
 import Home from '@/pages/Home.vue'
+import SuggestSpot from '@/pages/SuggestSpot.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const router = createRouter({
@@ -26,7 +27,7 @@ const router = createRouter({
     {
       path: '/suggest-spot',
       name: 'SuggestSpot',
-      component: About,
+      component: SuggestSpot,
     },
     {
       path: '/write-review',
