@@ -7,7 +7,7 @@ import Subtract from '@/components/icons/Subtract.vue'
 </script>
 <template>
   <div class="px-6 sm:px-16 lg:px-[140px]">
-    <form class="flex flex-col lg:flex-row gap-6 lg:gap-16 mt-16">
+    <form class="flex flex-col lg:flex-row gap-6 lg:gap-16 mt-10 md:mt-16">
       <!-- Form Left -->
       <div class="w-full md:w-3/4 lg:min-w-80 xl:min-w-120 flex flex-col gap-6">
         <h1 class="text-4xl sm:text-[42px] font-semibold leading-12 sm:leading-[62px] font-se">

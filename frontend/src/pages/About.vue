@@ -8,7 +8,7 @@ import OutlinedLocation from '@/components/icons/OutlinedLocation.vue'
 <template>
   <div class="px-6 sm:px-16 lg:px-[140px]">
     <!-- Hero Section -->
-    <section class="h-[560px] mt-16 overflow-hidden rounded-3xl">
+    <section class="h-[560px] mt-10 md:mt-16 overflow-hidden rounded-3xl">
       <div class="relative h-full w-full">
         <img src="@/assets/images/diamond-beach.webp" alt="" class="object-cover w-full h-full" />
 

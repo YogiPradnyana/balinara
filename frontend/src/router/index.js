@@ -1,6 +1,7 @@
 import About from '@/pages/About.vue'
 import DetailDestination from '@/pages/DetailDestination.vue'
 import Home from '@/pages/Home.vue'
+import Wishlist from '@/pages/Profile/Wishlist.vue'
 import SuggestSpot from '@/pages/SuggestSpot.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -43,12 +44,11 @@ const router = createRouter({
     // User Profile
     {
       path: '/profile',
-      component: About,
       children: [
         { path: '', name: 'Profile', component: About },
-        { path: 'wishlist', name: 'Wishlist', component: About },
-        { path: 'reviews', name: 'UserReviews', component: About },
-        { path: 'suggestions', name: 'UserSuggestions', component: About },
+        { path: 'wishlist', name: 'Wishlist', component: Wishlist },
+        { path: 'reviews', name: 'UserReview', component: About },
+        { path: 'suggestions', name: 'UserSuggestion', component: About },
         { path: 'suggestions/:id', name: 'SuggestionDetail', component: About },
       ],
     },

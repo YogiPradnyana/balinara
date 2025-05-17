@@ -14,14 +14,14 @@ import Toilet from '@/components/icons/facilities/Toilet.vue'
 import Heart from '@/components/icons/Heart.vue'
 import Location from '@/components/icons/Location.vue'
 import Mail from '@/components/icons/Mail.vue'
-import StarFiiled from '@/components/icons/StarFiiled.vue'
+import StarFilled from '@/components/icons/StarFilled.vue'
 import Temple from '@/components/icons/Temple.vue'
 </script>
 <template>
   <!-- Main Content -->
   <div class="px-6 sm:px-16 lg:px-[140px]">
     <!-- Breadcrumb -->
-    <nav class="flex gap-1 mt-8 sm:mt-14 items-center">
+    <nav class="flex gap-1 mt-10 md:mt-14 items-center">
       <ArrowLeft />
       <div class="flex gap-2 text-sm sm:text-base items-center text-neu-500">
         <a href="#" class="text-neu-900"><span>Discover</span></a>
@@ -209,11 +209,11 @@ import Temple from '@/components/icons/Temple.vue'
               </p>
             </div>
             <div class="flex mt-1.5 gap-1 items-center">
-              <StarFiiled />
-              <StarFiiled />
-              <StarFiiled />
-              <StarFiiled />
-              <StarFiiled />
+              <StarFilled />
+              <StarFilled />
+              <StarFilled />
+              <StarFilled />
+              <StarFilled />
             </div>
             <div class="gap-2 mt-3 min-w-fit flex items-center">
               <img
@@ -239,11 +239,11 @@ import Temple from '@/components/icons/Temple.vue'
               </p>
             </div>
             <div class="flex mt-1.5 gap-1 items-center">
-              <StarFiiled />
-              <StarFiiled />
-              <StarFiiled />
-              <StarFiiled />
-              <StarFiiled />
+              <StarFilled />
+              <StarFilled />
+              <StarFilled />
+              <StarFilled />
+              <StarFilled />
             </div>
             <div class="gap-2 mt-3 min-w-fit flex items-center">
               <img
@@ -292,7 +292,7 @@ import Temple from '@/components/icons/Temple.vue'
             <img
               src="@/assets/images/mount-agung.webp"
               alt="Ubud Village"
-              class="object-cover w-full h-60 rounded-4xl transition-transform duration-500 ease-in-out"
+              class="object-cover w-full h-60 rounded-3xl transition-transform duration-500 ease-in-out"
             />
             <div
               class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
@@ -301,7 +301,7 @@ import Temple from '@/components/icons/Temple.vue'
                 <div
                   class="py-1 px-2.5 flex items-center justify-center font-medium text-sm gap-1 bg-sur-50 rounded-full"
                 >
-                  <StarFiiled class="size-4 md:size-4.5" />
+                  <StarFilled class="size-4 md:size-4.5" />
                   4.8
                 </div>
                 <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">

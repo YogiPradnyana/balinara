@@ -7,12 +7,12 @@ import Leaf from '@/components/icons/Leaf.vue'
 import AI from '@/components/icons/AI.vue'
 import Send from '@/components/icons/Send.vue'
 import DoubleQuotes from '@/components/icons/DoubleQuotes.vue'
-import StarFiiled from '@/components/icons/StarFiiled.vue'
+import StarFilled from '@/components/icons/StarFilled.vue'
 </script>
 
 <template>
   <div class="px-6 sm:px-16 lg:px-[140px]">
-    <main class="flex-col flex items-center gap-8 mt-8 md:mt-16">
+    <main class="flex-col flex items-center gap-8 mt-10 md:mt-16">
       <div class="flex flex-col gap-3 text-center items-center">
         <h1 class="text-[40px] md:text-[48px] font-semibold leading-14 md:leading-[62px] font-se">
           Your Journey to <span class="text-pr-500">Bali</span> Starts Here
@@ -305,11 +305,11 @@ import StarFiiled from '@/components/icons/StarFiiled.vue'
                       Udin Surudin
                     </p>
                     <div class="flex gap-[2px] items-center">
-                      <StarFiiled class="size-3.5" />
-                      <StarFiiled class="size-3.5" />
-                      <StarFiiled class="size-3.5" />
-                      <StarFiiled class="size-3.5" />
-                      <StarFiiled class="size-3.5" />
+                      <StarFilled class="size-3.5" />
+                      <StarFilled class="size-3.5" />
+                      <StarFilled class="size-3.5" />
+                      <StarFilled class="size-3.5" />
+                      <StarFilled class="size-3.5" />
                     </div>
                   </div>
                 </div>
