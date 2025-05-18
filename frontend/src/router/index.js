@@ -2,6 +2,7 @@ import About from '@/pages/About.vue'
 import Destination from '@/pages/Destination.vue'
 import DetailDestination from '@/pages/DetailDestination.vue'
 import Home from '@/pages/Home.vue'
+import Suggest from '@/pages/Profile/Suggest.vue'
 import Wishlist from '@/pages/Profile/Wishlist.vue'
 import SuggestSpot from '@/pages/SuggestSpot.vue'
 import { createRouter, createWebHistory } from 'vue-router'
@@ -49,7 +50,7 @@ const router = createRouter({
         { path: '', name: 'Profile', component: About },
         { path: 'wishlist', name: 'Wishlist', component: Wishlist },
         { path: 'reviews', name: 'UserReview', component: About },
-        { path: 'suggestions', name: 'UserSuggestion', component: About },
+        { path: 'suggestions', name: 'UserSuggestion', component: Suggest },
         { path: 'suggestions/:id', name: 'SuggestionDetail', component: About },
       ],
     },
