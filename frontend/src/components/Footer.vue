@@ -6,7 +6,7 @@ import Threads from '@/components/icons/social-media/Threads.vue'
 </script>
 <template>
   <footer
-    class="mt-24 md:mt-30 font-pr bg-neu-100 py-16 md:py-20 px-6 md:px-[140px] flex flex-col gap-8"
+    class="mt-24 md:mt-30 font-pr bg-neu-100 py-16 md:py-20 px-6 sm:px-16 lg:px-[140px] flex flex-col gap-8"
   >
     <div class="flex justify-between flex-wrap items-start">
       <div class="max-w-full xl:max-w-[520px] mb-12">

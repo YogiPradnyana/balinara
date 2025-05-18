@@ -74,7 +74,7 @@ import StarFilled from '@/components/icons/StarFilled.vue'
             effortlessly.
           </p>
           <div class="p-4 flex items-center w-fit h-fit justify-center bg-pr-500 rounded-full">
-            <ArrowUpRight class="size-5 sm:size-9 text-neu-50" />
+            <ArrowUpRight class="size-5 sm:size-6 lg:size-9 text-neu-50" />
           </div>
         </div>
       </div>

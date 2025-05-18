@@ -2,6 +2,7 @@
 @import 'tailwindcss';
 
 @theme {
+  --breakpoint-xs: 480px;
   --font-pr: 'Montserrat', 'sans-serif';
   --font-se: 'Overpass', 'sans-serif';
   --color-pr-50: #ecf4f0;

@@ -1,5 +1,4 @@
 <script setup>
-import Footer from '@/components/Footer.vue'
 import ArrowLeft from '@/components/icons/ArrowLeft.vue'
 import ArrowRight2 from '@/components/icons/ArrowRight2.vue'
 import ArrowUpRight from '@/components/icons/ArrowUpRight.vue'
@@ -62,23 +61,25 @@ import Temple from '@/components/icons/Temple.vue'
 
     <!-- Info Section -->
     <section class="mb-8 mt-13">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-16">
-        <div class="md:col-span-2">
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 sm:gap-16">
+        <div class="xl:col-span-2">
           <div>
-            <div class="flex items-center justify-between">
-              <h1 class="text-4xl md:text-[42px] font-se font-semibold leading-12">Tanah Lot</h1>
-              <div class="flex gap-2.5">
+            <div class="flex items-start gap-2 sm:items-center justify-between">
+              <h1 class="text-3xl md:text-4xl lg:text-[42px] font-se font-semibold leading-12">
+                Tanah Lot
+              </h1>
+              <div class="flex gap-1.5 sm:gap-2.5">
                 <div
                   class="bg-[#F1F8F9] text-sm sm:text-base px-4 gap-2 py-2 rounded-full font-medium items-center text-se-500 flex"
                 >
-                  <Temple class="size-5 sm:size-6" />
+                  <Temple class="size-5 sm:size-6 hidden sm:block" />
                   Temple
                 </div>
                 <div
-                  class="px-4 border-neu-200 text-sm sm:text-base border-[1.6px] gap-2 py-2 rounded-full font-medium items-center flex"
+                  class="px-2 sm:px-4 border-neu-200 text-sm sm:text-base border-[1.6px] gap-2 py-2 rounded-full font-medium items-center flex"
                 >
                   <Heart class="size-5 sm:size-6" />
-                  Save
+                  <span class="hidden sm:block">Save</span>
                 </div>
               </div>
             </div>
@@ -135,7 +136,9 @@ import Temple from '@/components/icons/Temple.vue'
           </div>
         </div>
 
-        <div class="p-6 border-neu-200 text-sm sm:text-base h-fit border rounded-3xl">
+        <div
+          class="p-6 border-neu-200 text-sm sm:text-base max-w-120 xl:w-full h-fit border rounded-3xl"
+        >
           <div class="gap-3 flex flex-col">
             <p class="font-medium text-base">Entrance Ticket</p>
             <p class="ml-6">Rp 75.000 - 120.000</p>
@@ -158,7 +161,7 @@ import Temple from '@/components/icons/Temple.vue'
     <!-- Location Map -->
     <section class="mt-8sm:mt-16">
       <h2 class="text-xl font-semibold mb-4">Location</h2>
-      <div class="w-full h-[420px] rounded-3xl overflow-hidden">
+      <div class="w-full h-64 sm:h-[420px] rounded-3xl overflow-hidden">
         <iframe
           class="w-full h-full"
           src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d126716.86249239304!2d115.00318589688208!3d-8.620116957947658!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd2465b5ed1c7c3%3A0x60ee9fa80ff10d53!2sTanah%20Lot!5e0!3m2!1sen!2sid!4v1715437775084!5m2!1sen!2sid"
@@ -198,6 +201,8 @@ import Temple from '@/components/icons/Temple.vue'
       <!-- Review cards -->
       <div class="flex flex-col md:flex-row gap-8 mt-8">
         <div
+          v-for="i in 2"
+          :key="i"
           class="flex items-center rounded-2xl md:rounded-3xl outline-neu-200 outline-1 bg-sur-50 py-2 md:py-4 px-3 md:px-5"
         >
           <div class="w-full">
@@ -209,47 +214,17 @@ import Temple from '@/components/icons/Temple.vue'
               </p>
             </div>
             <div class="flex mt-1.5 gap-1 items-center">
-              <StarFilled />
-              <StarFilled />
-              <StarFilled />
-              <StarFilled />
-              <StarFilled />
+              <StarFilled class="size-5 sm:size-6" />
+              <StarFilled class="size-5 sm:size-6" />
+              <StarFilled class="size-5 sm:size-6" />
+              <StarFilled class="size-5 sm:size-6" />
+              <StarFilled class="size-5 sm:size-6" />
             </div>
             <div class="gap-2 mt-3 min-w-fit flex items-center">
               <img
                 src="@/assets/images/User Avatar.jpg"
                 alt="User Profile"
-                class="size-10.5 rounded-full"
-              />
-              <p class="text-neu-900 font-medium whitespace-nowrap text-xs sm:text-sm">
-                Udin Surudin
-              </p>
-            </div>
-          </div>
-        </div>
-        <div
-          class="flex items-center rounded-2xl md:rounded-3xl outline-neu-200 outline-1 bg-sur-50 py-2 md:py-4 px-3 md:px-5"
-        >
-          <div class="w-full">
-            <div class="flex-col flex gap-2">
-              <DoubleQuotes class="size-6 sm:size-8 text-neu-900" />
-              <p class="text-neu-600 text-sm sm:text-base h-10 sm:h-12 line-clamp-2">
-                The sunset at Tanah Lot was absolutely breathtaking! A magical moment I’ll remember
-                forever.
-              </p>
-            </div>
-            <div class="flex mt-1.5 gap-1 items-center">
-              <StarFilled />
-              <StarFilled />
-              <StarFilled />
-              <StarFilled />
-              <StarFilled />
-            </div>
-            <div class="gap-2 mt-3 min-w-fit flex items-center">
-              <img
-                src="@/assets/images/User Avatar.jpg"
-                alt="User Profile"
-                class="size-10.5 rounded-full"
+                class="size-9 sm:size-10.5 rounded-full"
               />
               <p class="text-neu-900 font-medium whitespace-nowrap text-xs sm:text-sm">
                 Udin Surudin
@@ -272,7 +247,7 @@ import Temple from '@/components/icons/Temple.vue'
         <h2 class="text-[32px] md:text-[48px] font-semibold leading-12 md:leading-[72px] font-se">
           Your Next Bali <span class="text-pr-500">Adventure</span> Awaits
         </h2>
-        <div class="flex justify-between items-center gap-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <p class="text-neu-600 text-sm max-w-[746px] sm:text-base mt-3">
             Let the magic of Bali lead you to new places. Keep scrolling, keep exploring — your next
             adventure is just a click away.
@@ -287,12 +262,12 @@ import Temple from '@/components/icons/Temple.vue'
       </div>
 
       <div class="flex gap-6 mt-8 w-fit">
-        <div v-for="i in 4" :key="i" class="overflow-hidden w-[340px] h-fit group">
+        <div v-for="i in 4" :key="i" class="overflow-hidden w-80 sm:w-[340px] h-fit group">
           <div class="relative h-fit w-full">
             <img
               src="@/assets/images/mount-agung.webp"
               alt="Ubud Village"
-              class="object-cover w-full h-60 rounded-3xl transition-transform duration-500 ease-in-out"
+              class="object-cover w-full h-52 sm:h-60 rounded-3xl transition-transform duration-500 ease-in-out"
             />
             <div
               class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
@@ -319,7 +294,7 @@ import Temple from '@/components/icons/Temple.vue'
               </div>
             </div>
           </div>
-          <div class="w-full px-2 mt-4">
+          <div class="w-full px-2 mt-2 sm:mt-4">
             <h3 class="text-base sm:text-lg leading-7 text-neu-900 font-semibold">Mount Agung</h3>
             <p class="text-sm sm:text-base text-neu-600 mt-1 line-clamp-2 whitespace-normal">
               Mount Agung is Bali's highest and most sacred mountain, presenting a challenging trek
@@ -330,5 +305,4 @@ import Temple from '@/components/icons/Temple.vue'
       </div>
     </section>
   </div>
-  <Footer />
 </template>

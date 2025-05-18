@@ -1,4 +1,5 @@
 import About from '@/pages/About.vue'
+import Destination from '@/pages/Destination.vue'
 import DetailDestination from '@/pages/DetailDestination.vue'
 import Home from '@/pages/Home.vue'
 import Wishlist from '@/pages/Profile/Wishlist.vue'
@@ -17,7 +18,7 @@ const router = createRouter({
     {
       path: '/destinations',
       name: 'Destinations',
-      component: About,
+      component: Destination,
     },
     {
       path: '/destinations/:id',
