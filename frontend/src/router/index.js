@@ -2,6 +2,7 @@ import About from '@/pages/About.vue'
 import Destination from '@/pages/Destination.vue'
 import DetailDestination from '@/pages/DetailDestination.vue'
 import Home from '@/pages/Home.vue'
+import Profile from '@/pages/Profile/Profile.vue'
 import Suggest from '@/pages/Profile/Suggest.vue'
 import Wishlist from '@/pages/Profile/Wishlist.vue'
 import SuggestSpot from '@/pages/SuggestSpot.vue'
@@ -45,9 +46,9 @@ const router = createRouter({
 
     // User Profile
     {
-      path: '/profile',
+      path: '/user',
       children: [
-        { path: '', name: 'Profile', component: About },
+        { path: 'profile', name: 'Profile', component: Profile },
         { path: 'wishlist', name: 'Wishlist', component: Wishlist },
         { path: 'reviews', name: 'UserReview', component: About },
         { path: 'suggestions', name: 'UserSuggestion', component: Suggest },
