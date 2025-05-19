@@ -1,5 +1,6 @@
 <script setup>
-import LoginCard from './auth/LoginCard.vue'
+import LoginEmailModal from './auth/LoginEmailModal.vue'
+import LoginModal from './auth/LoginModal.vue'
 import Exit from './icons/Exit.vue'
 import Login from './icons/Login.vue'
 import Search from './icons/Search.vue'
@@ -308,7 +309,8 @@ const toggleSidebar = () => {
     </div>
   </nav>
 
-  <LoginCard v-if="isLoginOpen" @close="isLoginOpen = false" />
+  <!-- <LoginModal v-if="isLoginOpen" @close="isLoginOpen = false" /> -->
+  <LoginEmailModal />
 </template>
 
 <style scoped>
