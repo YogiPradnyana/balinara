@@ -3,15 +3,15 @@ import { ref } from 'vue'
 import ArrowLeftBold from '../icons/ArrowLeftBold.vue'
 import Exit from '../icons/Exit.vue'
 import Show from '../icons/Show.vue'
-import RegisterEmailModal from './RegisterEmailModal.vue'
+import LoginEmailModal from './LoginEmailModal.vue'
 
-const emit = defineEmits(['closeLoginEmail', 'closeAll'])
+const emit = defineEmits(['closeRegisterEmail', 'closeAll'])
 
 const handleClose = (close) => {
-  close ? emit('closeAll') : emit('closeLoginEmail')
+  close ? emit('closeAll') : emit('closeRegisterEmail')
 }
 
-const isRegisterEmailOpen = ref(false)
+const isLoginEmailOpen = ref(false)
 </script>
 <template>
   <!-- Overlay -->
@@ -19,7 +19,7 @@ const isRegisterEmailOpen = ref(false)
     class="fixed inset-0 font-pr p-4 text-neu-900 bg-neu-900/50 flex items-center justify-center z-50"
   >
     <div
-      class="bg-white px-4 pt-4 pb-8 flex-col flex items-end rounded-3xl w-full max-w-sm md:max-w-md animate-fadeIn"
+      class="bg-white px-4 pt-4 pb-8 flex-col flex items-end rounded-3xl w-full max-w-sm md:max-w-lg animate-fadeIn"
     >
       <div class="flex justify-between items-center w-full">
         <ArrowLeftBold
@@ -42,25 +42,35 @@ const isRegisterEmailOpen = ref(false)
         >
           <button
             type="button"
-            class="cursor-pointer px-8 sm:px-10 md:px-12 py-2 flex gap-2 items-center justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
+            class="px-8 sm:px-10 md:px-12 py-2 flex gap-2 items-center justify-center text-sm md:text-base font-medium leading-6 bg-none rounded-full text-neu-500"
           >
             Sign in
           </button>
           <button
+            @click="isLoginEmailOpen = true"
             type="button"
-            @click="isRegisterEmailOpen = true"
-            class="cursor-pointer px-8 sm:px-10 md:px-12 py-2 flex gap-2 items-center justify-center text-sm md:text-base font-medium leading-6 bg-none rounded-full text-neu-500"
+            class="px-8 sm:px-10 md:px-12 py-2 flex gap-2 items-center justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
           >
             Sign up
           </button>
         </div>
-        <h2 class="text-lg sm:text-xl font-semibold mt-4 md:mt-6 leading-8 w-full">
-          Welcome back.
-        </h2>
+        <div class="flex w-full">
+          <h2 class="text-lg sm:text-xl font-semibold mt-4 md:mt-6 leading-8 w-full md:max-w-72">
+            Join Balinara to start your Bali journey.
+          </h2>
+        </div>
         <form class="flex flex-col w-full">
           <div class="space-y-4 mt-5 md:mt-8 w-full">
             <div class="flex flex-col gap-3">
-              <label class="text-sm font-semibold">Email</label>
+              <label class="text-sm font-semibold">Username</label>
+              <input
+                type="text"
+                class="w-full border text-sm px-3 py-3 border-neu-200 rounded-full"
+                placeholder="Username"
+              />
+            </div>
+            <div class="flex flex-col gap-3">
+              <label class="text-sm font-semibold">Email Address</label>
               <input
                 type="email"
                 class="w-full border text-sm px-3 py-3 border-neu-200 rounded-full"
@@ -68,7 +78,7 @@ const isRegisterEmailOpen = ref(false)
               />
             </div>
             <div class="flex flex-col gap-3">
-              <label class="text-sm font-semibold">Password</label>
+              <label class="text-sm font-semibold">Create a Password</label>
               <div class="relative flex">
                 <input
                   type="password"
@@ -78,23 +88,18 @@ const isRegisterEmailOpen = ref(false)
                 <Show class="size-5.5 absolute top-1/2 -translate-y-1/2 right-3" />
               </div>
             </div>
-            <p class="text-sm md:text-base font-medium underline">Forgot password?</p>
           </div>
           <button
             type="submit"
             class="px-4.5 w-full py-2.5 md:py-3 flex gap-2 mt-8 items-center justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
           >
-            Sign in
+            Sign up
           </button>
         </form>
       </div>
     </div>
   </div>
-  <RegisterEmailModal
-    v-if="isRegisterEmailOpen"
-    @closeAll="handleClose(true)"
-    @closeRegisterEmail="handleClose(false)"
-  />
+  <LoginEmailModal v-if="isLoginEmailOpen" @closeLoginEmail="isLoginEmailOpen = false" />
 </template>
 
 <style scoped>

@@ -1,13 +1,17 @@
 <script setup>
+import { ref } from 'vue'
 import Exit from '../icons/Exit.vue'
 import Mail from '../icons/Mail.vue'
 import Google from '../icons/social-media/Google.vue'
+import LoginEmailModal from './LoginEmailModal.vue'
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['closeLogin'])
 
 const handleClose = () => {
-  emit('close')
+  emit('closeLogin')
 }
+
+const isLoginEmailOpen = ref(false)
 </script>
 <template>
   <!-- Overlay -->
@@ -43,6 +47,7 @@ const handleClose = () => {
           </button>
           <button
             type="button"
+            @click="isLoginEmailOpen = true"
             class="border-[1.2px] rounded-full cursor-pointer border-neu-900 flex gap-3 px-6 py-3 justify-center items-center font-medium"
           >
             <Mail />
@@ -59,6 +64,11 @@ const handleClose = () => {
       </div>
     </div>
   </div>
+  <LoginEmailModal
+    v-if="isLoginEmailOpen"
+    @closeAll="handleClose"
+    @closeLoginEmail="isLoginEmailOpen = false"
+  />
 </template>
 
 <style scoped>
