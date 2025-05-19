@@ -5,6 +5,7 @@ import Home from '@/pages/Home.vue'
 import Profile from '@/pages/Profile/Profile.vue'
 import Suggest from '@/pages/Profile/Suggest.vue'
 import Wishlist from '@/pages/Profile/Wishlist.vue'
+import Search from '@/pages/Search.vue'
 import SuggestSpot from '@/pages/SuggestSpot.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -42,6 +43,11 @@ const router = createRouter({
       path: '/about',
       name: 'About',
       component: About,
+    },
+    {
+      path: '/search',
+      name: 'Search',
+      component: Search,
     },
 
     // User Profile
