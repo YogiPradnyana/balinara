@@ -5,13 +5,14 @@ import Exit from '../icons/Exit.vue'
 import Show from '../icons/Show.vue'
 import RegisterEmailModal from './RegisterEmailModal.vue'
 
-const emit = defineEmits(['closeLoginEmail', 'closeAll'])
+const emit = defineEmits(['closeLoginEmail', 'closeAll', 'switchRegister'])
 
 const handleClose = (close) => {
   close ? emit('closeAll') : emit('closeLoginEmail')
 }
-
-const isRegisterEmailOpen = ref(false)
+const handleSwitch = () => {
+  emit('switchRegister')
+}
 </script>
 <template>
   <!-- Overlay -->
@@ -48,7 +49,7 @@ const isRegisterEmailOpen = ref(false)
           </button>
           <button
             type="button"
-            @click="isRegisterEmailOpen = true"
+            @click="handleSwitch"
             class="cursor-pointer px-8 sm:px-10 md:px-12 py-2 flex gap-2 items-center justify-center text-sm md:text-base font-medium leading-6 bg-none rounded-full text-neu-500"
           >
             Sign up
@@ -90,11 +91,6 @@ const isRegisterEmailOpen = ref(false)
       </div>
     </div>
   </div>
-  <RegisterEmailModal
-    v-if="isRegisterEmailOpen"
-    @closeAll="handleClose(true)"
-    @closeRegisterEmail="handleClose(false)"
-  />
 </template>
 
 <style scoped>

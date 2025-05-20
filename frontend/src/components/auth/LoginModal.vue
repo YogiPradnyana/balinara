@@ -4,14 +4,16 @@ import Exit from '../icons/Exit.vue'
 import Mail from '../icons/Mail.vue'
 import Google from '../icons/social-media/Google.vue'
 import LoginEmailModal from './LoginEmailModal.vue'
+import RegisterEmailModal from './RegisterEmailModal.vue'
 
-const emit = defineEmits(['closeLogin'])
+const emit = defineEmits(['close'])
 
 const handleClose = () => {
-  emit('closeLogin')
+  emit('close')
 }
 
 const isLoginEmailOpen = ref(false)
+const isRegisterEmailOpen = ref(false)
 </script>
 <template>
   <!-- Overlay -->
@@ -68,6 +70,13 @@ const isLoginEmailOpen = ref(false)
     v-if="isLoginEmailOpen"
     @closeAll="handleClose"
     @closeLoginEmail="isLoginEmailOpen = false"
+    @switchRegister="((isLoginEmailOpen = false), (isRegisterEmailOpen = true))"
+  />
+  <RegisterEmailModal
+    v-if="isRegisterEmailOpen"
+    @closeAll="handleClose"
+    @closeRegisterEmail="isRegisterEmailOpen = false"
+    @switchLogin="((isLoginEmailOpen = true), (isRegisterEmailOpen = false))"
   />
 </template>
 

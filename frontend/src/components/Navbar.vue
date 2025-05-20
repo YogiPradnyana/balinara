@@ -310,7 +310,7 @@ const toggleSidebar = () => {
     </div>
   </nav>
 
-  <LoginModal v-if="isLoginOpen" @closeLogin="isLoginOpen = false" />
+  <LoginModal v-if="isLoginOpen" @close="isLoginOpen = false" />
   <!-- <LoginEmailModal /> -->
   <!-- <RegisterEmailModal /> -->
 </template>
