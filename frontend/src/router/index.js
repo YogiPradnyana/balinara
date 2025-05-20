@@ -3,6 +3,7 @@ import Destination from '@/pages/Destination.vue'
 import DetailDestination from '@/pages/DetailDestination.vue'
 import Home from '@/pages/Home.vue'
 import Profile from '@/pages/Profile/Profile.vue'
+import Review from '@/pages/Profile/Review.vue'
 import Suggest from '@/pages/Profile/Suggest.vue'
 import Wishlist from '@/pages/Profile/Wishlist.vue'
 import Search from '@/pages/Search.vue'
@@ -56,7 +57,7 @@ const router = createRouter({
       children: [
         { path: 'profile', name: 'Profile', component: Profile },
         { path: 'wishlist', name: 'Wishlist', component: Wishlist },
-        { path: 'reviews', name: 'UserReview', component: About },
+        { path: 'reviews', name: 'UserReview', component: Review },
         { path: 'suggestions', name: 'UserSuggestion', component: Suggest },
         { path: 'suggestions/:id', name: 'SuggestionDetail', component: About },
       ],
