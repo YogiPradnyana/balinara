@@ -1,6 +1,7 @@
 import About from '@/pages/About.vue'
 import Destination from '@/pages/Destination.vue'
 import DetailDestination from '@/pages/DetailDestination.vue'
+import DetailSuggest from '@/pages/DetailSuggest.vue'
 import Home from '@/pages/Home.vue'
 import Profile from '@/pages/Profile/Profile.vue'
 import Suggest from '@/pages/Profile/Suggest.vue'
@@ -58,7 +59,7 @@ const router = createRouter({
         { path: 'wishlist', name: 'Wishlist', component: Wishlist },
         { path: 'reviews', name: 'UserReview', component: About },
         { path: 'suggestions', name: 'UserSuggestion', component: Suggest },
-        { path: 'suggestions/:id', name: 'SuggestionDetail', component: About },
+        { path: 'suggestions/:id', name: 'SuggestionDetail', component: DetailSuggest },
       ],
     },
   ],
