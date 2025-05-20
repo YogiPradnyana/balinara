@@ -11,7 +11,7 @@ import StarFilled from '@/components/icons/StarFilled.vue'
 </script>
 
 <template>
-  <div class="px-6 sm:px-16 lg:px-[140px]">
+  <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <main class="flex-col flex items-center gap-8 mt-10 md:mt-16">
       <div class="flex flex-col gap-3 text-center items-center">
         <h1 class="text-[40px] md:text-[48px] font-semibold leading-14 md:leading-[62px] font-se">

@@ -12,7 +12,7 @@ import StarFilled from '@/components/icons/StarFilled.vue'
 
 <template>
   <!-- Hero Section -->
-  <div class="px-6 sm:px-16 lg:px-[140px]">
+  <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <main class="flex-col flex items-center gap-8 mt-10 md:mt-16">
       <div class="flex flex-col gap-3 text-center items-center">
         <h1

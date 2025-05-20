@@ -5,9 +5,7 @@ import Youtube from '@/components/icons/social-media/Youtube.vue'
 import Threads from '@/components/icons/social-media/Threads.vue'
 </script>
 <template>
-  <footer
-    class="mt-24 md:mt-30 font-pr bg-neu-100 py-16 md:py-20 px-6 sm:px-16 lg:px-[140px] flex flex-col gap-8"
-  >
+  <footer class="font-pr bg-neu-100 py-16 md:py-20 px-6 sm:px-16 lg:px-[140px] flex flex-col gap-8">
     <div class="flex justify-between flex-wrap items-start">
       <div class="max-w-full xl:max-w-[520px] mb-12">
         <h1 class="font-se text-2xl md:text-[32px] leading-8 md:leading-12 font-semibold">

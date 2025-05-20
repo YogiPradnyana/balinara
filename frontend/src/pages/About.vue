@@ -6,7 +6,7 @@ import Mail from '@/components/icons/Mail.vue'
 import OutlinedLocation from '@/components/icons/OutlinedLocation.vue'
 </script>
 <template>
-  <div class="px-6 sm:px-16 lg:px-[140px]">
+  <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <!-- Hero Section -->
     <section class="h-[560px] mt-10 md:mt-16 overflow-hidden rounded-3xl">
       <div class="relative h-full w-full">

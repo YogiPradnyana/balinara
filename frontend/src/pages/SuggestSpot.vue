@@ -6,7 +6,7 @@ import Photo from '@/components/icons/Photo.vue'
 import Subtract from '@/components/icons/Subtract.vue'
 </script>
 <template>
-  <div class="px-6 sm:px-16 lg:px-[140px]">
+  <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <form class="flex flex-col lg:flex-row gap-6 lg:gap-16 mt-10 md:mt-16">
       <!-- Form Left -->
       <div class="w-full md:w-3/4 lg:min-w-80 xl:min-w-120 flex flex-col gap-6">

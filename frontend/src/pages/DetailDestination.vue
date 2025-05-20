@@ -18,7 +18,7 @@ import Temple from '@/components/icons/Temple.vue'
 </script>
 <template>
   <!-- Main Content -->
-  <div class="px-6 sm:px-16 lg:px-[140px]">
+  <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <!-- Breadcrumb -->
     <nav class="flex gap-1 mt-10 md:mt-14 items-center">
       <ArrowLeft />
