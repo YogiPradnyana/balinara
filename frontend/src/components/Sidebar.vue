@@ -6,7 +6,7 @@ import User from '@/components/icons/User.vue'
 </script>
 <template>
   <aside
-    class="hidden lg:block min-w-56 xl:min-w-70 min-h-140 border-neu-200 border-r bg-sur-50 rounded-3xl p-4"
+    class="hidden lg:block min-w-56 xl:min-w-70 h-140 border-neu-200 border-r bg-sur-50 rounded-3xl p-4"
   >
     <div class="flex flex-col gap-6">
       <div class="gap-2 flex flex-col xl:flex-row items-center">
