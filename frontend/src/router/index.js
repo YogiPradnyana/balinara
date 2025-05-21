@@ -1,4 +1,7 @@
+import AdminLayout from '@/layouts/AdminLayout.vue'
+import AppLayout from '@/layouts/AppLayout.vue'
 import About from '@/pages/About.vue'
+import Dashboard from '@/pages/admin/Dashboard.vue'
 import Destination from '@/pages/Destination.vue'
 import DetailDestination from '@/pages/DetailDestination.vue'
 import DetailSuggest from '@/pages/DetailSuggest.vue'
@@ -14,54 +17,65 @@ import { createRouter, createWebHistory } from 'vue-router'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // Public
     {
       path: '/',
-      name: 'Home',
-      component: Home,
-    },
-    {
-      path: '/destinations',
-      name: 'Destinations',
-      component: Destination,
-    },
-    {
-      path: '/destinations/:id',
-      name: 'DetailDestinations',
-      component: DetailDestination,
-      props: true,
-    },
-    {
-      path: '/suggest-spot',
-      name: 'SuggestSpot',
-      component: SuggestSpot,
-    },
-    {
-      path: '/write-review',
-      name: 'WriteReview',
-      component: About,
-    },
-    {
-      path: '/about',
-      name: 'About',
-      component: About,
-    },
-    {
-      path: '/search',
-      name: 'Search',
-      component: Search,
+      component: AppLayout,
+      children: [
+        // Public
+        {
+          path: '/',
+          name: 'Home',
+          component: Home,
+        },
+        {
+          path: '/destinations',
+          name: 'Destinations',
+          component: Destination,
+        },
+        {
+          path: '/destinations/:id',
+          name: 'DetailDestinations',
+          component: DetailDestination,
+          props: true,
+        },
+        {
+          path: '/suggest-spot',
+          name: 'SuggestSpot',
+          component: SuggestSpot,
+        },
+        {
+          path: '/write-review',
+          name: 'WriteReview',
+          component: About,
+        },
+        {
+          path: '/about',
+          name: 'About',
+          component: About,
+        },
+        {
+          path: '/search',
+          name: 'Search',
+          component: Search,
+        },
+        // User Profile
+        {
+          path: '/user',
+          children: [
+            { path: 'profile', name: 'Profile', component: Profile },
+            { path: 'wishlist', name: 'Wishlist', component: Wishlist },
+            { path: 'reviews', name: 'UserReview', component: Review },
+            { path: 'suggestions', name: 'UserSuggestion', component: Suggest },
+            { path: 'suggestions/:id', name: 'SuggestionDetail', component: DetailSuggest },
+          ],
+        },
+      ],
     },
 
-    // User Profile
     {
-      path: '/user',
-      children: [
-        { path: 'profile', name: 'Profile', component: Profile },
-        { path: 'wishlist', name: 'Wishlist', component: Wishlist },
-        { path: 'reviews', name: 'UserReview', component: Review },
-        { path: 'suggestions', name: 'UserSuggestion', component: Suggest },
-        { path: 'suggestions/:id', name: 'SuggestionDetail', component: DetailSuggest },
-      ],
+      path: '/admin',
+      component: AdminLayout,
+      children: [{ path: 'dashboard', name: 'Dashboard', component: Dashboard }],
     },
   ],
 })
