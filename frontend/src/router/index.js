@@ -1,5 +1,5 @@
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import AppLayout from '@/layouts/AppLayout.vue'
+import { createRouter, createWebHistory } from 'vue-router'
+
 import About from '@/pages/About.vue'
 import Dashboard from '@/pages/admin/Dashboard.vue'
 import Destination from '@/pages/Destination.vue'
@@ -12,7 +12,16 @@ import Suggest from '@/pages/Profile/Suggest.vue'
 import Wishlist from '@/pages/Profile/Wishlist.vue'
 import Search from '@/pages/Search.vue'
 import SuggestSpot from '@/pages/SuggestSpot.vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import AdminLayout from '@/layouts/AdminLayout.vue'
+import AppLayout from '@/layouts/AppLayout.vue'
+// ===============================================
+// IMPOR KOMPONEN CHAT GEMINI ANDA
+// Asumsi ChatGemini.vue ada di src/components/
+// ===============================================
+import ChatGemini from '@/components/Chatgemini.vue' // SESUAIKAN PATH INI JIKA BERBEDA!
+// Jika ChatGemini.vue ada di folder 'pages' (misalnya src/pages/ChatGemini.vue), maka:
+// import ChatGemini from '@/pages/ChatGemini.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,7 +32,7 @@ const router = createRouter({
       children: [
         // Public
         {
-          path: '/',
+          path: '',
           name: 'Home',
           component: Home,
         },
@@ -58,6 +67,11 @@ const router = createRouter({
           name: 'Search',
           component: Search,
         },
+        {
+          path: '/chat-gemini', // URL yang akan Anda gunakan
+          name: 'ChatGemini',   // Nama rute
+          component: ChatGemini, // Komponen yang akan dirender
+        },
         // User Profile
         {
           path: '/user',
@@ -71,7 +85,6 @@ const router = createRouter({
         },
       ],
     },
-
     {
       path: '/admin',
       component: AdminLayout,
