@@ -19,6 +19,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 // Asumsi ChatGemini.vue ada di src/components/
 // ===============================================
 import ChatGemini from '@/components/Chatgemini.vue' // SESUAIKAN PATH INI JIKA BERBEDA!
+import CreateDestinations from '@/pages/CreateDestinations.vue'
 // Jika ChatGemini.vue ada di folder 'pages' (misalnya src/pages/ChatGemini.vue), maka:
 // import ChatGemini from '@/pages/ChatGemini.vue'
 
@@ -66,6 +67,11 @@ const router = createRouter({
           path: '/search',
           name: 'Search',
           component: Search,
+        },
+        {
+          path: '/createdestinations',
+          name: 'createdestination',
+          component: CreateDestinations,
         },
         {
           path: '/chat-gemini', // URL yang akan Anda gunakan
