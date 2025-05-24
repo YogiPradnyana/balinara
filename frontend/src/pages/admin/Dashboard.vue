@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ArrowRight from '@/components/icons/ArrowRight.vue'
-import ArrowRight2 from '@/components/icons/ArrowRight2.vue'
+import ArrowRight2Bold from '@/components/icons/ArrowRight2Bold.vue'
 import MapPin from '@/components/icons/MapPin.vue'
 import Message from '@/components/icons/Message.vue'
 import OutlinedLocation from '@/components/icons/OutlinedLocation.vue'
@@ -58,7 +58,7 @@ import User from '@/components/icons/User.vue'
         </div>
       </div>
     </div>
-    <div class="flex flex-col rounded-3xl border border-neu-100 overflow-hidden">
+    <div class="flex flex-col rounded-3xl border border-neu-100">
       <div class="flex p-4">
         <h2 class="font-semibold">New Suggestions</h2>
       </div>
@@ -112,7 +112,12 @@ import User from '@/components/icons/User.vue'
             <span class="font-medium text-neu-900">10</span> Entries
           </div>
           <div class="flex items-center rounded-[8px] overflow-hidden">
-            <div class="flex bg-neu-100 items-center">Prev<ArrowRight2 class="size-4" /></div>
+            <div class="flex bg-neu-100 text-neu-300 gap-2 h-8 px-3 items-center font-semibold">
+              <ArrowRight2Bold class="size-4 scale-x-[-1]" />Prev
+            </div>
+            <div class="flex bg-neu-100 gap-2 h-8 px-3 cursor-pointer items-center font-semibold">
+              Next<ArrowRight2Bold class="size-4" />
+            </div>
           </div>
         </div>
       </div>

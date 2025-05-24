@@ -11,8 +11,8 @@ import Sidebar from '@/components/admin/Sidebar.vue'
       <Header />
       <div class="flex-1 overflow-y-scroll">
         <RouterView />
+        <Footer />
       </div>
-      <Footer />
     </div>
   </div>
 </template>

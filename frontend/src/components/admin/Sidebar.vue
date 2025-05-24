@@ -1,5 +1,4 @@
 <script setup>
-import Heart from '@/components/icons/Heart.vue'
 import Home from '@/components/icons/Home.vue'
 import MapPin from '@/components/icons/MapPin.vue'
 import Message from '@/components/icons/Message.vue'
@@ -8,7 +7,9 @@ import Tag from '@/components/icons/Tag.vue'
 import Users from '@/components/icons/Users.vue'
 </script>
 <template>
-  <div class="min-w-64 flex flex-col gap-10 p-4 min-h-screen bg-sur-50 border-r border-neu-200">
+  <div
+    class="min-w-64 hidden lg:flex flex-col gap-10 p-4 min-h-screen bg-sur-50 border-r border-neu-200"
+  >
     <h1 class="text-2xl font-se font-semibold pl-3">Bali<span class="text-pr-500">nara</span></h1>
     <div class="space-y-4 text-sm">
       <div class="space-y-3">
