@@ -6,13 +6,20 @@ import ArrowUpRight from '@/components/icons/ArrowUpRight.vue'
 import BigBali from '@/components/icons/BigBali.vue'
 import Heart from '@/components/icons/Heart.vue'
 import Location from '@/components/icons/Location.vue'
+import Penjor from '@/components/icons/Penjor.vue'
 import Search from '@/components/icons/Search.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
 </script>
 
 <template>
   <!-- Hero Section -->
-  <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
+  <div
+    class="hidden lg:flex justify-between absolute -z-50 items-center right-0 left-0 top-40 xl:top-32"
+  >
+    <Penjor class="w-28 xl:w-[132px]" />
+    <Penjor class="transform w-28 xl:w-[132px] scale-x-[-1]" />
+  </div>
+  <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30 z-50">
     <main class="flex-col flex items-center gap-8 mt-10 md:mt-16">
       <div class="flex flex-col gap-3 text-center items-center">
         <h1
@@ -44,7 +51,7 @@ import StarFilled from '@/components/icons/StarFilled.vue'
         </button>
       </form>
       <div class="relative overflow-hidden w-full h-56 md:h-64 lg:h-[380px] rounded-3xl">
-        <img :src="mainImage" alt="Ubud Village" class="object-cover w-full h-full" />
+        <img :src="mainImage" alt="" class="object-cover w-full h-full" />
         <div class="flex flex-col justify-between absolute bottom-0 top-0 left-0 p-4 md:p-6">
           <div
             class="px-4 py-2.5 flex gap-1.5 items-center w-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900"

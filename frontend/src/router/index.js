@@ -19,9 +19,9 @@ import AppLayout from '@/layouts/AppLayout.vue'
 // Asumsi ChatGemini.vue ada di src/components/
 // ===============================================
 import ChatGemini from '@/components/Chatgemini.vue' // SESUAIKAN PATH INI JIKA BERBEDA!
+import WriteReview from '@/pages/WriteReview.vue'
 // Jika ChatGemini.vue ada di folder 'pages' (misalnya src/pages/ChatGemini.vue), maka:
 // import ChatGemini from '@/pages/ChatGemini.vue'
-
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -55,7 +55,7 @@ const router = createRouter({
         {
           path: '/write-review',
           name: 'WriteReview',
-          component: About,
+          component: WriteReview,
         },
         {
           path: '/about',
@@ -69,7 +69,7 @@ const router = createRouter({
         },
         {
           path: '/chat-gemini', // URL yang akan Anda gunakan
-          name: 'ChatGemini',   // Nama rute
+          name: 'ChatGemini', // Nama rute
           component: ChatGemini, // Komponen yang akan dirender
         },
         // User Profile
