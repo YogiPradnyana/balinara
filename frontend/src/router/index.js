@@ -21,6 +21,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import ChatGemini from '@/components/Chatgemini.vue' // SESUAIKAN PATH INI JIKA BERBEDA!
 import WriteReview from '@/pages/WriteReview.vue'
 import UserCreate from '@/pages/admin/users/Create.vue'
+import UserEdit from '@/pages/admin/users/Edit.vue'
 // Jika ChatGemini.vue ada di folder 'pages' (misalnya src/pages/ChatGemini.vue), maka:
 // import ChatGemini from '@/pages/ChatGemini.vue'
 
@@ -94,7 +95,10 @@ const router = createRouter({
         {
           path: 'users',
           name: 'AdminUsers',
-          children: [{ path: 'create', name: 'AdminUserCreate', component: UserCreate }],
+          children: [
+            { path: 'create', name: 'AdminUserCreate', component: UserCreate },
+            { path: 'edit/:id', name: 'AdminUserEdit', component: UserEdit },
+          ],
         },
       ],
     },

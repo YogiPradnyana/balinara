@@ -6,13 +6,13 @@ import Show from '@/components/icons/Show.vue'
 <template>
   <div class="p-6 space-y-6">
     <div class="flex flex-col">
-      <h1 class="text-3xl font-se font-semibold">Create Admin</h1>
+      <h1 class="text-3xl font-se font-semibold">Edit Admin</h1>
       <div class="flex gap-2 items-center font-medium">
         <span>Users</span>
         <ArrowRight class="size-4 text-neu-500" />
         <span>Management</span>
         <ArrowRight class="size-4 text-neu-500" />
-        <span class="text-neu-500">Create</span>
+        <span class="text-neu-500">Edit</span>
       </div>
     </div>
 
@@ -47,17 +47,7 @@ import Show from '@/components/icons/Show.vue'
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
           />
         </div>
-        <div class="flex flex-col flex-1 gap-3">
-          <label for="name" class="text-base font-semibold">Password</label>
-          <div class="relative flex">
-            <input
-              type="password"
-              class="w-full border text-sm ps-3 pe-10 py-3 border-neu-200 rounded-full"
-              placeholder="Password"
-            />
-            <Show class="size-5.5 absolute top-1/2 -translate-y-1/2 right-3" />
-          </div>
-        </div>
+        <div class="flex flex-col flex-1 gap-3"></div>
       </div>
     </div>
 
@@ -66,7 +56,7 @@ import Show from '@/components/icons/Show.vue'
         type="submit"
         class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-pr-600 justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
       >
-        Create
+        Save
       </button>
       <button
         type="button"

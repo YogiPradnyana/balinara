@@ -82,7 +82,9 @@ const toggleSidebar = () => {
     </div>
   </aside>
 
-  <div class="flex justify-between items-center px-6 py-3.5 bg-sur-50 border-b border-neu-200">
+  <div
+    class="flex justify-between lg:justify-end items-center px-6 py-3.5 bg-sur-50 border-b border-neu-200"
+  >
     <div class="lg:hidden transform transition-transform duration-500 ease-in-out">
       <button @click="toggleSidebar" aria-label="Toggle sidebar">
         <svg
