@@ -7,10 +7,12 @@ import Sidebar from '@/components/admin/Sidebar.vue'
 <template>
   <div class="flex max-h-screen overflow-hidden font-pr text-neu-900 relative">
     <Sidebar />
-    <div class="flex-1 flex flex-col">
+    <div class="flex-1 min-h-screen flex flex-col">
       <Header />
-      <div class="flex-1 overflow-y-scroll">
-        <RouterView />
+      <div class="flex-1 flex flex-col overflow-y-scroll">
+        <div class="flex-1">
+          <RouterView />
+        </div>
         <Footer />
       </div>
     </div>

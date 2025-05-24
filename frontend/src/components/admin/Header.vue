@@ -13,11 +13,11 @@ const toggleSidebar = () => {
 </script>
 <template>
   <!-- Backdrop for mobile sidebar -->
-  <!-- <div
+  <div
     v-if="isSidebarOpen"
-    class="fixed inset-0 bg-neu-900 opacity-50 z-60 lg:hidden"
+    class="fixed inset-0 bg-neu-900 opacity-50 z-60"
     @click="isSidebarOpen = false"
-  /> -->
+  />
 
   <!-- Mobile Sidebar -->
   <aside
@@ -82,13 +82,8 @@ const toggleSidebar = () => {
     </div>
   </aside>
 
-  <div
-    class="flex justify-between lg:justify-end items-center px-6 py-3.5 bg-sur-50 border-b border-neu-200"
-  >
-    <div
-      class="lg:hidden transform transition-transform duration-500 ease-in-out"
-      :class="[isSidebarOpen ? 'translate-x-63' : 'translate-x-0']"
-    >
+  <div class="flex justify-between items-center px-6 py-3.5 bg-sur-50 border-b border-neu-200">
+    <div class="lg:hidden transform transition-transform duration-500 ease-in-out">
       <button @click="toggleSidebar" aria-label="Toggle sidebar">
         <svg
           class="w-6 h-6 text-gray-700"
@@ -104,7 +99,7 @@ const toggleSidebar = () => {
     <div class="gap-3 w-fit flex items-center">
       <img src="@/assets/images/User Avatar.jpg" alt="User Profile" class="size-9 rounded-full" />
       <p class="text-neu-900 gap-0.5 flex items-center font-medium text-sm max-w-36 line-clamp-1">
-        Udin Surudin<ArrowDown class="text-neu-900" />
+        <span class="hidden sm:block">Udin Surudin</span><ArrowDown class="text-neu-900" />
       </p>
     </div>
   </div>
