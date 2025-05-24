@@ -6,6 +6,7 @@ import Users from '../icons/Users.vue'
 import OutlinedLocation from '../icons/OutlinedLocation.vue'
 import Tag from '../icons/Tag.vue'
 import Message from '../icons/Message.vue'
+import MapPin from '../icons/MapPin.vue'
 const isSidebarOpen = ref(false)
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value
@@ -86,7 +87,7 @@ const toggleSidebar = () => {
     class="flex justify-between lg:justify-end items-center px-6 py-3.5 bg-sur-50 border-b border-neu-200"
   >
     <div class="lg:hidden transform transition-transform duration-500 ease-in-out">
-      <button @click="toggleSidebar" aria-label="Toggle sidebar">
+      <button @click="toggleSidebar" class="cursor-pointer" aria-label="Toggle sidebar">
         <svg
           class="w-6 h-6 text-gray-700"
           fill="none"
