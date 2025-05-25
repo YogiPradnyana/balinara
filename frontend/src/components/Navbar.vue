@@ -3,6 +3,7 @@ import LoginEmailModal from './auth/LoginEmailModal.vue'
 import LoginModal from './auth/LoginModal.vue'
 import RegisterEmailModal from './auth/RegisterEmailModal.vue'
 import Exit from './icons/Exit.vue'
+import HamburgerMenu from './icons/HamburgerMenu.vue'
 import Login from './icons/Login.vue'
 import Search from './icons/Search.vue'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
@@ -100,15 +101,7 @@ const toggleSidebar = () => {
       <!-- Burger Icon (Mobile) -->
       <div class="sm:hidden">
         <button @click="toggleSidebar" aria-label="Toggle sidebar">
-          <svg
-            class="w-6 h-6 text-gray-700"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          <HamburgerMenu class="size-5" />
         </button>
       </div>
       <RouterLink
@@ -196,33 +189,16 @@ const toggleSidebar = () => {
     ]"
   >
     <div
-      class="sm:px-2 lg:px-10 py-4 flex justify-between gap-4 items-center sm:border-b-[1.6px] sm:border-neu-100"
+      class="sm:px-2 lg:px-10 py-4 flex justify-between gap-8 sm:gap-4 items-center sm:border-b-[1.6px] sm:border-neu-100"
     >
-      <div class="flex items-center gap-1">
-        <!-- Burger Icon (Mobile) -->
-        <div class="sm:hidden">
-          <button @click="toggleSidebar" aria-label="Toggle sidebar">
-            <svg
-              class="w-6 h-6 text-gray-700"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-        <RouterLink
-          :to="{ name: 'Home' }"
-          class="text-xl md:text-2xl lg:text-3xl font-se font-semibold leading-[38px]"
-        >
-          Bali<span class="text-pr-500">nara</span>
-        </RouterLink>
+      <div class="sm:hidden">
+        <button @click="toggleSidebar" aria-label="Toggle sidebar">
+          <HamburgerMenu class="size-5" />
+        </button>
       </div>
 
       <form
-        class="flex sm:max-w-[560px] w-full items-center justify-between rounded-full outline outline-neu-200 p-1"
+        class="flex sm:max-w-[560px] sm:order-2 w-full items-center justify-between rounded-full outline outline-neu-200 p-1"
       >
         <div class="wrapper gap-2 ps-1.5 flex items-center w-full">
           <Search class="min-w-5" />
@@ -239,9 +215,14 @@ const toggleSidebar = () => {
           Search
         </button>
       </form>
-
+      <RouterLink
+        :to="{ name: 'Home' }"
+        class="text-xl sm:order-1 md:text-2xl lg:text-3xl font-se font-semibold"
+      >
+        Bali<span class="text-pr-500">nara</span>
+      </RouterLink>
       <ul
-        class="hidden sm:flex text-base sm:text-sm lg:text-base gap-4 lg:gap-8 xl:gap-[60px] items-center font-medium text-neu-700"
+        class="hidden sm:order-3 sm:flex text-base sm:text-sm lg:text-base gap-4 lg:gap-8 xl:gap-[60px] items-center font-medium text-neu-700"
       >
         <li class="flex flex-col items-center justify-center group">
           <RouterLink
@@ -301,7 +282,7 @@ const toggleSidebar = () => {
       </ul>
 
       <div
-        class="hidden whitespace-nowrap sm:flex px-4.5 py-2.5 text-sm lg:text-base gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
+        class="hidden sm:order-4 whitespace-nowrap sm:flex px-4.5 py-2.5 text-sm lg:text-base gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
         @click="isLoginOpen = true"
       >
         <Login class="hidden lg:flex" />

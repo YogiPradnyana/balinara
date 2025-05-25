@@ -20,6 +20,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 // ===============================================
 import ChatGemini from '@/components/Chatgemini.vue' // SESUAIKAN PATH INI JIKA BERBEDA!
 import WriteReview from '@/pages/WriteReview.vue'
+import Users from '@/pages/admin/users/Users.vue'
 import UserCreate from '@/pages/admin/users/Create.vue'
 import UserEdit from '@/pages/admin/users/Edit.vue'
 import UserDetail from '@/pages/admin/users/Detail.vue'
@@ -98,6 +99,7 @@ const router = createRouter({
           path: 'users',
           name: 'AdminUsers',
           children: [
+            { path: '', component: Users },
             { path: 'create', name: 'AdminUserCreate', component: UserCreate },
             { path: 'edit/:id', name: 'AdminUserEdit', component: UserEdit },
             { path: 'detail/:id', name: 'AdminUserDetail', component: UserDetail },

@@ -5,10 +5,10 @@ import { RouterLink } from 'vue-router'
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
-    <div class="flex flex-col">
+  <div class="space-y-6">
+    <div class="flex justify-between gap-3 flex-wrap">
       <h1 class="text-3xl font-se font-semibold">Create Admin</h1>
-      <div class="flex gap-2 items-center font-medium">
+      <div class="flex gap-2 items-center text-sm font-medium">
         <span>Users</span>
         <ArrowRight class="size-4 text-neu-500" />
         <RouterLink :to="{ name: 'AdminUsers' }" class="hover:underline">Management</RouterLink>
