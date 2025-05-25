@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ArrowRight from '@/components/icons/ArrowRight.vue'
 import Show from '@/components/icons/Show.vue'
+import { RouterLink } from 'vue-router'
 </script>
 
 <template>
@@ -10,7 +11,7 @@ import Show from '@/components/icons/Show.vue'
       <div class="flex gap-2 items-center font-medium">
         <span>Users</span>
         <ArrowRight class="size-4 text-neu-500" />
-        <span>Management</span>
+        <RouterLink :to="{ name: 'AdminUsers' }" class="hover:underline">Management</RouterLink>
         <ArrowRight class="size-4 text-neu-500" />
         <span class="text-neu-500">Create</span>
       </div>
