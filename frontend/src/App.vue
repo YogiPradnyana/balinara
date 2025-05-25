@@ -5,5 +5,7 @@ import Footer from './components/Footer.vue'
 </script>
 
 <template>
-  <RouterView />
+  <div class="antialiased">
+    <RouterView />
+  </div>
 </template>

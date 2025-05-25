@@ -12,10 +12,10 @@ import User from '@/components/icons/User.vue'
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
-    <div class="flex flex-col">
+  <div class="space-y-6">
+    <div class="flex justify-between gap-3 flex-wrap">
       <h1 class="text-3xl font-se font-semibold">Dashboard</h1>
-      <div class="flex gap-2 items-center font-medium">
+      <div class="flex gap-2 items-center text-sm font-medium">
         <span>Master</span>
         <ArrowRight class="size-4 text-neu-500" />
         <span class="text-neu-500">Dashboard</span>
@@ -72,39 +72,45 @@ import User from '@/components/icons/User.vue'
             placeholder="Search something..."
           />
         </div>
-        <table class="min-w-full mt-4 outline outline-neu-100 overflow-hidden rounded-2xl">
-          <thead class="bg-pr-500 text-xs text-white">
-            <tr>
-              <th class="p-4 text-start font-semibold w-12">NO</th>
-              <th class="p-4 text-start font-semibold">NAME SPOT</th>
-              <th class="p-4 text-start font-semibold">CATEGORY</th>
-              <th class="p-4 text-start font-semibold w-120">ADDRESS</th>
-              <th class="p-4 text-start font-semibold">ACTION</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="text-sm text-neu-700 border-b border-neu-100" v-for="i in 5" :key="i">
-              <td class="p-4 text-neu-900">1</td>
-              <td class="p-4 text-neu-900 font-semibold">Balangan Beach</td>
-              <td class="p-4">Beach</td>
-              <td class="p-4">Kec. Kuta Sel., Kabupaten Badung, Bali, Indonesia</td>
-              <td class="p-4 text-center flex gap-3">
-                <button
-                  type="button"
-                  class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#214B78] bg-[#295F98]"
-                >
-                  <Show class="size-5 text-neu-50" />
-                </button>
-                <button
-                  type="button"
-                  class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#B71A1A] bg-[#E02424]"
-                >
-                  <TrashCan class="size-5 text-neu-50" />
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+        <div class="mt-4 overflow-hidden border border-neu-100 rounded-2xl">
+          <div class="max-w-full overflow-x-auto">
+            <table class="min-w-180 w-full">
+              <thead class="bg-pr-500 text-xs text-white">
+                <tr>
+                  <th class="p-4 text-start font-semibold w-12">NO</th>
+                  <th class="p-4 text-start font-semibold">NAME SPOT</th>
+                  <th class="p-4 text-start font-semibold">CATEGORY</th>
+                  <th colspan="2" class="p-4 text-start font-semibold">ADDRESS</th>
+                  <th class="p-4 text-start font-semibold">ACTION</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="text-sm text-neu-700 border-b border-neu-100" v-for="i in 5" :key="i">
+                  <td class="p-4 text-neu-900">1</td>
+                  <td class="p-4 text-neu-900 font-semibold">Balangan Beach</td>
+                  <td class="p-4">Beach</td>
+                  <td colspan="2" class="p-4">Kec. Kuta Sel., Kabupaten Badung, Bali, Indonesia</td>
+                  <td class="p-4 flex gap-3">
+                    <button
+                      type="button"
+                      class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#214B78] bg-[#295F98]"
+                    >
+                      <Show class="size-5 text-neu-50" />
+                    </button>
+                    <button
+                      type="button"
+                      class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#B71A1A] bg-[#E02424]"
+                    >
+                      <TrashCan class="size-5 text-neu-50" />
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="flex justify-between items-center mt-3">
           <div class="text-sm text-neu-600">
             Showing <span class="font-medium text-neu-900">1</span> to

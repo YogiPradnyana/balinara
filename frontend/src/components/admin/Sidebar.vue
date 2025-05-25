@@ -5,12 +5,19 @@ import Message from '@/components/icons/Message.vue'
 import OutlinedLocation from '@/components/icons/OutlinedLocation.vue'
 import Tag from '@/components/icons/Tag.vue'
 import Users from '@/components/icons/Users.vue'
+
+const props = defineProps({
+  isSidebarOpen: Boolean,
+})
 </script>
 <template>
-  <div
-    class="min-w-64 hidden lg:flex flex-col gap-10 p-4 min-h-screen bg-sur-50 border-r border-neu-200"
+  <aside
+    class="fixed top-0 left-0 z-999 min-w-64 mt-16 lg:mt-0 -translate-x-full lg:translate-x-0 flex flex-col gap-6 sm:gap-8 p-4 min-h-screen bg-sur-50 border-r border-neu-200 transition-all duration-300 ease-in-out"
+    :class="[isSidebarOpen ? 'translate-x-0' : '']"
   >
-    <h1 class="text-2xl font-se font-semibold pl-3">Bali<span class="text-pr-500">nara</span></h1>
+    <h1 class="text-2xl sm:text-3xl font-se font-semibold pl-3 pt-2 sm:pt-4">
+      Bali<span class="text-pr-500">nara</span>
+    </h1>
     <div class="space-y-4 text-sm">
       <div class="space-y-3">
         <h3 class="text-sm font-semibold uppercase text-neu-500 pl-3">Master</h3>
@@ -66,5 +73,5 @@ import Users from '@/components/icons/Users.vue'
         </RouterLink>
       </div>
     </div>
-  </div>
+  </aside>
 </template>
