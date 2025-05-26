@@ -9,7 +9,7 @@ import { RouterLink } from 'vue-router'
 <template>
   <div class="p-6 space-y-6">
     <div class="flex justify-between gap-3 flex-wrap">
-      <h1 class="text-3xl font-se font-semibold">Edit Destination</h1>
+      <h1 class="text-3xl font-se font-semibold">Detail Destination</h1>
       <div class="flex gap-2 items-center text-sm font-medium">
         <span>Katalog</span>
         <ArrowRight class="size-4 text-neu-500" />
@@ -17,7 +17,7 @@ import { RouterLink } from 'vue-router'
           >Destinations</RouterLink
         >
         <ArrowRight class="size-4 text-neu-500" />
-        <span class="text-neu-500">Edit</span>
+        <span class="text-neu-500">Detail</span>
       </div>
     </div>
 
@@ -33,7 +33,8 @@ import { RouterLink } from 'vue-router'
             id="name"
             placeholder="e.g., Hidden Gem Beach Club"
             value="Tanah Lot"
-            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+            disabled
+            class="px-3 py-3 text-sm border bg-[#F2F2F2] placeholder:text-neu-500 border-neu-200 rounded-full"
           />
         </div>
         <div class="flex flex-col gap-3">
@@ -41,7 +42,8 @@ import { RouterLink } from 'vue-router'
           <div class="relative w-full">
             <select
               id="category"
-              class="w-full px-3 py-3 text-sm text-neu-900 border border-neu-200 rounded-full appearance-none"
+              disabled
+              class="w-full px-3 py-3 text-sm bg-[#F2F2F2] text-neu-900 border border-neu-200 rounded-full appearance-none"
             >
               <option value="" disabled selected hidden>
                 Select a category — Beach, Temple, Mountain, etc.
@@ -60,8 +62,9 @@ import { RouterLink } from 'vue-router'
           <textarea
             id="descriptions"
             rows="7"
+            disabled
             placeholder="Tell us what makes this place special..."
-            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-3xl"
+            class="px-3 py-3 text-sm border bg-[#F2F2F2] placeholder:text-neu-500 border-neu-200 rounded-3xl"
           >
 Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock formation just off the coast. This ancient Hindu shrine is dedicated to the sea gods and is renowned for its stunning ocean views, especially during sunset. The temple's name literally translates to "Land in the Sea," perfectly describing its unique offshore setting. Often regarded as one of Bali's most important landmarks, Tanah Lot not only offers breathtaking scenery but also holds deep spiritual significance for the local Balinese people.</textarea
           >
@@ -84,7 +87,8 @@ Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
           <div class="relative w-full">
             <select
               id="category"
-              class="w-full px-3 py-3 text-sm text-neu-900 border border-neu-200 rounded-full appearance-none"
+              disabled
+              class="w-full px-3 py-3 text-sm bg-[#F2F2F2] text-neu-900 border border-neu-200 rounded-full appearance-none"
             >
               <option value="" disabled selected hidden>Select a facility option</option>
               <option value="parking-area">Parking Area</option>
@@ -102,14 +106,16 @@ Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
               type="text"
               placeholder="Rp 75.000"
               value="Rp 75.000"
-              class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
+              disabled
+              class="px-3 py-3 text-sm bg-[#F2F2F2] w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
             />
             <Subtract class="min-w-2" />
             <input
               type="text"
               placeholder="Rp 120.000"
               value="Rp 120.000"
-              class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
+              disabled
+              class="px-3 py-3 text-sm w-full bg-[#F2F2F2] border placeholder:text-neu-500 border-neu-200 rounded-full"
             />
           </div>
         </div>
@@ -119,16 +125,18 @@ Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
           <label class="text-sm font-semibold">Phone Number</label>
           <input
             type="text"
+            disabled
             placeholder="e.g., +62 812 3456 7890"
             value="081234567891"
-            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+            class="px-3 py-3 text-sm border bg-[#F2F2F2] placeholder:text-neu-500 border-neu-200 rounded-full"
           />
           <label class="text-sm font-semibold mt-1">Mail</label>
           <input
             type="text"
+            disabled
             placeholder="e.g., info@spot.com"
             value="tanahlot@spot.com"
-            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+            class="px-3 py-3 text-sm border bg-[#F2F2F2] placeholder:text-neu-500 border-neu-200 rounded-full"
           />
         </div>
 
@@ -137,14 +145,14 @@ Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
           <div class="w-full">
             <label
               for="photo-upload"
-              class="flex flex-col items-center justify-center w-full h-40 border-[1.6px] border-dashed border-pr-500 rounded-3xl cursor-pointer bg-gray-100 hover:bg-gray-200 transition"
+              class="flex flex-col items-center justify-center w-full h-40 border-[1.6px] border-dashed border-pr-500 rounded-3xl cursor-pointer bg-[#F2F2F2] transition"
             >
               <Photo class="mb-1" />
 
               <p class="text-pr-500 font-medium text-sm mb-[2px]">Click to add photos</p>
               <p class="text-neu-900 text-sm">or drag & drop</p>
 
-              <input id="photo-upload" type="file" class="hidden" multiple />
+              <input id="photo-upload" disabled type="file" class="hidden" multiple />
             </label>
           </div>
           <img
@@ -177,9 +185,10 @@ Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
           <label class="text-base font-semibold">Street</label>
           <input
             type="text"
+            disabled
             placeholder="e.g., Jalan Pantai Kuta"
             value="Beraban Village"
-            class="px-3 py-3 text-sm border border-gray-300 rounded-full"
+            class="px-3 py-3 text-sm border bg-[#F2F2F2] border-gray-300 rounded-full"
           />
         </div>
 
@@ -188,9 +197,10 @@ Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
           <label class="text-base font-semibold">Sub-district</label>
           <input
             type="text"
+            disabled
             placeholder="e.g., Kuta"
             value="Kediri"
-            class="px-3 py-3 text-sm border border-gray-300 rounded-full"
+            class="px-3 py-3 text-sm border bg-[#F2F2F2] border-gray-300 rounded-full"
           />
         </div>
 
@@ -199,9 +209,10 @@ Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
           <label class="text-base font-semibold">Regency</label>
           <input
             type="text"
+            disabled
             placeholder="e.g., Badung"
             value="Tabanan"
-            class="px-3 py-3 text-sm border border-gray-300 rounded-full"
+            class="px-3 py-3 text-sm border bg-[#F2F2F2] border-gray-300 rounded-full"
           />
         </div>
 
@@ -213,18 +224,20 @@ Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
               <label class="font-semibold text-sm mt-1">Latitude</label>
               <input
                 type="text"
+                disabled
                 placeholder="e.g., -8.709201"
                 value="-8.709201"
-                class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
+                class="px-3 py-3 text-sm w-full border bg-[#F2F2F2] placeholder:text-neu-500 border-neu-200 rounded-full"
               />
             </div>
             <div class="flex flex-col gap-3 w-full">
               <label class="font-semibold text-sm mt-1">Longitude</label>
               <input
                 type="text"
+                disabled
                 placeholder="e.g., 115.168263"
                 value="115.168263"
-                class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
+                class="px-3 py-3 text-sm w-full border bg-[#F2F2F2] placeholder:text-neu-500 border-neu-200 rounded-full"
               />
             </div>
           </div>

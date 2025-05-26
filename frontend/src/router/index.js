@@ -26,6 +26,7 @@ import UserEdit from '@/pages/admin/users/Edit.vue'
 import UserDetail from '@/pages/admin/users/Detail.vue'
 import DestinationCreate from '@/pages/admin/destinations/Create.vue'
 import DestinationEdit from '@/pages/admin/destinations/Edit.vue'
+import DestinationDetail from '@/pages/admin/destinations/Detail.vue'
 import UserLists from '@/pages/admin/users/UserLists.vue'
 import Destinations from '@/pages/admin/destinations/Destinations.vue'
 import DestinationLists from '@/pages/admin/destinations/DestinationLists.vue'
@@ -116,7 +117,7 @@ const router = createRouter({
             { path: '', name: 'AdminDestinations', component: DestinationLists },
             { path: 'create', name: 'AdminDestinationCreate', component: DestinationCreate },
             { path: 'edit/:id', name: 'AdminDestinationEdit', component: DestinationEdit },
-            { path: 'detail/:id', name: 'AdminDestinationDetail', component: UserDetail },
+            { path: 'detail/:id', name: 'AdminDestinationDetail', component: DestinationDetail },
           ],
         },
       ],

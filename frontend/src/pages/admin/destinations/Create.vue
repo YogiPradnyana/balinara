@@ -195,21 +195,21 @@ import { RouterLink } from 'vue-router'
         <!-- Latitude & Longitude -->
         <div class="flex flex-col gap-3">
           <h3 class="text-base font-semibold">Coordinate</h3>
-          <div class="flex flex-col sm:flex-row gap-6">
-            <div class="flex flex-col gap-3 w-full sm:w-1/2">
+          <div class="flex flex-col sm:flex-row gap-6 sm:gap-4">
+            <div class="flex flex-col gap-3 w-full">
               <label class="font-semibold text-sm mt-1">Latitude</label>
               <input
                 type="text"
                 placeholder="e.g., -8.709201"
-                class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+                class="px-3 py-3 text-sm border w-full placeholder:text-neu-500 border-neu-200 rounded-full"
               />
             </div>
-            <div class="flex flex-col gap-3 w-full sm:w-1/2">
+            <div class="flex flex-col gap-3 w-full">
               <label class="font-semibold text-sm mt-1">Longitude</label>
               <input
                 type="text"
                 placeholder="e.g., 115.168263"
-                class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+                class="px-3 py-3 text-sm border w-full placeholder:text-neu-500 border-neu-200 rounded-full"
               />
             </div>
           </div>
