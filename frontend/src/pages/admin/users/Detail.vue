@@ -55,12 +55,12 @@ import { RouterLink } from 'vue-router'
     </div>
 
     <div class="flex gap-2.5 items-center">
-      <button
-        type="button"
-        class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-[#FAFAFA] justify-center text-sm md:text-base font-medium leading-6 bg-sur-50 rounded-full border border-neu-900"
+      <RouterLink
+        :to="{ name: 'AdminUsers' }"
+        class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-[#F0F0F0] justify-center text-sm md:text-base font-medium leading-6 bg-sur-50 rounded-full border border-neu-900"
       >
         Back
-      </button>
+      </RouterLink>
     </div>
   </div>
 </template>

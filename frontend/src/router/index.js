@@ -25,6 +25,9 @@ import UserCreate from '@/pages/admin/users/Create.vue'
 import UserEdit from '@/pages/admin/users/Edit.vue'
 import UserDetail from '@/pages/admin/users/Detail.vue'
 import DestinationCreate from '@/pages/admin/destinations/Create.vue'
+import UserLists from '@/pages/admin/users/UserLists.vue'
+import Destinations from '@/pages/admin/destinations/Destinations.vue'
+import DestinationLists from '@/pages/admin/destinations/DestinationLists.vue'
 // Jika ChatGemini.vue ada di folder 'pages' (misalnya src/pages/ChatGemini.vue), maka:
 // import ChatGemini from '@/pages/ChatGemini.vue'
 
@@ -97,9 +100,9 @@ const router = createRouter({
         { path: 'dashboard', name: 'Dashboard', component: Dashboard },
         {
           path: 'users',
-          name: 'AdminUsers',
+          component: Users,
           children: [
-            { path: '', component: Users },
+            { path: '', name: 'AdminUsers', component: UserLists },
             { path: 'create', name: 'AdminUserCreate', component: UserCreate },
             { path: 'edit/:id', name: 'AdminUserEdit', component: UserEdit },
             { path: 'detail/:id', name: 'AdminUserDetail', component: UserDetail },
@@ -107,8 +110,9 @@ const router = createRouter({
         },
         {
           path: 'destinations',
-          name: 'AdminDestinations',
+          component: Destinations,
           children: [
+            { path: '', name: 'AdminDestinations', component: DestinationLists },
             { path: 'create', name: 'AdminDestinationCreate', component: DestinationCreate },
             { path: 'edit/:id', name: 'AdminDestinationEdit', component: UserEdit },
             { path: 'detail/:id', name: 'AdminDestinationDetail', component: UserDetail },

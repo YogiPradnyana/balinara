@@ -22,28 +22,40 @@ const props = defineProps({
       <div class="space-y-3">
         <h3 class="text-sm font-semibold uppercase text-neu-500 pl-3">Master</h3>
         <RouterLink
-          :to="{ name: 'Wishlist' }"
-          class="flex gap-3 items-center text-pr-500 py-2 px-4 font-medium bg-[#EFF6F2] hover:bg-[#EFF6F2] transition-all duration-50 rounded-xl"
+          :to="{ name: 'Dashboard' }"
+          class="flex gap-3 items-center py-2 px-4 font-medium hover:bg-[#EFF6F2] transition-all duration-50 rounded-xl"
+          :class="$route.name === 'Dashboard' ? 'bg-[#EFF6F2] text-pr-500' : ''"
         >
-          <Home class="text-pr-500 size-5" />Dashboard
+          <Home
+            class="size-5"
+            :class="$route.name === 'Dashboard' ? ' text-pr-500' : 'text-neu-500'"
+          />Dashboard
         </RouterLink>
       </div>
       <div class="space-y-3">
         <h3 class="text-sm font-semibold uppercase text-neu-500 pl-3">User</h3>
         <RouterLink
-          :to="{ name: 'Wishlist' }"
+          :to="{ name: 'AdminUsers' }"
           class="flex gap-3 items-center py-2 px-4 font-medium hover:bg-[#EFF6F2] transition-all duration-50 rounded-xl"
+          :class="$route.path.startsWith('/admin/users') ? 'bg-[#EFF6F2] text-pr-500' : ''"
         >
-          <Users class="text-neu-500 size-5" />Management
+          <Users
+            class="size-5"
+            :class="$route.path.startsWith('/admin/users') ? ' text-pr-500' : 'text-neu-500'"
+          />Management
         </RouterLink>
       </div>
       <div class="space-y-3">
         <h3 class="text-sm font-semibold uppercase text-neu-500 pl-3">Katalog</h3>
         <RouterLink
-          :to="{ name: 'Wishlist' }"
+          :to="{ name: 'AdminDestinations' }"
           class="flex gap-3 items-center py-2 px-4 font-medium hover:bg-[#EFF6F2] transition-all duration-50 rounded-xl"
+          :class="$route.path.startsWith('/admin/destinations') ? 'bg-[#EFF6F2] text-pr-500' : ''"
         >
-          <OutlinedLocation class="text-neu-500 size-5" />Destinations
+          <OutlinedLocation
+            class="size-5"
+            :class="$route.path.startsWith('/admin/destinations') ? ' text-pr-500' : 'text-neu-500'"
+          />Destinations
         </RouterLink>
         <RouterLink
           :to="{ name: 'Wishlist' }"

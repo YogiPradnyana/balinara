@@ -9,9 +9,9 @@ import { RouterLink } from 'vue-router'
 
 <template>
   <div class="p-6 space-y-6">
-    <div class="flex flex-col">
+    <div class="flex justify-between gap-3 flex-wrap">
       <h1 class="text-3xl font-se font-semibold">Create Destination</h1>
-      <div class="flex gap-2 items-center font-medium">
+      <div class="flex gap-2 items-center text-sm font-medium">
         <span>Katalog</span>
         <ArrowRight class="size-4 text-neu-500" />
         <RouterLink :to="{ name: 'AdminDestinations' }" class="hover:underline"
@@ -225,12 +225,13 @@ import { RouterLink } from 'vue-router'
       >
         Create
       </button>
-      <button
+      <RouterLink
+        :to="{ name: 'AdminDestinations' }"
         type="button"
-        class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-[#FAFAFA] justify-center text-sm md:text-base font-medium leading-6 bg-sur-50 rounded-full border border-neu-900"
+        class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-[#F0F0F0] justify-center text-sm md:text-base font-medium leading-6 bg-sur-50 rounded-full border border-neu-900"
       >
         Cancel
-      </button>
+      </RouterLink>
     </div>
   </div>
 </template>

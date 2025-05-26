@@ -18,7 +18,7 @@ const isSidebarOpen = ref(false)
     <div class="flex-1 flex flex-col transition-all duration-300 ease-in-out lg:ml-64">
       <Header @sidebar-open="isSidebarOpen = !isSidebarOpen" :is-sidebar-open="isSidebarOpen" />
       <main class="p-6 flex-1 overflow-x-hidden">
-        <RouterView />
+        <RouterView :key="$route.fullPath" />
       </main>
       <Footer />
     </div>
