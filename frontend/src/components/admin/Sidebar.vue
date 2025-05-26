@@ -58,10 +58,14 @@ const props = defineProps({
           />Destinations
         </RouterLink>
         <RouterLink
-          :to="{ name: 'Wishlist' }"
+          :to="{ name: 'AdminCategories' }"
           class="flex gap-3 items-center py-2 px-4 font-medium hover:bg-[#EFF6F2] transition-all duration-50 rounded-xl"
+          :class="$route.path.startsWith('/admin/categories') ? 'bg-[#EFF6F2] text-pr-500' : ''"
         >
-          <Tag class="text-neu-500 size-5" />Categories
+          <Tag
+            class="size-5"
+            :class="$route.path.startsWith('/admin/categories') ? ' text-pr-500' : 'text-neu-500'"
+          />Categories
         </RouterLink>
       </div>
       <div class="space-y-3">

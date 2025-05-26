@@ -30,6 +30,7 @@ import DestinationDetail from '@/pages/admin/destinations/Detail.vue'
 import UserLists from '@/pages/admin/users/UserLists.vue'
 import Destinations from '@/pages/admin/destinations/Destinations.vue'
 import DestinationLists from '@/pages/admin/destinations/DestinationLists.vue'
+import CategoryLists from '@/pages/admin/categories/CategoryLists.vue'
 // Jika ChatGemini.vue ada di folder 'pages' (misalnya src/pages/ChatGemini.vue), maka:
 // import ChatGemini from '@/pages/ChatGemini.vue'
 
@@ -119,6 +120,11 @@ const router = createRouter({
             { path: 'edit/:id', name: 'AdminDestinationEdit', component: DestinationEdit },
             { path: 'detail/:id', name: 'AdminDestinationDetail', component: DestinationDetail },
           ],
+        },
+        {
+          path: 'categories',
+          name: 'AdminCategories',
+          component: CategoryLists,
         },
       ],
     },
