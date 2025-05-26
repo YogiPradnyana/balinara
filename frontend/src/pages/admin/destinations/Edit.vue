@@ -9,7 +9,7 @@ import { RouterLink } from 'vue-router'
 <template>
   <div class="p-6 space-y-6">
     <div class="flex justify-between gap-3 flex-wrap">
-      <h1 class="text-3xl font-se font-semibold">Create Destination</h1>
+      <h1 class="text-3xl font-se font-semibold">Edit Destination</h1>
       <div class="flex gap-2 items-center text-sm font-medium">
         <span>Katalog</span>
         <ArrowRight class="size-4 text-neu-500" />
@@ -17,7 +17,7 @@ import { RouterLink } from 'vue-router'
           >Destinations</RouterLink
         >
         <ArrowRight class="size-4 text-neu-500" />
-        <span class="text-neu-500">Create</span>
+        <span class="text-neu-500">Edit</span>
       </div>
     </div>
 
@@ -32,6 +32,7 @@ import { RouterLink } from 'vue-router'
             type="text"
             id="name"
             placeholder="e.g., Hidden Gem Beach Club"
+            value="Tanah Lot"
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
           />
         </div>
@@ -46,7 +47,7 @@ import { RouterLink } from 'vue-router'
                 Select a category — Beach, Temple, Mountain, etc.
               </option>
               <option value="beach">Beach</option>
-              <option value="temple">Temple</option>
+              <option value="temple" selected>Temple</option>
               <option value="mountain">Mountain</option>
             </select>
             <ArrowDown
@@ -61,7 +62,9 @@ import { RouterLink } from 'vue-router'
             rows="7"
             placeholder="Tell us what makes this place special..."
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-3xl"
-          ></textarea>
+          >
+Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock formation just off the coast. This ancient Hindu shrine is dedicated to the sea gods and is renowned for its stunning ocean views, especially during sunset. The temple's name literally translates to "Land in the Sea," perfectly describing its unique offshore setting. Often regarded as one of Bali's most important landmarks, Tanah Lot not only offers breathtaking scenery but also holds deep spiritual significance for the local Balinese people.</textarea
+          >
         </div>
 
         <div class="flex flex-col gap-3">
@@ -98,12 +101,14 @@ import { RouterLink } from 'vue-router'
             <input
               type="text"
               placeholder="Rp 75.000"
+              value="Rp 75.000"
               class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
             />
             <Subtract class="min-w-2" />
             <input
               type="text"
               placeholder="Rp 120.000"
+              value="Rp 120.000"
               class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
             />
           </div>
@@ -115,12 +120,14 @@ import { RouterLink } from 'vue-router'
           <input
             type="text"
             placeholder="e.g., +62 812 3456 7890"
+            value="081234567891"
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
           />
           <label class="text-sm font-semibold mt-1">Mail</label>
           <input
             type="text"
             placeholder="e.g., info@spot.com"
+            value="tanahlot@spot.com"
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
           />
         </div>
@@ -134,14 +141,17 @@ import { RouterLink } from 'vue-router'
             >
               <Photo class="mb-1" />
 
-              <!-- Text -->
               <p class="text-pr-500 font-medium text-sm mb-[2px]">Click to add photos</p>
               <p class="text-neu-900 text-sm">or drag & drop</p>
 
-              <!-- Hidden input -->
               <input id="photo-upload" type="file" class="hidden" multiple />
             </label>
           </div>
+          <img
+            src="@/assets/images/mount-agung.webp"
+            alt="Ubud Village"
+            class="object-cover w-[200px] h-[112px] rounded-2xl"
+          />
         </div>
       </div>
 
@@ -168,6 +178,7 @@ import { RouterLink } from 'vue-router'
           <input
             type="text"
             placeholder="e.g., Jalan Pantai Kuta"
+            value="Beraban Village"
             class="px-3 py-3 text-sm border border-gray-300 rounded-full"
           />
         </div>
@@ -178,6 +189,7 @@ import { RouterLink } from 'vue-router'
           <input
             type="text"
             placeholder="e.g., Kuta"
+            value="Kediri"
             class="px-3 py-3 text-sm border border-gray-300 rounded-full"
           />
         </div>
@@ -188,6 +200,7 @@ import { RouterLink } from 'vue-router'
           <input
             type="text"
             placeholder="e.g., Badung"
+            value="Tabanan"
             class="px-3 py-3 text-sm border border-gray-300 rounded-full"
           />
         </div>
@@ -201,6 +214,7 @@ import { RouterLink } from 'vue-router'
               <input
                 type="text"
                 placeholder="e.g., -8.709201"
+                value="-8.709201"
                 class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
               />
             </div>
@@ -209,6 +223,7 @@ import { RouterLink } from 'vue-router'
               <input
                 type="text"
                 placeholder="e.g., 115.168263"
+                value="115.168263"
                 class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
               />
             </div>
