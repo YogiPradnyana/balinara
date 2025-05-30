@@ -15,9 +15,12 @@ const props = defineProps({
     class="fixed top-0 left-0 z-999 min-w-64 mt-16 lg:mt-0 -translate-x-full lg:translate-x-0 flex flex-col gap-6 sm:gap-8 p-4 min-h-screen bg-sur-50 border-r border-neu-200 transition-all duration-300 ease-in-out"
     :class="[isSidebarOpen ? 'translate-x-0' : '']"
   >
-    <h1 class="text-2xl sm:text-3xl font-se font-semibold pl-3 pt-2 sm:pt-4">
+    <RouterLink
+      :to="{ name: 'Home' }"
+      class="text-2xl sm:text-3xl font-se font-semibold pl-3 pt-2 sm:pt-4"
+    >
       Bali<span class="text-pr-500">nara</span>
-    </h1>
+    </RouterLink>
     <div class="space-y-4 text-sm">
       <div class="space-y-3">
         <h3 class="text-sm font-semibold uppercase text-neu-500 pl-3">Master</h3>

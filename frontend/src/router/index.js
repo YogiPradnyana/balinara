@@ -129,6 +129,14 @@ const router = createRouter({
       ],
     },
   ],
+  scrollBehavior(to, from, savedPosition) {
+    // Jika kembali (back/forward), pakai posisi sebelumnya
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      return { top: 0 } // Scroll ke atas setiap halaman berubah
+    }
+  },
 })
 
 export default router

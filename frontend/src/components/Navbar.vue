@@ -1,7 +1,5 @@
 <script setup>
-import LoginEmailModal from './auth/LoginEmailModal.vue'
 import LoginModal from './auth/LoginModal.vue'
-import RegisterEmailModal from './auth/RegisterEmailModal.vue'
 import Exit from './icons/Exit.vue'
 import HamburgerMenu from './icons/HamburgerMenu.vue'
 import Login from './icons/Login.vue'
@@ -23,6 +21,9 @@ const isSidebarOpen = ref(false)
 
 const handleScroll = () => {
   isSticky.value = window.scrollY > window.innerHeight
+  import('flowbite').then(({ initDropdowns }) => {
+    initDropdowns() // Inisialisasi ulang dropdown
+  })
 }
 
 onMounted(() => {
@@ -117,16 +118,18 @@ const toggleSidebar = () => {
           <RouterLink
             :to="{ name: 'Destinations' }"
             class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+            :class="$route.name === 'Destinations' ? ' text-pr-500' : ''"
             >Discover</RouterLink
           >
           <span
             class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
+            :class="$route.name === 'Destinations' ? ' w-6' : ''"
           ></span>
         </li>
         <li
-          id="dropdownHoverButton"
-          data-dropdown-toggle="dropdownHoverNavbar"
-          data-dropdown-trigger="hover"
+          id="dropdownDefaultButton"
+          data-dropdown-toggle="dropdown1"
+          data-dropdown-trigger="click"
           data-dropdown-placement="bottom-start"
           class="cursor-pointer flex flex-col items-center justify-center group"
         >
@@ -139,7 +142,7 @@ const toggleSidebar = () => {
         </li>
 
         <!-- Dropdown menu -->
-        <div id="dropdownHoverNavbar" class="z-50 hidden bg-sur-50 rounded-2xl p-2 shadow-md">
+        <div id="dropdown1" class="z-50 hidden bg-sur-50 rounded-2xl p-2 shadow-md">
           <ul class="flex flex-col gap-2" aria-labelledby="dropdownHoverButton">
             <li>
               <RouterLink
@@ -162,10 +165,12 @@ const toggleSidebar = () => {
           <RouterLink
             :to="{ name: 'About' }"
             class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+            :class="$route.name === 'About' ? ' text-pr-500' : ''"
             >About</RouterLink
           >
           <span
             class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
+            :class="$route.name === 'About' ? ' w-6' : ''"
           ></span>
         </li>
       </ul>
@@ -228,20 +233,23 @@ const toggleSidebar = () => {
           <RouterLink
             :to="{ name: 'Destinations' }"
             class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+            :class="$route.name === 'Destinations' ? ' text-pr-500' : ''"
             >Discover</RouterLink
           >
           <span
             class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
+            :class="$route.name === 'Destinations' ? ' w-6' : ''"
           ></span>
         </li>
         <li
-          id="dropdownHoverButton"
-          data-dropdown-toggle="dropdownHoverNav"
-          data-dropdown-trigger="hover"
+          id="dropdownDefaultButton"
+          data-dropdown-toggle="dropdown2"
+          data-dropdown-trigger="click"
           data-dropdown-placement="bottom-start"
           class="cursor-pointer flex flex-col items-center justify-center group"
         >
-          <span class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+          <span
+            class="transition-all flex items-center gap-0.5 duration-400 ease-in-out group-hover:text-pr-500"
             >Review</span
           >
           <span
@@ -250,7 +258,7 @@ const toggleSidebar = () => {
         </li>
 
         <!-- Dropdown menu -->
-        <div id="dropdownHoverNav" class="z-50 hidden bg-sur-50 rounded-2xl p-2 shadow-md">
+        <div id="dropdown2" class="z-50 hidden bg-sur-50 rounded-2xl p-2 shadow-md">
           <ul class="flex flex-col gap-2" aria-labelledby="dropdownHoverButton">
             <li>
               <RouterLink
@@ -273,10 +281,12 @@ const toggleSidebar = () => {
           <RouterLink
             :to="{ name: 'About' }"
             class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
+            :class="$route.name === 'About' ? ' text-pr-500' : ''"
             >About</RouterLink
           >
           <span
             class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
+            :class="$route.name === 'About' ? ' w-6' : ''"
           ></span>
         </li>
       </ul>
