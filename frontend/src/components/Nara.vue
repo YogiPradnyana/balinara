@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import Nara from './icons/Nara.vue'
 import ChatBuble from './icons/ChatBuble.vue'
 import FilledSend from './icons/FilledSend.vue'
@@ -7,6 +7,52 @@ import FilledSend from './icons/FilledSend.vue'
 const isOpen = ref(false) // Awalnya tertutup
 const userInput = ref('')
 const messagesContainer = ref(null) // Untuk auto-scroll
+
+// State untuk pesan callout
+const showCalloutMessage = ref(false)
+const calloutTexts = [
+  'Ada yang bisa dibantu?',
+  'Tanya aku apa saja!',
+  'Butuh bantuan navigasi?',
+  'Halo Traveler!👋',
+]
+const currentCalloutText = ref('')
+let calloutInterval = null
+let calloutDisplayTimeout = null // Timeout untuk menyembunyikan callout setelah beberapa detik
+
+const displayNextCallout = () => {
+  if (isOpen.value) {
+    // Jangan tampilkan jika chat sudah terbuka
+    showCalloutMessage.value = false
+    return
+  }
+
+  // Pilih teks acak dari array
+  const randomIndex = Math.floor(Math.random() * calloutTexts.length)
+  currentCalloutText.value = calloutTexts[randomIndex]
+  showCalloutMessage.value = true
+
+  // Sembunyikan callout setelah beberapa detik
+  clearTimeout(calloutDisplayTimeout) // Hapus timeout sebelumnya jika ada
+  calloutDisplayTimeout = setTimeout(() => {
+    showCalloutMessage.value = false
+  }, 4000) // Tampilkan selama 4 detik
+}
+
+onMounted(() => {
+  // Tampilkan callout pertama setelah beberapa detik delay awal
+  setTimeout(() => {
+    displayNextCallout()
+    // Atur interval untuk menampilkan callout berikutnya
+    // Total waktu: 4 detik tampil + 6 detik tunggu = 10 detik per siklus
+    calloutInterval = setInterval(displayNextCallout, 10000) // Munculkan pesan baru setiap 10 detik
+  }, 2000) // Delay awal 2 detik sebelum callout pertama muncul
+})
+
+onUnmounted(() => {
+  clearInterval(calloutInterval)
+  clearTimeout(calloutDisplayTimeout)
+})
 
 const messages = ref([
   {
@@ -28,6 +74,9 @@ const suggestedReplies = ref([
 const toggleChat = () => {
   isOpen.value = !isOpen.value
   if (isOpen.value) {
+    // Jika chat dibuka, sembunyikan callout dan hentikan sementara interval
+    showCalloutMessage.value = false
+    clearTimeout(calloutDisplayTimeout) // Hapus timeout jika ada
     scrollToBottom()
   }
 }
@@ -100,6 +149,18 @@ const sendSuggestedReply = (reply) => {
 </script>
 
 <style scoped>
+.callout-fade-enter-active,
+.callout-fade-leave-active {
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+.callout-fade-enter-from,
+.callout-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px); /* Muncul dari sedikit ke bawah dan fade in */
+}
+
 /* Custom scrollbar for Webkit browsers (Chrome, Safari) */
 .scrollbar-thin::-webkit-scrollbar {
   width: 6px; /* Lebar scrollbar horizontal dan vertikal */
@@ -125,11 +186,24 @@ const sendSuggestedReply = (reply) => {
 
 <template>
   <div class="fixed bottom-5 right-5 z-50 font-pr text-neu-900">
+    <!-- Pesan Callout/Notifikasi di atas ikon -->
+    <Transition name="callout-fade">
+      <div
+        v-if="showCalloutMessage && !isOpen"
+        class="absolute bottom-full right-0 mb-4 min-w-[150px] max-w-[200px] p-3 bg-white rounded-lg shadow-lg text-sm z-10"
+      >
+        <!-- Segitiga kecil penunjuk ke bawah -->
+        <div
+          class="absolute bottom-[-8px] right-[20px] w-0 h-0 border-l-[8px] border-l-transparent border-t-[8px] border-t-white border-r-[8px] border-r-transparent"
+        ></div>
+        {{ currentCalloutText }}
+      </div>
+    </Transition>
     <!-- Tombol Toggler Chat -->
     <button
       @click="toggleChat"
       class="text-white cursor-pointer rounded-full flex items-center justify-center transition-transform duration-300 ease-in-out"
-      :class="[isOpen ? 'shadow-lg rotate-90 hidden sm:block bg-pr-500 p-3' : '']"
+      :class="[isOpen ? 'shadow-lg rotate-90 hidden sm:block bg-pr-500 p-3' : 'hover:scale-105']"
       aria-label="Toggle Chat"
     >
       <!-- Ikon X jika terbuka, ikon chat jika tertutup -->
