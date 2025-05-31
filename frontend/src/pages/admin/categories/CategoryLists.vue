@@ -98,7 +98,7 @@ watch(isEditOpen, (val) => {
           </div>
         </div>
 
-        <div class="flex justify-between items-center mt-3">
+        <div class="flex justify-between items-center gap-3 flex-wrap mt-3">
           <div class="text-sm text-neu-600">
             Showing <span class="font-medium text-neu-900">1</span> to
             <span class="font-medium text-neu-900">1</span> of

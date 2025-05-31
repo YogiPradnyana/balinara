@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="space-y-6">
     <div class="flex flex-col">
       <h1 class="text-3xl font-se font-semibold">Detail User</h1>
       <div class="flex gap-2 items-center font-medium">

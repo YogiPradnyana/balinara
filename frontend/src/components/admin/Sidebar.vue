@@ -74,10 +74,14 @@ const props = defineProps({
       <div class="space-y-3">
         <h3 class="text-sm font-semibold uppercase text-neu-500 pl-3">REVIEWS</h3>
         <RouterLink
-          :to="{ name: 'Wishlist' }"
+          :to="{ name: 'AdminReviews' }"
           class="flex gap-3 items-center py-2 px-4 font-medium hover:bg-[#EFF6F2] transition-all duration-50 rounded-xl"
+          :class="$route.path.startsWith('/admin/reviews') ? 'bg-[#EFF6F2] text-pr-500' : ''"
         >
-          <Message class="text-neu-500 size-5" />Testimonials
+          <Message
+            class="size-5"
+            :class="$route.path.startsWith('/admin/reviews') ? ' text-pr-500' : 'text-neu-500'"
+          />Testimonials
         </RouterLink>
         <RouterLink
           :to="{ name: 'Wishlist' }"

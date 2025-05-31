@@ -7,7 +7,7 @@ import { RouterLink } from 'vue-router'
 </script>
 
 <template>
-  <div class="p-6 space-y-6">
+  <div class="space-y-6">
     <div class="flex justify-between gap-3 flex-wrap">
       <h1 class="text-3xl font-se font-semibold">Edit Destination</h1>
       <div class="flex gap-2 items-center text-sm font-medium">
