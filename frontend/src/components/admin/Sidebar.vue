@@ -84,11 +84,17 @@ const props = defineProps({
           />Testimonials
         </RouterLink>
         <RouterLink
-          :to="{ name: 'Wishlist' }"
+          :to="{ name: 'AdminSuggestions' }"
           class="flex justify-between items-center py-2 px-4 font-medium hover:bg-[#EFF6F2] transition-all duration-50 rounded-xl"
+          :class="$route.path.startsWith('/admin/suggestions') ? 'bg-[#EFF6F2] text-pr-500' : ''"
         >
           <span class="flex items-center gap-3"
-            ><MapPin class="text-neu-500 size-5" />Suggested Spot</span
+            ><MapPin
+              class="size-5"
+              :class="
+                $route.path.startsWith('/admin/suggestions') ? ' text-pr-500' : 'text-neu-500'
+              "
+            />Suggested Spot</span
           ><span
             class="flex items-center text-neu-50 text-sm rounded-[6px] justify-center px-2 bg-pr-500"
             >2</span

@@ -142,19 +142,6 @@ Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
 
         <div class="flex flex-col gap-3">
           <label for="name" class="text-base font-semibold">Photo</label>
-          <div class="w-full">
-            <label
-              for="photo-upload"
-              class="flex flex-col items-center justify-center w-full h-40 border-[1.6px] border-dashed border-pr-500 rounded-3xl cursor-pointer bg-[#F2F2F2] transition"
-            >
-              <Photo class="mb-1" />
-
-              <p class="text-pr-500 font-medium text-sm mb-[2px]">Click to add photos</p>
-              <p class="text-neu-900 text-sm">or drag & drop</p>
-
-              <input id="photo-upload" disabled type="file" class="hidden" multiple />
-            </label>
-          </div>
           <img
             src="@/assets/images/mount-agung.webp"
             alt="Ubud Village"
@@ -246,18 +233,12 @@ Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
     </form>
 
     <div class="flex gap-2.5 items-center">
-      <button
-        type="submit"
-        class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-pr-600 justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
-      >
-        Create
-      </button>
       <RouterLink
         :to="{ name: 'AdminDestinations' }"
         type="button"
         class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-[#F0F0F0] justify-center text-sm md:text-base font-medium leading-6 bg-sur-50 rounded-full border border-neu-900"
       >
-        Cancel
+        Back
       </RouterLink>
     </div>
   </div>

@@ -190,7 +190,7 @@ const sendSuggestedReply = (reply) => {
     <Transition name="callout-fade">
       <div
         v-if="showCalloutMessage && !isOpen"
-        class="absolute bottom-full right-0 mb-4 min-w-[150px] max-w-[200px] p-3 bg-white rounded-lg shadow-lg text-sm z-10"
+        class="absolute bottom-full right-0 mb-4 min-w-[150px] max-w-[200px] p-3 bg-white rounded-xl shadow-lg text-sm z-10"
       >
         <!-- Segitiga kecil penunjuk ke bawah -->
         <div
