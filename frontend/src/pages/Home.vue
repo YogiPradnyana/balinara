@@ -8,6 +8,71 @@ import AI from '@/components/icons/AI.vue'
 import Send from '@/components/icons/Send.vue'
 import DoubleQuotes from '@/components/icons/DoubleQuotes.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { gsap } from 'gsap'
+import { Draggable } from 'gsap/Draggable'
+
+gsap.registerPlugin(Draggable)
+
+const cardViewportRef = ref(null)
+const cardDraggableListRef = ref(null)
+let draggableInstance = null // Untuk menyimpan instance Draggable
+
+const initOrUpdateDraggable = () => {
+  const viewport = cardViewportRef.value
+  const draggableList = cardDraggableListRef.value
+
+  if (viewport && draggableList) {
+    draggableList.style.cursor = 'grab'
+
+    // Menggunakan nextTick untuk memastikan DOM update setelah perubahan data (jika ada)
+    nextTick(() => {
+      if (draggableList.offsetWidth > viewport.offsetWidth) {
+        if (draggableInstance) {
+          draggableInstance.enable()
+          draggableInstance.update(true) // Penting untuk update bounds
+        } else {
+          draggableInstance = Draggable.create(draggableList, {
+            type: 'x',
+            bounds: viewport,
+            inertia: true,
+            edgeResistance: 0.65,
+            onDragStart: function () {
+              draggableList.style.cursor = 'grabbing'
+            },
+            onDragEnd: function () {
+              draggableList.style.cursor = 'grab'
+            },
+          })[0] // Draggable.create mengembalikan array
+        }
+      } else {
+        if (draggableInstance) {
+          draggableInstance.disable()
+        }
+        gsap.to(draggableList, { x: 0, duration: 0.3 })
+      }
+    })
+  }
+}
+
+let resizeTimeout
+const handleResize = () => {
+  clearTimeout(resizeTimeout)
+  resizeTimeout = setTimeout(initOrUpdateDraggable, 200)
+}
+
+onMounted(() => {
+  initOrUpdateDraggable()
+  window.addEventListener('resize', handleResize)
+})
+
+onBeforeUnmount(() => {
+  if (draggableInstance) {
+    draggableInstance.kill() // Hancurkan instance Draggable untuk mencegah memory leak
+  }
+  window.removeEventListener('resize', handleResize)
+  clearTimeout(resizeTimeout)
+})
 </script>
 
 <template>
@@ -78,10 +143,10 @@ import StarFilled from '@/components/icons/StarFilled.vue'
           </div>
         </div>
       </div>
-      <div class="mt-8 whitespace-nowrap">
-        <div class="flex gap-8 w-fit">
+      <div class="mt-8 whitespace-nowrap" ref="cardViewportRef">
+        <div class="flex gap-8 w-fit" ref="cardDraggableListRef">
           <div
-            v-for="i in 4"
+            v-for="i in 5"
             :key="i"
             class="overflow-hidden w-66 md:w-[340px] h-90 md:h-[460px] rounded-4xl group"
           >
