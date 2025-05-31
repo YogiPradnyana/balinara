@@ -37,6 +37,7 @@ import ReviewDetail from '@/pages/admin/testimonials/Detail.vue'
 import Suggestions from '@/pages/admin/suggestions/Suggestions.vue'
 import SuggestionLists from '@/pages/admin/suggestions/SuggestionLists.vue'
 import SuggestionDetail from '@/pages/admin/suggestions/Detail.vue'
+import FacilityLists from '@/pages/admin/facilities/FacilityLists.vue'
 // Jika ChatGemini.vue ada di folder 'pages' (misalnya src/pages/ChatGemini.vue), maka:
 // import ChatGemini from '@/pages/ChatGemini.vue'
 
@@ -131,6 +132,11 @@ const router = createRouter({
           path: 'categories',
           name: 'AdminCategories',
           component: CategoryLists,
+        },
+        {
+          path: 'facilities',
+          name: 'AdminFacilities',
+          component: FacilityLists,
         },
         {
           path: 'reviews',

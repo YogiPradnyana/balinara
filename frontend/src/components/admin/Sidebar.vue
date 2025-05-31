@@ -5,6 +5,7 @@ import Message from '@/components/icons/Message.vue'
 import OutlinedLocation from '@/components/icons/OutlinedLocation.vue'
 import Tag from '@/components/icons/Tag.vue'
 import Users from '@/components/icons/Users.vue'
+import Parking from '../icons/facilities/Parking.vue'
 
 const props = defineProps({
   isSidebarOpen: Boolean,
@@ -69,6 +70,16 @@ const props = defineProps({
             class="size-5"
             :class="$route.path.startsWith('/admin/categories') ? ' text-pr-500' : 'text-neu-500'"
           />Categories
+        </RouterLink>
+        <RouterLink
+          :to="{ name: 'AdminFacilities' }"
+          class="flex gap-3 items-center py-2 px-4 font-medium hover:bg-[#EFF6F2] transition-all duration-50 rounded-xl"
+          :class="$route.path.startsWith('/admin/facilities') ? 'bg-[#EFF6F2] text-pr-500' : ''"
+        >
+          <Parking
+            class="size-5"
+            :class="$route.path.startsWith('/admin/facilities') ? ' text-pr-500' : 'text-neu-500'"
+          />Facilities
         </RouterLink>
       </div>
       <div class="space-y-3">
