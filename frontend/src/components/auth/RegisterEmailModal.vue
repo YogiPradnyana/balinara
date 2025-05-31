@@ -17,7 +17,7 @@ const handleSwitch = () => {
 <template>
   <!-- Overlay -->
   <div
-    class="fixed inset-0 font-pr p-4 text-neu-900 bg-neu-900/50 flex items-center justify-center z-50"
+    class="fixed inset-0 font-pr p-4 text-neu-900 bg-neu-900/50 flex items-center justify-center z-999"
   >
     <div
       class="bg-white px-4 pt-4 pb-8 flex-col flex items-end rounded-3xl w-full max-w-sm md:max-w-lg animate-fadeIn"
@@ -34,7 +34,7 @@ const handleSwitch = () => {
       </div>
       <div class="w-full flex flex-col items-center mt-4 px-4">
         <h1
-          class="text-[28px] md:text-[32px] text-center font-semibold leading-7 md:leading-[38px]"
+          class="text-[28px] md:text-[32px] text-center font-se font-semibold leading-7 md:leading-[38px]"
         >
           Bali<span class="text-pr-500">nara</span>
         </h1>
@@ -44,7 +44,7 @@ const handleSwitch = () => {
           <button
             type="button"
             @click="handleSwitch"
-            class="px-8 sm:px-10 md:px-12 py-2 flex gap-2 items-center justify-center text-sm md:text-base font-medium leading-6 bg-none rounded-full text-neu-500"
+            class="px-8 sm:px-10 md:px-12 cursor-pointer py-2 flex gap-2 items-center justify-center text-sm md:text-base font-medium leading-6 bg-none rounded-full text-neu-500"
           >
             Sign in
           </button>

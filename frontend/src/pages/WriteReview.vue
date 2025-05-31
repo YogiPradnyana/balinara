@@ -6,6 +6,7 @@ import Photo from '@/components/icons/Photo.vue'
 import Search from '@/components/icons/Search.vue'
 import Star from '@/components/icons/Star.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
+import SuccessNotification from '@/components/SuccessNotification.vue'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
 const selectedRating = ref(0)
@@ -13,6 +14,7 @@ const hoverRating = ref(0)
 const isSearch = ref(0)
 const formRef = ref(null)
 const inputRef = ref(null)
+const isSuccessOpen = ref(1)
 
 const handleClickOutside = (event) => {
   if (formRef.value && !formRef.value.contains(event.target)) {
@@ -34,6 +36,7 @@ onBeforeUnmount(() => {
 })
 </script>
 <template>
+  <SuccessNotification v-if="isSuccessOpen" @close="isSuccessOpen = false" />
   <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <div class="relative w-full h-124 xs:h-[380px] rounded-3xl mt-10 md:mt-16">
       <img :src="mainImage" alt="" class="object-cover w-full h-full rounded-3xl overflow-hidden" />

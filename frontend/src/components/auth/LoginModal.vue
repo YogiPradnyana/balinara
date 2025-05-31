@@ -18,7 +18,7 @@ const isRegisterEmailOpen = ref(false)
 <template>
   <!-- Overlay -->
   <div
-    class="fixed inset-0 font-pr p-4 text-neu-900 bg-neu-900/50 flex items-center justify-center z-50"
+    class="fixed inset-0 font-pr p-4 text-neu-900 bg-neu-900/50 flex items-center justify-center z-999"
   >
     <!-- Card Login -->
 
@@ -28,7 +28,7 @@ const isRegisterEmailOpen = ref(false)
       <Exit class="size-5 cursor-pointer hover:text-neu-500 transition" @click="handleClose" />
       <div class="w-full mt-4 px-4">
         <h1
-          class="text-[28px] md:text-[32px] text-center font-semibold leading-7 md:leading-[38px]"
+          class="text-[28px] md:text-[32px] text-center font-semibold leading-7 md:leading-[38px] font-se"
         >
           Bali<span class="text-pr-500">nara</span>
         </h1>
