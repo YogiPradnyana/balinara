@@ -1,4 +1,5 @@
 <script setup>
+import { ref, watch } from 'vue'
 import ArrowLeft from '@/components/icons/ArrowLeft.vue'
 import ArrowRight2 from '@/components/icons/ArrowRight2.vue'
 import ArrowUpRight from '@/components/icons/ArrowUpRight.vue'
@@ -13,9 +14,102 @@ import Toilet from '@/components/icons/facilities/Toilet.vue'
 import Heart from '@/components/icons/Heart.vue'
 import Location from '@/components/icons/Location.vue'
 import Mail from '@/components/icons/Mail.vue'
+import Search from '@/components/icons/Search.vue'
+import Star from '@/components/icons/Star.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
 import Temple from '@/components/icons/Temple.vue'
+import StarRatingDisplay from '@/components/StarRatingDisplay.vue'
+
+const searchTerm = ref('')
+
+const ratingOptions = ref([
+  { stars: 5, count: 140 },
+  { stars: 4, count: 60 },
+  { stars: 3, count: 40 },
+  { stars: 2, count: 80 }, // Data count dari contoh Anda tidak urut, saya biarkan
+  { stars: 1, count: 90 },
+])
+const selectedRatings = ref([]) // Array untuk menyimpan rating yang dipilih (multi-select)
+// Jika single-select: const selectedRating = ref(null);
+
+const monthOptions = ref([
+  { label: 'January', value: '01' },
+  { label: 'February', value: '02' },
+  { label: 'March', value: '03' },
+  { label: 'April', value: '04' },
+  { label: 'May', value: '05' },
+  { label: 'June', value: '06' },
+  { label: 'July', value: '07' },
+  { label: 'August', value: '08' },
+  { label: 'September', value: '09' },
+  { label: 'October', value: '10' },
+  { label: 'November', value: '11' },
+  { label: 'December', value: '12' },
+])
+const selectedMonths = ref([]) // Array untuk menyimpan bulan yang dipilih (multi-select)
+// Jika single-select: const selectedMonth = ref(null);
+
+// Emits untuk memberi tahu parent component tentang perubahan filter
+const emit = defineEmits(['filters-updated', 'search-updated'])
+
+const handleSearch = () => {
+  console.log('Searching for:', searchTerm.value)
+  emit('search-updated', searchTerm.value)
+}
+
+// Watch searchTerm untuk live search (opsional)
+watch(searchTerm, (newValue) => {
+  console.log('Live search:', newValue)
+  emit('search-updated', newValue)
+})
+
+const toggleRatingFilter = (stars) => {
+  const index = selectedRatings.value.indexOf(stars)
+  if (index > -1) {
+    selectedRatings.value.splice(index, 1) // Hapus jika sudah ada (deselect)
+  } else {
+    selectedRatings.value.push(stars) // Tambah jika belum ada (select)
+    // Jika single select:
+    // selectedRating.value = selectedRating.value === stars ? null : stars;
+  }
+  emitFilters()
+}
+
+const toggleMonthFilter = (monthValue) => {
+  const index = selectedMonths.value.indexOf(monthValue)
+  if (index > -1) {
+    selectedMonths.value.splice(index, 1)
+  } else {
+    selectedMonths.value.push(monthValue)
+    // Jika single select:
+    // selectedMonth.value = selectedMonth.value === monthValue ? null : monthValue;
+  }
+  emitFilters()
+}
+
+const emitFilters = () => {
+  const currentFilters = {
+    ratings: [...selectedRatings.value],
+    months: [...selectedMonths.value],
+  }
+  console.log('Filters updated:', currentFilters)
+  emit('filters-updated', currentFilters)
+}
+
+// Data contoh, Anda bisa menggantinya dengan data dinamis dari API
+const reviewData = ref([
+  { stars: 5.0, reviews: 140, percentage: 80 }, // Perkiraan persentase dari gambar
+  { stars: 4.0, reviews: 60, percentage: 55 },
+  { stars: 3.0, reviews: 40, percentage: 40 },
+  { stars: 2.0, reviews: 80, percentage: 30 },
+  { stars: 1.0, reviews: 90, percentage: 25 }, // Persentase 1.0 terlihat lebih rendah dari 2.0 di gambar
+])
 </script>
+<style scoped>
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+</style>
 <template>
   <!-- Main Content -->
   <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
@@ -84,11 +178,19 @@ import Temple from '@/components/icons/Temple.vue'
               </div>
             </div>
 
-            <div class="gap-1 font-medium text-sm sm:text-base items-center mt-1 flex">
-              <Location class="size-5 sm:size-6" />Beraban Village, Kediri, Tabanan
+            <div class="flex gap-1 items-center mt-2">
+              4.5
+              <div class="flex gap-0.5 items-center">
+                <StarFilled class="size-5" />
+                <StarFilled class="size-5" />
+                <StarFilled class="size-5" />
+                <StarFilled class="size-5" />
+                <StarFilled class="size-5" />
+              </div>
+              (532 reviews)
             </div>
 
-            <p class="mt-4 sm:mt-6 text-neu-500 text-sm sm:text-base">
+            <p class="mt-4 sm:mt-6 text-neu-600 text-sm sm:text-base">
               Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
               formation just off the coast. This ancient Hindu shrine is dedicated to the sea gods
               and is renowned for its stunning ocean views, especially during sunset. The temple’s
@@ -159,8 +261,11 @@ import Temple from '@/components/icons/Temple.vue'
     </section>
 
     <!-- Location Map -->
-    <section class="mt-8sm:mt-16">
+    <section class="mt-8 sm:mt-16">
       <h2 class="text-xl font-semibold mb-4">Location</h2>
+      <div class="gap-1 text-sm sm:text-base items-center flex mb-4">
+        <Location class="size-5" />Beraban Village, Kediri, Tabanan
+      </div>
       <div class="w-full h-64 sm:h-[420px] rounded-3xl overflow-hidden">
         <iframe
           class="w-full h-full"
@@ -209,7 +314,7 @@ import Temple from '@/components/icons/Temple.vue'
             <div class="flex-col flex gap-2">
               <DoubleQuotes class="size-6 sm:size-8 text-neu-900" />
               <p class="text-neu-600 text-sm sm:text-base h-10 sm:h-12 line-clamp-2">
-                The sunset at Tanah Lot was absolutely breathtaking! A magical moment I’ll remember
+                The sunset at Tanah Lot was absolutely breathtaking! A magical moment I'll remember
                 forever.
               </p>
             </div>
@@ -229,6 +334,192 @@ import Temple from '@/components/icons/Temple.vue'
               <p class="text-neu-900 font-medium whitespace-nowrap text-xs sm:text-sm">
                 Udin Surudin
               </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="h-[1px] w-3/4 mx-auto bg-neu-100 rounded-full mt-12"></div>
+
+      <div class="flex flex-col lg:flex-row gap-12 mt-12">
+        <div class="flex flex-col gap-4 w-full lg:w-1/4">
+          <div class="flex flex-col gap-4">
+            <div class="flex items-center gap-3">
+              <h1 class="text-4xl font-se font-semibold tabular-nums">4.5</h1>
+              <div class="space-y-1">
+                <div class="flex gap-0.5 items-center">
+                  <StarFilled class="size-5" />
+                  <StarFilled class="size-5" />
+                  <StarFilled class="size-5" />
+                  <StarFilled class="size-5" />
+                  <StarFilled class="size-5" />
+                </div>
+                <p class="text-sm text-neu-700">532 reviews</p>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div v-for="item in reviewData" :key="item.stars" class="flex items-center gap-2">
+                <!-- Progress Bar -->
+                <div class="flex-grow bg-neu-100 rounded-full h-2 sm:h-3 overflow-hidden">
+                  <div
+                    class="bg-pr-500 h-full rounded-full transition-all duration-500 ease-out"
+                    :style="{ width: item.percentage + '%' }"
+                    role="progressbar"
+                    :aria-valuenow="item.percentage"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    :aria-label="`${item.stars} star rating: ${item.percentage}%`"
+                  ></div>
+                </div>
+                <!-- Star Rating Label -->
+                <span class="text-sm font-semibold w-7 text-right tabular-nums">
+                  {{ item.stars.toFixed(1) }}
+                </span>
+
+                <!-- Review Count -->
+                <span class="text-sm text-neu-500 w-10 text-right whitespace-nowrap tabular-nums">
+                  ({{ item.reviews }})
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <h3 class="text-base md:text-lg font-semibold">Contribute</h3>
+            <RouterLink
+              :to="{ name: 'WriteReview' }"
+              class="px-3 w-fit sm:px-4 cursor-pointer text-sm sm:text-base border-[1px] font-medium py-2 rounded-full items-center flex transition-colors duration-150 border-neu-900 hover:bg-[#F0F0F0]"
+            >
+              Write a review
+            </RouterLink>
+          </div>
+        </div>
+        <div class="min-h-full w-[1px] bg-neu-100 hidden lg:block rounded-full"></div>
+        <div class="h-[1px] min-w-full bg-neu-100 block lg:hidden rounded-full"></div>
+        <div class="flex-1 flex flex-col gap-8">
+          <div class="space-y-6">
+            <!-- Search Form -->
+            <form
+              @submit.prevent="handleSearch"
+              class="max-w-[640px] w-full flex h-[48px] items-center justify-between rounded-full outline-1 outline-neu-200 p-1.5"
+            >
+              <div class="wrapper gap-2 ps-1.5 flex items-center w-full">
+                <Search class="size-5 text-neu-500" />
+                <input
+                  v-model="searchTerm"
+                  type="text"
+                  class="w-full text-xs md:text-sm leading-5 placeholder:text-neu-500 focus:outline-none bg-transparent"
+                  placeholder="Search reviews..."
+                  aria-label="Search reviews"
+                />
+              </div>
+            </form>
+
+            <!-- Filters Section -->
+            <div class="flex flex-col gap-3">
+              <h3 class="text-base md:text-lg font-semibold" id="filter-reviews-heading">
+                Filter Reviews
+              </h3>
+              <div
+                class="flex flex-col gap-4"
+                role="group"
+                aria-labelledby="filter-reviews-heading"
+              >
+                <!-- Rating Filter -->
+                <div class="flex flex-col gap-2">
+                  <label class="font-semibold" id="rating-filter-label">Rating</label>
+                  <div
+                    class="flex flex-wrap gap-3"
+                    role="group"
+                    aria-labelledby="rating-filter-label"
+                  >
+                    <button
+                      v-for="ratingOption in ratingOptions"
+                      :key="ratingOption.stars"
+                      @click="toggleRatingFilter(ratingOption.stars)"
+                      :class="[
+                        'px-2 w-fit sm:px-4 text-sm sm:text-base border-[1.6px] gap-2 py-2 rounded-full font-medium items-center flex transition-colors duration-150',
+                        selectedRatings.includes(ratingOption.stars)
+                          ? ' border-neu-800'
+                          : 'border-neu-200 hover:border-neu-400',
+                      ]"
+                      :aria-pressed="selectedRatings.includes(ratingOption.stars)"
+                    >
+                      <StarRatingDisplay :rating="ratingOption.stars" />
+                      <span class="tabular-nums text-sm sm:text-base"
+                        >({{ ratingOption.count }})</span
+                      >
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Month Filter -->
+                <div class="flex flex-col gap-3">
+                  <label class="font-semibold" id="month-filter-label">Month</label>
+                  <div
+                    class="flex flex-wrap gap-2"
+                    role="group"
+                    aria-labelledby="month-filter-label"
+                  >
+                    <button
+                      v-for="month in monthOptions"
+                      :key="month.value"
+                      @click="toggleMonthFilter(month.value)"
+                      :class="[
+                        'px-3 w-fit sm:px-4 text-sm sm:text-base border-[1.6px] font-medium py-2 rounded-full items-center flex transition-colors duration-150 ',
+                        selectedMonths.includes(month.value)
+                          ? 'border-neu-800'
+                          : 'border-neu-200 hover:border-neu-400',
+                      ]"
+                      :aria-pressed="selectedMonths.includes(month.value)"
+                    >
+                      {{ month.label }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pb-6 space-y-4 border-b border-neu-100" v-for="i in 3" :key="i">
+            <div class="flex justify-between">
+              <div class="gap-2 min-w-fit flex items-center">
+                <img
+                  src="@/assets/images/User Avatar.jpg"
+                  alt="User Profile"
+                  class="size-9 rounded-full"
+                />
+                <div class="flex flex-col">
+                  <h3 class="font-medium whitespace-nowrap text-xs sm:text-sm">Udin Surudin</h3>
+                  <p class="text-xs text-neu-600">4 months ago</p>
+                </div>
+              </div>
+              <div class="flex gap-1 sm:gap-2 font-medium items-center text-sm sm:text-base">
+                4.5
+                <div class="flex gap-0.5 items-center">
+                  <StarFilled class="size-4.5 sm:size-5" />
+                  <div class="hidden sm:flex sm:gap-0.5 sm:items-center">
+                    <StarFilled class="size-4.5 sm:size-5" />
+                    <StarFilled class="size-4.5 sm:size-5" />
+                    <StarFilled class="size-4.5 sm:size-5" />
+                    <StarFilled class="size-4.5 sm:size-5" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="text-sm sm:text-base text-neu-600">
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. Hic in dolorem itaque impedit
+              aut ad harum dolores? Odit veniam dicta reiciendis, consectetur tempore, culpa dolorum
+              accusamus iure quo, illum exercitationem.
+            </p>
+            <div class="flex gap-2">
+              <img
+                src="@/assets/images/tanah-lot.webp"
+                class="size-16 sm:size-20 rounded-lg sm:rounded-xl"
+              />
+              <img
+                src="@/assets/images/tanah-lot.webp"
+                class="size-16 sm:size-20 rounded-lg sm:rounded-xl"
+              />
             </div>
           </div>
         </div>
