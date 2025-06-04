@@ -1,5 +1,5 @@
 """
-URL configuration for gemini_chatbot_project project.
+URL configuration for backend project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.2/topics/http/urls/
@@ -15,15 +15,15 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-# gemini_chatbot_project/urls.py
+# backend/urls.py
 
 from django.contrib import admin
-from django.urls import path, include # Pastikan include diimpor
+from django.urls import path, include  # Pastikan include diimpor
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     # UBAH MENJADI INI UNTUK MENAMBAHKAN PREFIX 'api/'
-    path('api/', include('chat.urls')), # <--- BARIS YANG BENAR
+    path('api/', include('chat.urls')),  # <--- BARIS YANG BENAR
     # Jika Anda ingin ada sesuatu di root URL ('/'), Anda bisa menambahkan rute lain di sini
     # Misalnya, untuk redirect ke /api/messages/ seperti yang kita diskusikan sebelumnya:
     # from chat.views import api_root_redirect
