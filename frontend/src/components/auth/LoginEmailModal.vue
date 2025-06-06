@@ -26,8 +26,19 @@ const handleSwitch = () => {
 }
 
 const handleSubmitLogin = async () => {
-  localError.value = null // Reset error lokal sebelum mencoba login
-  // Panggil action login dari authStore
+  localError.value = null
+  authStore.error = null
+
+  if (!email.value || !password.value) {
+    localError.value = 'Email and password are required.'
+    return
+  }
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailPattern.test(email.value)) {
+    localError.value = 'Please enter a valid email address.'
+    return
+  }
+
   try {
     await authStore.login({
       email: email.value,
@@ -42,7 +53,7 @@ const handleSubmitLogin = async () => {
     // Tangkap error yang di-throw oleh action login di store
     // authStore.authError akan berisi pesan error dari store
     // Kita bisa tampilkan itu atau pesan kustom
-    localError.value = authStore.authError || 'An unexpected error occurred.'
+    localError.value = error.message || 'An unexpected error occurred.'
     console.error('Login failed in modal:', error)
   }
 }

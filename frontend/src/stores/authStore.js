@@ -72,12 +72,47 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         this.status = 'error'
         this._clearAuthData()
-        this.error =
-          error.response?.data?.detail ||
-          error.response?.data?.message ||
-          error.response?.data ||
-          'Login failed.'
-        throw this.error
+        let errorMessage = 'Login failed. Please try again.' // Pesan default yang lebih singkat
+
+        if (error.response && error.response.data) {
+          const errorData = error.response.data
+          // Prioritaskan field 'detail' jika ada (umum untuk error auth DRF)
+          if (errorData.detail) {
+            errorMessage = errorData.detail
+          }
+          // Jika tidak ada 'detail', dan errorData adalah string (bisa terjadi untuk beberapa error non-DRF)
+          else if (typeof errorData === 'string') {
+            errorMessage = errorData
+          }
+          // Jika errorData adalah objek dan memiliki field 'non_field_errors' (umum untuk validasi form DRF)
+          else if (
+            errorData.non_field_errors &&
+            Array.isArray(errorData.non_field_errors) &&
+            errorData.non_field_errors.length > 0
+          ) {
+            errorMessage = errorData.non_field_errors.join(' ') // Gabungkan semua non_field_errors
+          }
+          // Jika errorData adalah objek dan punya pesan untuk field spesifik (seperti 'email', 'password')
+          // Anda bisa memilih untuk menampilkan pesan error field pertama, atau pesan generik.
+          // Untuk kesederhanaan di store, kita bisa tetap pada pesan generik jika 'detail' atau 'non_field_errors' tidak ada.
+          // Komponen bisa menampilkan error per field jika diperlukan.
+          else if (typeof errorData === 'object' && Object.keys(errorData).length > 0) {
+            // Ambil pesan dari field pertama yang memiliki error (jika ada)
+            const firstErrorKey = Object.keys(errorData)[0]
+            if (Array.isArray(errorData[firstErrorKey]) && errorData[firstErrorKey].length > 0) {
+              errorMessage = errorData[firstErrorKey][0] // Ambil pesan pertama dari field error pertama
+            }
+            // Jika tidak, biarkan errorMessage default
+          }
+        } else if (error.message) {
+          // Jika tidak ada error.response (misalnya, masalah jaringan), gunakan error.message
+          errorMessage = error.message
+        }
+
+        this.error = errorMessage
+        // Melempar error agar komponen bisa menangkapnya dan tahu bahwa login gagal
+        // Tidak perlu melempar error.message lagi karena this.error sudah di-set dan bisa diakses komponen
+        throw new Error(this.error) // atau throw error; untuk melempar objek error asli
       }
     },
 
