@@ -1,133 +1,13 @@
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, watch, computed } from 'vue'
+import { useChatStore } from '@/stores/chatStore'
 import Nara from './icons/Nara.vue'
 import ChatBuble from './icons/ChatBuble.vue'
 import FilledSend from './icons/FilledSend.vue'
-import axios from 'axios' // IMPORT AXIOS
 
-// =======================================================
-// STATE DAN LOGIKA DARI ChatGemini.vue LAMA
-// =======================================================
-const djangoApiBaseUrl = 'http://localhost:8000/api/' // <<< PENTING: SESUAIKAN DENGAN URL DJANGO API ANDA!
+const chatStore = useChatStore()
 
-const messages = ref([]) // Ini akan menampung pesan dari API
 const userInput = ref('')
-const isSending = ref(false)
-const isClearing = ref(false)
-const isLoadingHistory = ref(false)
-const error = ref(null)
-
-// =======================================================
-// METODE DARI ChatGemini.vue LAMA
-// =======================================================
-
-// Fungsi untuk memformat pesan (misal: markdown sederhana)
-const formatMessage = (text) => {
-  if (!text) return '';
-  let formattedText = text.replace(/\n/g, '<br>');
-  formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold
-  formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
-  return formattedText;
-};
-
-// Mengambil riwayat pesan dari Django API
-const fetchMessages = async () => {
-  error.value = null;
-  isLoadingHistory.value = true;
-  try {
-    const response = await axios.get(`${djangoApiBaseUrl}messages/`);
-    // Memastikan `response.data` adalah array atau menginisialisasinya sebagai array kosong
-    messages.value = Array.isArray(response.data) ? response.data : [];
-    scrollToBottom();
-  } catch (err) {
-    console.error('Error fetching messages:', err);
-    error.value = 'Gagal memuat riwayat obrolan. Pastikan server Django berjalan dan konfigurasi CORS sudah benar.';
-  } finally {
-    isLoadingHistory.value = false;
-  }
-};
-
-// Mengirim pesan ke Django API
-const sendMessage = async () => {
-  if (!userInput.value.trim()) {
-    error.value = 'Pesan tidak boleh kosong.';
-    return;
-  }
-  isSending.value = true;
-  error.value = null;
-
-  const messageToSend = userInput.value;
-  userInput.value = '';
-
-  const tempUserMessage = {
-    id: 'temp-' + Date.now(),
-    sender: 'user',
-    text: messageToSend,
-    timestamp: new Date().toISOString()
-  };
-  messages.value.push(tempUserMessage);
-  scrollToBottom();
-
-  try {
-    const response = await axios.post(`${djangoApiBaseUrl}chat/`, { 
-      message: messageToSend 
-    });
-    
-    messages.value = messages.value.filter(msg => msg.id !== tempUserMessage.id);
-    
-    if (response.data.user_message) {
-        messages.value.push(response.data.user_message);
-    }
-    if (response.data.bot_response) {
-        messages.value.push(response.data.bot_response);
-    }
-    
-    scrollToBottom();
-    // Reset suggested replies setelah mendapatkan respons baru
-    suggestedReplies.value = [
-      'Tourist attractions in Bali',
-      'Recommended interesting places',
-      'Cultural experiences',
-      'Adventure activities',
-    ]
-  } catch (err) {
-    console.error('Error sending message:', err.response ? err.response.data : err.message);
-    error.value = 'Gagal mengirim pesan atau mendapatkan respons dari Bot. Coba lagi.';
-    messages.value = messages.value.filter(msg => msg.id !== tempUserMessage.id);
-  } finally {
-    isSending.value = false;
-  }
-};
-
-// Menghapus riwayat pesan
-const clearHistory = async () => {
-  if (!confirm('Apakah Anda yakin ingin menghapus seluruh riwayat obrolan? Tindakan ini tidak dapat dibatalkan.')) {
-    return;
-  }
-  error.value = null;
-  isClearing.value = true;
-  try {
-    await axios.post(`${djangoApiBaseUrl}clear_history/`);
-    messages.value = [];
-    alert('Riwayat obrolan berhasil dihapus.');
-    suggestedReplies.value = [
-      'Tourist attractions in Bali',
-      'Recommended interesting places',
-      'Cultural experiences',
-      'Adventure activities',
-    ]
-  } catch (err) {
-    console.error('Error clearing history:', err.response ? err.response.data : err.message);
-    error.value = 'Gagal menghapus riwayat obrolan. Coba lagi.';
-  } finally {
-    isClearing.value = false;
-  }
-};
-
-
-// =======================================================
-// STATE DAN LOGIKA DARI VIEW BARU ANDA (yang sudah ada)
-// =======================================================
 const isOpen = ref(false)
 const messagesContainer = ref(null)
 
@@ -141,6 +21,75 @@ const calloutTexts = [
 const currentCalloutText = ref('')
 let calloutInterval = null
 let calloutDisplayTimeout = null
+
+// Menggunakan computed properties untuk mengakses state dari store
+const messages = computed(() => chatStore.getMessages)
+const isSending = computed(() => chatStore.isChatSending)
+const isLoadingHistory = computed(() => chatStore.isHistoryLoading)
+const isClearing = computed(() => chatStore.isHistoryClearing)
+const error = computed({
+  // Getter dan setter untuk error agar bisa di-clear dari komponen
+  get: () => chatStore.chatError,
+  set: (value) => {
+    chatStore.error = value
+  },
+})
+
+// Fungsi untuk memformat pesan (misal: markdown sederhana)
+const formatMessage = (text) => {
+  if (!text) return ''
+  let formattedText = text.replace(/\n/g, '<br>')
+  formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+  formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
+  return formattedText
+}
+
+const scrollToBottom = async () => {
+  await nextTick()
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
+}
+
+// Mengirim pesan menggunakan action di store
+const handleSendMessage = async () => {
+  if (!userInput.value.trim()) {
+    error.value = 'Pesan tidak boleh kosong.' // Set error lokal atau di store
+    return
+  }
+  const messageToSend = userInput.value
+  userInput.value = '' // Kosongkan input segera
+
+  try {
+    await chatStore.sendMessage(messageToSend)
+    // Reset suggested replies setelah mendapatkan respons baru (jika dikelola di sini)
+    // suggestedReplies.value = [ /* ... */ ];
+  } catch (err) {
+    // Error sudah di-handle dan di-set di store, akan otomatis update computed 'error'
+    // Anda bisa menambahkan notifikasi tambahan di sini jika mau
+    console.error('Component error after sendMessage action:', err)
+  }
+}
+
+// Menghapus riwayat pesan menggunakan action di store
+const handleClearHistory = async () => {
+  if (
+    !confirm(
+      'Apakah Anda yakin ingin menghapus seluruh riwayat obrolan? Tindakan ini tidak dapat dibatalkan.',
+    )
+  ) {
+    return
+  }
+  try {
+    await chatStore.clearChatHistory()
+    alert('Riwayat obrolan berhasil dihapus.')
+    // Reset suggested replies (jika dikelola di sini)
+    // suggestedReplies.value = [ /* ... */ ];
+  } catch (err) {
+    // Error sudah di-handle dan di-set di store
+    // alert(error.value || 'Gagal menghapus riwayat.'); // Tampilkan error dari store
+  }
+}
 
 const displayNextCallout = () => {
   if (isOpen.value) {
@@ -156,9 +105,38 @@ const displayNextCallout = () => {
   }, 4000)
 }
 
+const toggleChat = () => {
+  isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    showCalloutMessage.value = false
+    clearTimeout(calloutDisplayTimeout)
+    clearInterval(calloutInterval)
+    scrollToBottom()
+    // Panggil fetchMessages dari store jika messages kosong dan tidak sedang loading
+    if (chatStore.messages.length === 0 && !chatStore.isLoadingHistory) {
+      chatStore.fetchMessages()
+    }
+  } else {
+    setTimeout(() => {
+      displayNextCallout()
+      calloutInterval = setInterval(displayNextCallout, 10000)
+    }, 1000)
+  }
+}
+
+const suggestedReplies = ref([
+  'Tourist attractions in Bali',
+  'Recommended interesting places',
+  'Cultural experiences',
+  'Adventure activities',
+])
+
+const sendSuggestedReply = (reply) => {
+  userInput.value = reply
+  sendMessage()
+}
+
 onMounted(() => {
-  fetchMessages(); 
-  
   setTimeout(() => {
     displayNextCallout()
     calloutInterval = setInterval(displayNextCallout, 10000)
@@ -170,47 +148,13 @@ onUnmounted(() => {
   clearTimeout(calloutDisplayTimeout)
 })
 
-const suggestedReplies = ref([
-  'Tourist attractions in Bali',
-  'Recommended interesting places',
-  'Cultural experiences',
-  'Adventure activities',
-])
-
-const toggleChat = () => {
-  isOpen.value = !isOpen.value
-  if (isOpen.value) {
-    showCalloutMessage.value = false
-    clearTimeout(calloutDisplayTimeout)
+watch(
+  messages,
+  () => {
     scrollToBottom()
-    if (messages.value.length === 0 && !isLoadingHistory.value) {
-      fetchMessages();
-    }
-  } else {
-    setTimeout(() => {
-      displayNextCallout()
-      calloutInterval = setInterval(displayNextCallout, 10000)
-    }, 1000);
-  }
-}
-
-const scrollToBottom = async () => {
-  await nextTick()
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-  }
-}
-
-const sendSuggestedReply = (reply) => {
-  userInput.value = reply
-  sendMessage()
-}
-
-// Watcher untuk scroll ke bawah saat pesan berubah
-watch(messages.value, () => {
-    scrollToBottom();
-}, { deep: true });
-
+  },
+  { deep: true },
+)
 </script>
 
 <style scoped>
@@ -252,21 +196,22 @@ watch(messages.value, () => {
 }
 
 /* Loading/Error state styles */
-.loading-indicator, .error-message-chat {
-    text-align: center;
-    padding: 10px;
-    font-size: 0.85em;
-    color: #555;
+.loading-indicator,
+.error-message-chat {
+  text-align: center;
+  padding: 10px;
+  font-size: 0.85em;
+  color: #555;
 }
 .loading-indicator {
-    color: #007bff;
+  color: #007bff;
 }
 .error-message-chat {
-    color: #dc3545;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 5px;
-    margin: 10px;
+  color: #dc3545;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 5px;
+  margin: 10px;
 }
 </style>
 
@@ -288,6 +233,7 @@ watch(messages.value, () => {
       class="text-white cursor-pointer rounded-full flex items-center justify-center transition-transform duration-300 ease-in-out"
       :class="[isOpen ? 'shadow-lg rotate-90 hidden sm:block bg-pr-500 p-3' : 'hover:scale-105']"
       aria-label="Toggle Chat"
+      :aria-expanded="isOpen.toString()"
     >
       <svg
         v-if="isOpen"
@@ -314,6 +260,8 @@ watch(messages.value, () => {
       <div
         v-if="isOpen"
         class="fixed bottom-0 right-0 sm:bottom-24 sm:right-5 w-full sm:w-[380px] h-full sm:h-[calc(100vh-120px)] sm:max-h-[600px] sm:rounded-3xl shadow-xl flex flex-col overflow-hidden"
+        role="log"
+        aria-live="polite"
       >
         <div class="bg-pr-500 text-white flex flex-col gap-2 items-center p-3">
           <button
@@ -350,37 +298,76 @@ watch(messages.value, () => {
         <div
           ref="messagesContainer"
           class="flex-grow px-3 pt-6 space-y-3 overflow-y-auto bg-[#FAFAFA] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          aria-atomic="false"
+          aria-relevant="additions"
         >
-            <div v-if="isLoadingHistory" class="loading-indicator">Memuat riwayat obrolan...</div>
-            <div v-if="error" class="error-message-chat">{{ error }}</div>
-            <div v-if="messages.length === 0 && !error && !isLoadingHistory" class="loading-indicator">
-              Mulai obrolan Anda dengan Nara!
-            </div>
+          <div v-if="isLoadingHistory" class="loading-indicator">Loading chat history...</div>
+          <div
+            v-if="error && !isLoadingHistory && messages.length === 0"
+            class="error-message-chat"
+          >
+            {{ error }}
+          </div>
+          <div
+            v-if="messages.length === 0 && !error && !isLoadingHistory"
+            class="loading-indicator"
+          >
+            Start your conversation with Nara! Ask anything about Bali.
+          </div>
 
-            <div v-for="message in messages" :key="message.id">
-                <div class="flex" 
-                    :class="message.sender === 'user' ? 'justify-end' : 'justify-start'"> <div
-                        class="max-w-[90%] p-3 rounded-2xl text-sm"
-                        :class="{
-                            'bg-pr-500 text-neu-50 font-light rounded-tl-none': message.sender !== 'user', // JIKA BUKAN 'user', ANGGAP BOT
-                            'bg-neu-100 rounded-tr-none': message.sender === 'user',
-                        }"
-                    >
-                        <p v-html="formatMessage(message.text)"></p>
-                        <small v-if="message.timestamp" class="block text-right mt-1 text-xs"
-                               :class="message.sender === 'user' ? 'text-neu-500' : 'text-white/70'">
-                            {{ new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
-                        </small>
-                    </div>
-                </div>
+          <div v-for="message in messages" :key="message.id">
+            <div class="flex" :class="message.sender === 'user' ? 'justify-end' : 'justify-start'">
+              <div
+                class="max-w-[90%] p-3 rounded-2xl text-sm"
+                :class="{
+                  'bg-pr-500 text-neu-50 font-light rounded-tl-none': message.sender !== 'user', // JIKA BUKAN 'user', ANGGAP BOT
+                  'bg-neu-100 rounded-tr-none': message.sender === 'user',
+                }"
+              >
+                <p v-html="formatMessage(message.text)"></p>
+                <small
+                  v-if="message.timestamp"
+                  class="block text-right mt-1 text-[10px]"
+                  :class="message.sender === 'user' ? 'text-neu-500' : 'text-white/70'"
+                >
+                  {{
+                    new Date(message.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  }}
+                </small>
+              </div>
             </div>
+            <!-- Indikator Bot Sedang Mengetik/Memproses -->
+            <div
+              v-if="isChatSending && messages[messages.length - 1]?.sender === 'user'"
+              class="flex justify-start"
+            >
+              <div
+                class="max-w-[70%] p-2.5 rounded-xl shadow-sm bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-bl-none"
+              >
+                <div class="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                  <div
+                    class="animate-pulse w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"
+                  ></div>
+                  <div
+                    class="animate-pulse delay-100 w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"
+                  ></div>
+                  <div
+                    class="animate-pulse delay-200 w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div
           class="flex flex-col bg-sur-50 gap-3 px-3 pt-3 pb-4 drop-shadow-[0px_-4px_32px_#2121210F]"
         >
           <div
-            v-if="suggestedReplies.length > 0"
+            v-if="suggestedReplies.length > 0 && !isSending && !isLoadingHistory"
             class="flex space-x-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
           >
             <button
@@ -393,27 +380,38 @@ watch(messages.value, () => {
             </button>
           </div>
 
-          <div class="flex items-center space-x-2">
+          <form @submit.prevent="handleSendMessage" class="flex items-center space-x-2">
             <input
               type="text"
               v-model="userInput"
-              @keyup.enter="sendMessage"
+              @keyup.enter.prevent="handleSendMessage"
               placeholder="Start a conversation..."
               class="flex-grow p-2.5 rounded-lg text-sm focus:ring-1 focus:ring-neu-200 focus:border-transparent outline-none"
-              :disabled="isSending"
+              :disabled="isSending || isLoadingHistory || isClearing"
+              aria-label="Chat input"
             />
             <button
-              @click="sendMessage"
+              type="submit"
               class="bg-pr-500 hover:bg-pr-600 cursor-pointer flex items-center justify-center text-white size-10 rounded-lg"
               aria-label="Send Message"
-              :disabled="isSending || !userInput.trim()"
+              :disabled="isSending || !userInput.trim() || isLoadingHistory || isClearing"
             >
               <FilledSend class="size-5" />
             </button>
-          </div>
-          <button @click="clearHistory" class="clear-button w-full mt-2" :disabled="isClearing">
-            {{ isClearing ? 'Menghapus...' : 'Bersihkan Riwayat' }}
+          </form>
+          <button
+            @click="handleClearHistory"
+            :disabled="isClearing || messages.length === 0"
+            class="w-full mt-2.5 py-1.5 text-xs text-center text-gray-500 hover:text-red-600 disabled:text-gray-300 transition-colors"
+          >
+            {{ isClearing ? 'Clearing history...' : 'Clear Chat History' }}
           </button>
+          <div
+            v-if="error && !isSending && !isLoadingHistory"
+            class="mt-2 text-center text-red-500 text-xs"
+          >
+            {{ error }}
+          </div>
         </div>
       </div>
     </transition>
