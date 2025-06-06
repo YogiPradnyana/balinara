@@ -8,32 +8,21 @@ from .models import User
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[
                                      validate_password], style={'input_type': 'password'})
-    password2 = serializers.CharField(write_only=True, required=True, style={
-                                      'input_type': 'password'}, label="Confirm password")
-    image = serializers.ImageField(
-        required=False, allow_null=True, use_url=True)
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password',
-                  'password2', 'phone', 'role', 'image')
+        fields = ('username', 'email', 'password')
         extra_kwargs = {
             'phone': {'required': False, 'allow_blank': True, 'allow_null': True},
             'role': {'default': 'user', 'required': False},
         }
 
-    def validate(self, attrs):
-        if attrs.get('password') != attrs.get('password2'):
-            raise serializers.ValidationError(
-                {"password2": "Password fields didn't match."})
-        return attrs
-
     def create(self, validated_data):
-        validated_data.pop('password2')
-        if 'image' not in validated_data:  # Handle jika image tidak ada
-            validated_data['image'] = None
-        # Menggunakan create_user dari CustomUserManager
-        user = User.objects.create_user(**validated_data)
+        user = User.objects.create_user(
+            email=validated_data['email'],
+            username=validated_data['username'],
+            password=validated_data['password']
+        )
         return user
 
 

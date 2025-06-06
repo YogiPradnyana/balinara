@@ -1,17 +1,96 @@
 <script setup>
 import { ref } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 import ArrowLeftBold from '../icons/ArrowLeftBold.vue'
 import Exit from '../icons/Exit.vue'
 import Show from '../icons/Show.vue'
-import LoginEmailModal from './LoginEmailModal.vue'
+import Hide from '../icons/Hide.vue'
 
 const emit = defineEmits(['closeRegisterEmail', 'closeAll', 'switchLogin'])
 
+const authStore = useAuthStore()
+
+const username = ref('')
+const email = ref('')
+const password = ref('')
+const showPassword = ref(false)
+
+const localError = ref(null)
+// Untuk menyimpan error per field dari backend jika ada
+const fieldErrors = ref({})
+
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
+}
+
 const handleClose = (close) => {
+  localError.value = null
+  fieldErrors.value = {}
+  authStore.error = null
   close ? emit('closeAll') : emit('closeRegisterEmail')
 }
 const handleSwitch = () => {
+  localError.value = null
+  fieldErrors.value = {}
+  authStore.error = null
   emit('switchLogin')
+}
+
+const handleSubmitRegister = async () => {
+  localError.value = null
+  fieldErrors.value = {}
+  authStore.error = null
+
+  if (!username.value.trim() || !email.value.trim() || !password.value.trim()) {
+    localError.value = 'All fields are required.'
+    // Anda bisa set fieldErrors juga jika mau per field
+    if (!username.value.trim()) fieldErrors.value.username = ['Username is required.']
+    if (!email.value.trim()) fieldErrors.value.email = ['Email is required.']
+    if (!password.value.trim()) fieldErrors.value.password = ['Password is required.']
+    return
+  }
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailPattern.test(email.value)) {
+    localError.value = 'Please enter a valid email address.'
+    fieldErrors.value.email = ['Please enter a valid email address.']
+    return
+  }
+  // Anda bisa menambahkan validasi panjang password minimal di frontend juga
+  if (password.value.length < 8) {
+    // Contoh panjang minimal 8
+    localError.value = 'Password must be at least 8 characters long.'
+    fieldErrors.value.password = ['Password must be at least 8 characters long.']
+    return
+  }
+
+  const payload = {
+    username: username.value,
+    email: email.value,
+    password: password.value,
+  }
+
+  try {
+    await authStore.register(payload)
+    emit('closeRegisterEmail')
+  } catch (error) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      !Array.isArray(error) &&
+      Object.keys(error).length > 0 &&
+      !(error instanceof Error)
+    ) {
+      fieldErrors.value = error
+      const firstKey = Object.keys(error)[0]
+      // Gabungkan semua pesan error untuk field pertama (jika ada > 1)
+      localError.value = error[firstKey]
+        ? `${firstKey}: ${error[firstKey].join(', ')}`
+        : 'Registration failed. Please check the form.'
+    } else {
+      localError.value = error.message || authStore.authError || 'An unexpected error occurred.'
+    }
+    console.error('Registration failed in modal:', error)
+  }
 }
 </script>
 <template>
@@ -45,12 +124,14 @@ const handleSwitch = () => {
             type="button"
             @click="handleSwitch"
             class="px-8 sm:px-10 md:px-12 cursor-pointer py-2 flex gap-2 items-center justify-center text-sm md:text-base font-medium leading-6 bg-none rounded-full text-neu-500"
+            aria-pressed="false"
           >
             Sign in
           </button>
           <button
             type="button"
             class="px-8 sm:px-10 md:px-12 py-2 flex gap-2 items-center justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
+            aria-pressed="true"
           >
             Sign up
           </button>
@@ -60,41 +141,88 @@ const handleSwitch = () => {
             Join Balinara to start your Bali journey.
           </h2>
         </div>
-        <form class="flex flex-col w-full">
+        <form class="flex flex-col w-full" @submit.prevent="handleSubmitRegister">
           <div class="space-y-4 mt-5 md:mt-8 w-full">
             <div class="flex flex-col gap-3">
-              <label class="text-sm font-semibold">Username</label>
+              <label for="reg-username" class="text-sm font-semibold">Username</label>
               <input
+                v-model="username"
+                id="reg-username"
                 type="text"
                 class="w-full border text-sm px-3 py-3 border-neu-200 rounded-full"
-                placeholder="Username"
+                :class="{ 'border-red-500': fieldErrors.username }"
+                placeholder="Choose a username"
+                required
+                aria-required="true"
               />
+              <p v-if="fieldErrors.username" class="text-xs text-red-500 -mt-2">
+                {{ fieldErrors.username[0] }}
+              </p>
             </div>
             <div class="flex flex-col gap-3">
-              <label class="text-sm font-semibold">Email Address</label>
+              <label for="reg-email" class="text-sm font-semibold">Email Address</label>
               <input
+                v-model="email"
+                id="reg-email"
                 type="email"
                 class="w-full border text-sm px-3 py-3 border-neu-200 rounded-full"
-                placeholder="Email"
+                :class="{ 'border-red-500': fieldErrors.email }"
+                placeholder="Enter your email"
+                required
+                aria-required="true"
               />
+              <p v-if="fieldErrors.email" class="text-xs text-red-500 -mt-2">
+                {{ fieldErrors.email[0] }}
+              </p>
             </div>
             <div class="flex flex-col gap-3">
-              <label class="text-sm font-semibold">Create a Password</label>
+              <label for="reg-password" class="text-sm font-semibold">Create a Password</label>
               <div class="relative flex">
                 <input
-                  type="password"
+                  v-model="password"
+                  id="reg-password"
+                  :type="showPassword ? 'text' : 'password'"
                   class="w-full border text-sm ps-3 pe-10 py-3 border-neu-200 rounded-full"
-                  placeholder="Password"
+                  :class="{ 'border-red-500': fieldErrors.password }"
+                  placeholder="Enter a strong password"
+                  required
+                  aria-required="true"
                 />
-                <Show class="size-5.5 absolute top-1/2 -translate-y-1/2 right-3" />
+
+                <button
+                  type="button"
+                  @click="togglePasswordVisibility"
+                  class="absolute top-1/2 -translate-y-1/2 right-3 text-neu-500 hover:text-neu-700 p-1"
+                  :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                  aria-pressed="showPassword"
+                >
+                  <component :is="showPassword ? Hide : Show" class="size-5" />
+                </button>
               </div>
+              <p v-if="fieldErrors.password" class="text-xs text-red-500 -mt-2">
+                {{ fieldErrors.password[0] }}
+              </p>
             </div>
+          </div>
+          <!-- Tampilkan pesan error umum atau loading state -->
+          <div v-if="localError || authStore.isLoading" class="mt-4 text-left w-full">
+            <p v-if="authStore.isLoading" class="text-sm text-pr-500 text-center">
+              Creating account...
+            </p>
+            <!-- Tampilkan localError jika bukan error validasi field -->
+            <p
+              v-if="localError && !Object.keys(fieldErrors).length && !authStore.isLoading"
+              class="text-sm text-red-600"
+            >
+              {{ localError }}
+            </p>
           </div>
           <button
             type="submit"
+            :disabled="authStore.isLoading"
             class="px-4.5 w-full py-2.5 md:py-3 flex gap-2 mt-8 items-center justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
           >
-            Sign up
+            {{ authStore.isLoading ? 'Processing...' : 'Sign up' }}
           </button>
         </form>
       </div>
@@ -115,6 +243,6 @@ const handleSwitch = () => {
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.3s ease-out forwards;
 }
 </style>

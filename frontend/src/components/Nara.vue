@@ -10,6 +10,7 @@ const chatStore = useChatStore()
 const userInput = ref('')
 const isOpen = ref(false)
 const messagesContainer = ref(null)
+const userInputField = ref(null)
 
 const showCalloutMessage = ref(false)
 const calloutTexts = [
@@ -105,6 +106,15 @@ const displayNextCallout = () => {
   }, 4000)
 }
 
+const focusUserInput = () => {
+  if (userInputField.value) {
+    userInputField.value.focus()
+    // console.log('Attempting to focus input:', userInputField.value); // Untuk debugging
+  } else {
+    // console.log('userInputField is null, cannot focus.'); // Untuk debugging
+  }
+}
+
 const toggleChat = () => {
   isOpen.value = !isOpen.value
   if (isOpen.value) {
@@ -133,7 +143,7 @@ const suggestedReplies = ref([
 
 const sendSuggestedReply = (reply) => {
   userInput.value = reply
-  sendMessage()
+  handleSendMessage()
 }
 
 onMounted(() => {
@@ -154,6 +164,26 @@ watch(
     scrollToBottom()
   },
   { deep: true },
+)
+
+const autoResizeTextarea = () => {
+  if (userInputField.value) {
+    userInputField.value.style.height = 'auto' // Reset tinggi untuk perhitungan yang benar
+    userInputField.value.style.height = `${userInputField.value.scrollHeight}px`
+  }
+}
+
+watch(
+  isOpen,
+  (newValue) => {
+    if (newValue) {
+      // nextTick() di sini juga baik untuk memastikan elemen ada
+      nextTick(() => {
+        focusUserInput()
+      })
+    }
+  },
+  { flush: 'post' },
 )
 </script>
 
@@ -300,6 +330,7 @@ watch(
           class="flex-grow px-3 pt-6 space-y-3 overflow-y-auto bg-[#FAFAFA] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
           aria-atomic="false"
           aria-relevant="additions"
+          style="overscroll-behavior-y: contain"
         >
           <div v-if="isLoadingHistory" class="loading-indicator">Loading chat history...</div>
           <div
@@ -339,25 +370,25 @@ watch(
                 </small>
               </div>
             </div>
-            <!-- Indikator Bot Sedang Mengetik/Memproses -->
+          </div>
+          <!-- Indikator Bot Sedang Mengetik/Memproses -->
+          <div
+            v-if="isSending && messages[messages.length - 1]?.sender === 'user'"
+            class="flex justify-start"
+          >
             <div
-              v-if="isChatSending && messages[messages.length - 1]?.sender === 'user'"
-              class="flex justify-start"
+              class="max-w-[70%] p-2.5 rounded-xl shadow-sm bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-bl-none"
             >
-              <div
-                class="max-w-[70%] p-2.5 rounded-xl shadow-sm bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-bl-none"
-              >
-                <div class="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-                  <div
-                    class="animate-pulse w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"
-                  ></div>
-                  <div
-                    class="animate-pulse delay-100 w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"
-                  ></div>
-                  <div
-                    class="animate-pulse delay-200 w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"
-                  ></div>
-                </div>
+              <div class="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                <div
+                  class="animate-pulse w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"
+                ></div>
+                <div
+                  class="animate-pulse delay-100 w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"
+                ></div>
+                <div
+                  class="animate-pulse delay-200 w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full"
+                ></div>
               </div>
             </div>
           </div>
@@ -381,15 +412,19 @@ watch(
           </div>
 
           <form @submit.prevent="handleSendMessage" class="flex items-center space-x-2">
-            <input
-              type="text"
+            <textarea
+              ref="userInputField"
               v-model="userInput"
-              @keyup.enter.prevent="handleSendMessage"
+              @input="autoResizeTextarea"
+              @keydown.enter.exact.prevent="handleSendMessage"
+              @keydown.enter.shift.exact="allowNewLine"
               placeholder="Start a conversation..."
-              class="flex-grow p-2.5 rounded-lg text-sm focus:ring-1 focus:ring-neu-200 focus:border-transparent outline-none"
-              :disabled="isSending || isLoadingHistory || isClearing"
+              class="flex-grow p-2.5 rounded-lg focus:ring-1 focus:ring-neu-200 focus:border-transparent outline-none text-sm resize-none overflow-hidden"
+              rows="1"
+              :disabled="isChatSending || isHistoryLoading || isHistoryClearing"
               aria-label="Chat input"
-            />
+            ></textarea>
+
             <button
               type="submit"
               class="bg-pr-500 hover:bg-pr-600 cursor-pointer flex items-center justify-center text-white size-10 rounded-lg"
