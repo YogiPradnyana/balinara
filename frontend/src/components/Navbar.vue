@@ -5,8 +5,10 @@ import HamburgerMenu from './icons/HamburgerMenu.vue'
 import Login from './icons/Login.vue'
 import Search from './icons/Search.vue'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 const isLoginOpen = ref(false)
 
+const authStore = useAuthStore()
 // Lock scroll saat login dibuka
 watch(isLoginOpen, (val) => {
   if (val) {
@@ -125,6 +127,10 @@ const toggleSidebar = () => {
             class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
             :class="$route.name === 'Destinations' ? ' w-6' : ''"
           ></span>
+        </li>
+        <li v-if="authStore.isAuthenticated">
+          {{ authStore.currentUser?.username }} <br />
+          <button @click="authStore.logout()">Logout</button>
         </li>
         <li
           id="dropdownDefaultButton"

@@ -1,19 +1,35 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 import Exit from '../icons/Exit.vue'
 import Mail from '../icons/Mail.vue'
 import Google from '../icons/social-media/Google.vue'
 import LoginEmailModal from './LoginEmailModal.vue'
 import RegisterEmailModal from './RegisterEmailModal.vue'
 
+const authStore = useAuthStore()
+
 const emit = defineEmits(['close'])
 
 const handleClose = () => {
+  isLoginEmailOpen.value = false
+  isRegisterEmailOpen.value = false
   emit('close')
 }
 
 const isLoginEmailOpen = ref(false)
 const isRegisterEmailOpen = ref(false)
+
+watch(
+  () => authStore.isAuthenticated,
+  (isAuth) => {
+    if (isAuth) {
+      console.log(isAuth)
+
+      handleClose()
+    }
+  },
+)
 </script>
 <template>
   <!-- Overlay -->
