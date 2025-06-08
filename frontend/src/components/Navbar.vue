@@ -5,7 +5,7 @@ import HamburgerMenu from './icons/HamburgerMenu.vue'
 import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
 import Login from './icons/Login.vue'
 import Search from './icons/Search.vue'
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
 
 const handleImageError = (event) => {
@@ -25,16 +25,40 @@ watch(isLoginOpen, (val) => {
 })
 
 const isSticky = ref(false)
+const isReviewOpen = ref(false)
 const isSidebarOpen = ref(false)
+const isUserOpen = ref(false)
+const navbarRef = ref(null)
+const navHeight = ref(0)
+const isScrolled = ref(false)
+
+const toggleReviewDropdown = () => {
+  isReviewOpen.value = !isReviewOpen.value
+}
+const toggleUserDropdown = () => {
+  isUserOpen.value = !isUserOpen.value
+}
 
 const handleScroll = () => {
+  isScrolled.value = window.scrollY > navbarRef.value.offsetHeight
   isSticky.value = window.scrollY > window.innerHeight
-  import('flowbite').then(({ initDropdowns }) => {
-    initDropdowns() // Inisialisasi ulang dropdown
-  })
 }
 
 onMounted(() => {
+  nextTick(() => {
+    if (navbarRef.value) {
+      navHeight.value = navbarRef.value.offsetHeight
+    }
+  })
+  window.addEventListener('click', (event) => {
+    if (!event.target.closest('.reviews-dropdown')) {
+      isReviewOpen.value = false
+    }
+
+    if (!event.target.closest('.user-dropdown')) {
+      isUserOpen.value = false
+    }
+  })
   window.addEventListener('scroll', handleScroll)
 })
 onUnmounted(() => {
@@ -99,13 +123,31 @@ const toggleSidebar = () => {
     </div>
   </aside>
 
-  <!-- Before Scroll Navbar (Desktop) -->
+  <div v-show="isSticky" :style="{ height: navHeight + 'px' }"></div>
+
+  <!-- 
+  SATU-SATUNYA Navbar.
+  Kita menggunakan :class untuk mengubah segalanya secara dinamis.
+-->
   <nav
-    v-if="!isSticky"
-    class="px-6 sm:px-12 lg:px-[100px] font-pr border-b-[1.6px] border-neu-100 sm:border-none"
+    ref="navbarRef"
+    :class="[
+      'font-pr z-50',
+      isSticky
+        ? 'fixed top-0 transition-all duration-500 left-0 right-0 translate-y-0 opacity-100 bg-white'
+        : 'relative', // State sebelum scroll
+      // Class padding ini sama untuk kedua state
+      'sm:px-12 lg:px-[100px]',
+      isScrolled ? '-translate-y-40' : 'translate-y-0',
+    ]"
   >
+    <!-- Wrapper utama yang mengatur semua item di dalamnya -->
     <div
-      class="sm:px-4 lg:px-10 py-4 flex justify-between items-center sm:border-b-[1.6px] sm:border-neu-100"
+      :class="[
+        'py-4 flex justify-between items-center px-6',
+        'border-b-[1.6px] border-neu-100', // Border ada di kedua state
+        isSticky ? 'sm:px-2 lg:px-10 gap-8 sm:gap-4' : 'sm:px-4 lg:px-10',
+      ]"
     >
       <!-- Burger Icon (Mobile) -->
       <div class="sm:hidden">
@@ -113,179 +155,30 @@ const toggleSidebar = () => {
           <HamburgerMenu class="size-5" />
         </button>
       </div>
+
+      <!-- Logo -->
       <RouterLink
         :to="{ name: 'Home' }"
-        class="text-2xl md:text-3xl font-se font-semibold leading-[38px]"
+        :class="[
+          'font-se font-semibold',
+          isSticky
+            ? 'hidden sm:block text-xl sm:order-1 md:text-2xl lg:text-3xl'
+            : 'text-2xl md:text-3xl leading-[38px]',
+        ]"
       >
         Bali<span class="text-pr-500">nara</span>
       </RouterLink>
 
-      <!-- Nav Items (Desktop) -->
-      <ul class="hidden sm:flex sm:gap-8 lg:gap-[60px] items-center font-medium text-neu-700">
-        <li class="flex flex-col items-center justify-center group">
-          <RouterLink
-            :to="{ name: 'Destinations' }"
-            class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
-            :class="$route.name === 'Destinations' ? ' text-pr-500' : ''"
-            >Discover</RouterLink
-          >
-          <span
-            class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
-            :class="$route.name === 'Destinations' ? ' w-6' : ''"
-          ></span>
-        </li>
-        <li
-          id="dropdownDefaultButton"
-          data-dropdown-toggle="dropdown1"
-          data-dropdown-trigger="click"
-          data-dropdown-placement="bottom-start"
-          class="cursor-pointer flex flex-col items-center justify-center group"
-        >
-          <span class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
-            >Review</span
-          >
-          <span
-            class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
-          ></span>
-        </li>
-
-        <!-- Dropdown menu -->
-        <div id="dropdown1" class="z-50 hidden bg-sur-50 rounded-2xl p-2 shadow-md">
-          <ul class="flex flex-col gap-2" aria-labelledby="dropdownHoverButton">
-            <li>
-              <RouterLink
-                :to="{ name: 'WriteReview' }"
-                class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                >Write a review</RouterLink
-              >
-            </li>
-            <li>
-              <RouterLink
-                :to="{ name: 'SuggestSpot' }"
-                class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                >Suggest a spot</RouterLink
-              >
-            </li>
-          </ul>
-        </div>
-
-        <li class="flex flex-col items-center justify-center group">
-          <RouterLink
-            :to="{ name: 'About' }"
-            class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
-            :class="$route.name === 'About' ? ' text-pr-500' : ''"
-            >About</RouterLink
-          >
-          <span
-            class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
-            :class="$route.name === 'About' ? ' w-6' : ''"
-          ></span>
-        </li>
-      </ul>
-
-      <div
-        v-if="authStore.isAuthenticated"
-        id="dropdownDefaultButton"
-        data-dropdown-toggle="dropdownUser"
-        data-dropdown-trigger="click"
-        data-dropdown-placement="bottom-end"
-        class="rounded-full size-9 lg:size-11 border border-neu-200"
-      >
-        <img
-          v-if="authStore.isAuthenticated && authStore.currentUser?.image"
-          :src="authStore.currentUser.image"
-          alt="User Profile"
-          class="w-full object-cover"
-          @error="handleImageError"
-        />
-        <img
-          v-else-if="authStore.isAuthenticated"
-          :src="defaultAvatar"
-          alt="Default Profile"
-          class="size-11 rounded-full border border-neu-200 object-cover"
-        />
-      </div>
-      <div
-        v-else
-        class="hidden cursor-pointer sm:flex px-4.5 py-2.5 gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
-        @click="isLoginOpen = true"
-      >
-        <Login />
-        Sign in
-      </div>
-      <!-- Dropdown menu -->
-      <div
-        id="dropdownUser"
-        v-if="authStore.isAuthenticated"
-        class="z-50 hidden bg-sur-50 max-w-48 w-full rounded-2xl p-2 shadow-md"
-      >
-        <ul class="flex flex-col gap-2" aria-labelledby="dropdownHoverButton">
-          <li>
-            <RouterLink
-              :to="{ name: 'Profile' }"
-              class="flex w-full text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-              >Profile</RouterLink
-            >
-          </li>
-          <li>
-            <RouterLink
-              :to="{ name: 'Wishlist' }"
-              class="flex w-full text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-              >Wishlist</RouterLink
-            >
-          </li>
-          <li>
-            <RouterLink
-              :to="{ name: 'UserReview' }"
-              class="flex w-full text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-              >Reviews</RouterLink
-            >
-          </li>
-          <li>
-            <RouterLink
-              :to="{ name: 'UserSuggestion' }"
-              class="flex w-full text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-              >Suggests</RouterLink
-            >
-          </li>
-          <li>
-            <button
-              type="button"
-              @click="authStore.logout()"
-              class="flex w-full text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-            >
-              Sign Out
-            </button>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </nav>
-
-  <!-- After Scroll Navbar (Sticky Top) -->
-  <nav
-    :class="[
-      'fixed top-0 left-0 right-0 z-50 transition-all duration-500 font-pr bg-white px-6 sm:px-12 lg:px-[100px] border-b-[1.6px] border-neu-100 sm:border-none',
-      isSticky ? 'translate-y-0 opacity-100' : '-translate-y-40 opacity-0',
-    ]"
-  >
-    <div
-      class="sm:px-2 lg:px-10 py-4 flex justify-between gap-8 sm:gap-4 items-center sm:border-b-[1.6px] sm:border-neu-100"
-    >
-      <div class="sm:hidden">
-        <button @click="toggleSidebar" aria-label="Toggle sidebar">
-          <HamburgerMenu class="size-5" />
-        </button>
-      </div>
-
+      <!-- Search Bar (HANYA muncul saat sticky) -->
       <form
+        v-if="isSticky"
         class="flex sm:max-w-[560px] sm:order-2 w-full items-center justify-between rounded-full outline outline-neu-200 p-1"
       >
         <div class="wrapper gap-2 ps-1.5 flex items-center w-full">
           <Search class="min-w-5" />
           <input
             type="text"
-            class="w-full text-xs md:text-sm leading-5 placeholder:text-neu-500 focus:outline-none"
+            class="w-full text-xs md:text-sm leading-5 placeholder:text-neu-500 focus:outline-none bg-transparent"
             placeholder="Type something here..."
           />
         </div>
@@ -296,97 +189,154 @@ const toggleSidebar = () => {
           Search
         </button>
       </form>
-      <RouterLink
-        :to="{ name: 'Home' }"
-        class="text-xl sm:order-1 md:text-2xl lg:text-3xl font-se font-semibold"
-      >
-        Bali<span class="text-pr-500">nara</span>
-      </RouterLink>
+
+      <!-- Nav Items (Desktop) -->
       <ul
-        class="hidden sm:order-3 sm:flex text-base sm:text-sm lg:text-base gap-4 lg:gap-8 xl:gap-[60px] items-center font-medium text-neu-700"
+        :class="[
+          'hidden sm:flex items-center font-medium text-neu-700',
+          isSticky
+            ? 'sm:order-3 text-base sm:text-sm lg:text-base gap-4 lg:gap-8 xl:gap-[60px]'
+            : 'sm:gap-8 lg:gap-[60px]',
+        ]"
       >
+        <!-- Discover -->
         <li class="flex flex-col items-center justify-center group">
           <RouterLink
             :to="{ name: 'Destinations' }"
             class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
-            :class="$route.name === 'Destinations' ? ' text-pr-500' : ''"
+            :class="{ 'text-pr-500': $route.name === 'Destinations' }"
             >Discover</RouterLink
           >
           <span
             class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
-            :class="$route.name === 'Destinations' ? ' w-6' : ''"
+            :class="{ 'w-6': $route.name === 'Destinations' }"
           ></span>
         </li>
+
         <li
-          id="dropdownDefaultButton"
-          data-dropdown-toggle="dropdown2"
-          data-dropdown-trigger="click"
-          data-dropdown-placement="bottom-start"
-          class="cursor-pointer flex flex-col items-center justify-center group"
+          @click="toggleReviewDropdown"
+          class="cursor-pointer relative reviews-dropdown flex flex-col items-center justify-center group"
         >
-          <span
-            class="transition-all flex items-center gap-0.5 duration-400 ease-in-out group-hover:text-pr-500"
+          <span class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
             >Review</span
           >
           <span
             class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
           ></span>
+          <!-- Dropdown review menu -->
+          <div
+            v-if="isReviewOpen"
+            class="z-50 absolute top-full left-0 mt-3 bg-sur-50 rounded-2xl p-2 shadow-md"
+          >
+            <ul class="flex flex-col gap-2" aria-labelledby="dropdownHoverButton">
+              <li>
+                <RouterLink
+                  :to="{ name: 'WriteReview' }"
+                  class="block whitespace-nowrap rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                  >Write a review</RouterLink
+                >
+              </li>
+              <li>
+                <RouterLink
+                  :to="{ name: 'SuggestSpot' }"
+                  class="block whitespace-nowrap rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                  >Suggest a spot</RouterLink
+                >
+              </li>
+            </ul>
+          </div>
         </li>
 
-        <!-- Dropdown menu -->
-        <div id="dropdown2" class="z-50 hidden bg-sur-50 rounded-2xl p-2 shadow-md">
-          <ul class="flex flex-col gap-2" aria-labelledby="dropdownHoverButton">
-            <li>
-              <RouterLink
-                :to="{ name: 'WriteReview' }"
-                class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                >Write a review</RouterLink
-              >
-            </li>
-            <li>
-              <RouterLink
-                :to="{ name: 'SuggestSpot' }"
-                class="block rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                >Suggest a spot</RouterLink
-              >
-            </li>
-          </ul>
-        </div>
-
+        <!-- About -->
         <li class="flex flex-col items-center justify-center group">
           <RouterLink
             :to="{ name: 'About' }"
             class="transition-all duration-400 ease-in-out group-hover:text-pr-500"
-            :class="$route.name === 'About' ? ' text-pr-500' : ''"
+            :class="{ 'text-pr-500': $route.name === 'About' }"
             >About</RouterLink
           >
           <span
             class="w-0 h-[1.6px] bg-pr-500 rounded-full relative top-2 transition-all duration-500 ease-in-out group-hover:w-6"
-            :class="$route.name === 'About' ? ' w-6' : ''"
+            :class="{ 'w-6': $route.name === 'About' }"
           ></span>
         </li>
       </ul>
 
-      <img
-        v-if="authStore.isAuthenticated && authStore.currentUser?.image"
-        :src="authStore.currentUser.image"
-        alt="User Profile"
-        class="order-4 size-9 lg:size-11 rounded-full border border-neu-200 object-cover"
-        @error="handleImageError"
-      />
-      <img
-        v-else-if="authStore.isAuthenticated"
-        :src="defaultAvatar"
-        alt="Default Profile"
-        class="order-4 size-9 lg:size-11 rounded-full border border-neu-200 object-cover"
-      />
-      <div
-        v-else
-        class="hidden sm:order-4 whitespace-nowrap cursor-pointer sm:flex px-4.5 py-2.5 gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
-        @click="isLoginOpen = true"
-      >
-        <Login class="hidden lg:flex" />
-        Sign in
+      <!-- User/Auth Section -->
+      <div :class="{ 'sm:order-4': isSticky }">
+        <div v-if="authStore.isAuthenticated">
+          <div
+            @click="toggleUserDropdown"
+            class="rounded-full user-dropdown relative size-9 lg:size-11 border border-neu-200 cursor-pointer"
+          >
+            <img
+              v-if="authStore.currentUser?.image"
+              :src="authStore.currentUser.image"
+              alt="User Profile"
+              class="size-full object-cover rounded-full"
+              @error="handleImageError"
+            />
+            <img
+              v-else
+              :src="defaultAvatar"
+              alt="Default Profile"
+              class="size-full rounded-full border border-neu-200 object-cover"
+            />
+            <!-- User Dropdown -->
+            <div
+              v-if="isUserOpen"
+              class="z-50 absolute flex w-fit top-full right-0 mt-3 bg-sur-50 rounded-2xl p-2 shadow-md"
+            >
+              <ul class="flex flex-col gap-2">
+                <li>
+                  <RouterLink
+                    :to="{ name: 'Profile' }"
+                    class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                    >Profile</RouterLink
+                  >
+                </li>
+                <li>
+                  <RouterLink
+                    :to="{ name: 'Wishlist' }"
+                    class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                    >Wishlist</RouterLink
+                  >
+                </li>
+                <li>
+                  <RouterLink
+                    :to="{ name: 'UserReview' }"
+                    class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                    >Reviews</RouterLink
+                  >
+                </li>
+                <li>
+                  <RouterLink
+                    :to="{ name: 'UserSuggestion' }"
+                    class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                    >Suggests</RouterLink
+                  >
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    @click="authStore.logout()"
+                    class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                  >
+                    Sign Out
+                  </button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div
+          v-else
+          class="hidden cursor-pointer sm:flex px-4.5 py-2.5 gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white whitespace-nowrap"
+          @click="isLoginOpen = true"
+        >
+          <Login :class="{ 'lg:flex': !isSticky, hidden: isSticky }" />
+          Sign in
+        </div>
       </div>
     </div>
   </nav>
