@@ -2,10 +2,16 @@
 import LoginModal from './auth/LoginModal.vue'
 import Exit from './icons/Exit.vue'
 import HamburgerMenu from './icons/HamburgerMenu.vue'
+import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
 import Login from './icons/Login.vue'
 import Search from './icons/Search.vue'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
+
+const handleImageError = (event) => {
+  event.target.src = defaultAvatar
+}
+
 const isLoginOpen = ref(false)
 
 const authStore = useAuthStore()
@@ -128,10 +134,6 @@ const toggleSidebar = () => {
             :class="$route.name === 'Destinations' ? ' w-6' : ''"
           ></span>
         </li>
-        <li v-if="authStore.isAuthenticated">
-          {{ authStore.currentUser?.username }} <br />
-          <button @click="authStore.logout()">Logout</button>
-        </li>
         <li
           id="dropdownDefaultButton"
           data-dropdown-toggle="dropdown1"
@@ -181,13 +183,81 @@ const toggleSidebar = () => {
         </li>
       </ul>
 
-      <!-- Sign In (Desktop) -->
       <div
+        v-if="authStore.isAuthenticated"
+        id="dropdownDefaultButton"
+        data-dropdown-toggle="dropdownUser"
+        data-dropdown-trigger="click"
+        data-dropdown-placement="bottom-end"
+        class="rounded-full size-9 lg:size-11 border border-neu-200"
+      >
+        <img
+          v-if="authStore.isAuthenticated && authStore.currentUser?.image"
+          :src="authStore.currentUser.image"
+          alt="User Profile"
+          class="w-full object-cover"
+          @error="handleImageError"
+        />
+        <img
+          v-else-if="authStore.isAuthenticated"
+          :src="defaultAvatar"
+          alt="Default Profile"
+          class="size-11 rounded-full border border-neu-200 object-cover"
+        />
+      </div>
+      <div
+        v-else
         class="hidden cursor-pointer sm:flex px-4.5 py-2.5 gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
         @click="isLoginOpen = true"
       >
         <Login />
         Sign in
+      </div>
+      <!-- Dropdown menu -->
+      <div
+        id="dropdownUser"
+        v-if="authStore.isAuthenticated"
+        class="z-50 hidden bg-sur-50 max-w-48 w-full rounded-2xl p-2 shadow-md"
+      >
+        <ul class="flex flex-col gap-2" aria-labelledby="dropdownHoverButton">
+          <li>
+            <RouterLink
+              :to="{ name: 'Profile' }"
+              class="flex w-full text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+              >Profile</RouterLink
+            >
+          </li>
+          <li>
+            <RouterLink
+              :to="{ name: 'Wishlist' }"
+              class="flex w-full text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+              >Wishlist</RouterLink
+            >
+          </li>
+          <li>
+            <RouterLink
+              :to="{ name: 'UserReview' }"
+              class="flex w-full text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+              >Reviews</RouterLink
+            >
+          </li>
+          <li>
+            <RouterLink
+              :to="{ name: 'UserSuggestion' }"
+              class="flex w-full text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+              >Suggests</RouterLink
+            >
+          </li>
+          <li>
+            <button
+              type="button"
+              @click="authStore.logout()"
+              class="flex w-full text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+            >
+              Sign Out
+            </button>
+          </li>
+        </ul>
       </div>
     </div>
   </nav>
@@ -297,8 +367,22 @@ const toggleSidebar = () => {
         </li>
       </ul>
 
+      <img
+        v-if="authStore.isAuthenticated && authStore.currentUser?.image"
+        :src="authStore.currentUser.image"
+        alt="User Profile"
+        class="order-4 size-9 lg:size-11 rounded-full border border-neu-200 object-cover"
+        @error="handleImageError"
+      />
+      <img
+        v-else-if="authStore.isAuthenticated"
+        :src="defaultAvatar"
+        alt="Default Profile"
+        class="order-4 size-9 lg:size-11 rounded-full border border-neu-200 object-cover"
+      />
       <div
-        class="hidden sm:order-4 whitespace-nowrap sm:flex px-4.5 py-2.5 text-sm lg:text-base gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
+        v-else
+        class="hidden sm:order-4 whitespace-nowrap cursor-pointer sm:flex px-4.5 py-2.5 gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
         @click="isLoginOpen = true"
       >
         <Login class="hidden lg:flex" />
