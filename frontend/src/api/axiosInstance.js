@@ -5,10 +5,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-    // Anda bisa menambahkan header default lain di sini jika perlu
-  },
+  // headers: {
+  //   'Content-Type': 'application/json',
+  // },
 })
 
 // Request Interceptor
@@ -30,6 +29,24 @@ apiClient.interceptors.request.use(
       // Biarkan request berjalan tanpa token jika store tidak bisa diakses.
       // console.warn("Auth store not available for request interceptor or no token found:", e.message);
     }
+
+    if (config.data instanceof FormData) {
+      // Jika data adalah FormData, JANGAN set Content-Type secara manual.
+      // Biarkan Axios dan browser menanganinya.
+      // Jika sebelumnya ada Content-Type default yang ter-set (misalnya jika tidak dihapus dari axios.create),
+      // Anda bisa menghapusnya di sini:
+      // delete config.headers['Content-Type']; // Hanya jika ada Content-Type default yang ingin di-override untuk FormData
+    } else if (
+      config.method !== 'get' &&
+      config.method !== 'delete' &&
+      !config.headers['Content-Type']
+    ) {
+      // Jika BUKAN FormData, bukan GET/DELETE (yang biasanya tidak punya body atau Content-Type relevan),
+      // dan belum ada Content-Type, maka set ke application/json.
+      // Ini mengasumsikan request POST/PUT/PATCH Anda yang bukan FormData adalah JSON.
+      config.headers['Content-Type'] = 'application/json'
+    }
+
     return config
   },
   (error) => {

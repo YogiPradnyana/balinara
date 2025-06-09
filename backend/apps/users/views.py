@@ -2,6 +2,7 @@
 from django.contrib.auth import login, logout
 from rest_framework import generics, status, permissions, viewsets
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 
@@ -61,6 +62,7 @@ class UserLogoutView(APIView):
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_serializer_class(self):
         if self.request.method in ['PUT', 'PATCH']:
@@ -69,6 +71,29 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)  # Untuk PATCH request
+        instance = self.get_object()  # Dapatkan instance user yang akan diupdate
+
+        # Gunakan UserProfileUpdateSerializer untuk validasi dan melakukan update
+        update_serializer = self.get_serializer(
+            instance, data=request.data, partial=partial)
+        update_serializer.is_valid(raise_exception=True)
+        self.perform_update(update_serializer)  # Melakukan save ke database
+
+        # Jika ada prefetch_related, Django mungkin perlu invalidasi cache-nya
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+
+        # Setelah update berhasil, serialisasi ulang instance user yang sudah terupdate
+        # menggunakan UserDetailSerializer agar semua field (termasuk email) ikut dalam respons
+        # Kita perlu menyediakan konteks request ke UserDetailSerializer agar get_image_url berfungsi
+        detail_serializer_context = self.get_serializer_context()
+        detail_serializer = UserDetailSerializer(
+            instance, context=detail_serializer_context)
+
+        return Response(detail_serializer.data, status=status.HTTP_200_OK)
 
 
 class ChangePasswordView(generics.UpdateAPIView):

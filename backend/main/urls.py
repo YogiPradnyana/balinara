@@ -19,6 +19,9 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include  # Pastikan include diimpor
+from django.conf import settings  # <-- Impor settings
+from django.conf.urls.static import static  # <-- Impor static
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,3 +34,7 @@ urlpatterns = [
     # from chat.views import api_root_redirect
     # path('', api_root_redirect),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL,
+                          document_root=settings.MEDIA_ROOT)

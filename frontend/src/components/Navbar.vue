@@ -292,30 +292,32 @@ const toggleSidebar = () => {
                   <RouterLink
                     :to="{ name: 'Profile' }"
                     class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                    >Profile</RouterLink
+                    >My Profile</RouterLink
                   >
                 </li>
-                <li>
-                  <RouterLink
-                    :to="{ name: 'Wishlist' }"
-                    class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                    >Wishlist</RouterLink
-                  >
-                </li>
-                <li>
-                  <RouterLink
-                    :to="{ name: 'UserReview' }"
-                    class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                    >Reviews</RouterLink
-                  >
-                </li>
-                <li>
-                  <RouterLink
-                    :to="{ name: 'UserSuggestion' }"
-                    class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
-                    >Suggests</RouterLink
-                  >
-                </li>
+                <div class="block sm:hidden">
+                  <li>
+                    <RouterLink
+                      :to="{ name: 'Wishlist' }"
+                      class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                      >Wishlist</RouterLink
+                    >
+                  </li>
+                  <li>
+                    <RouterLink
+                      :to="{ name: 'UserReview' }"
+                      class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                      >Reviews</RouterLink
+                    >
+                  </li>
+                  <li>
+                    <RouterLink
+                      :to="{ name: 'UserSuggestion' }"
+                      class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                      >Suggests</RouterLink
+                    >
+                  </li>
+                </div>
                 <li>
                   <button
                     type="button"
