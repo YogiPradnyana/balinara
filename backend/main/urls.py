@@ -29,6 +29,7 @@ urlpatterns = [
     # URL untuk chat: /api/chat/...
     path('api/chat/', include('apps.chat.urls')),
     path('api/auth/', include('apps.users.urls')),
+    path('api/common/', include('apps.common.urls')),
     # Jika Anda ingin ada sesuatu di root URL ('/'), Anda bisa menambahkan rute lain di sini
     # Misalnya, untuk redirect ke /api/messages/ seperti yang kita diskusikan sebelumnya:
     # from chat.views import api_root_redirect
