@@ -8,7 +8,7 @@ class Category(models.Model):
     name = models.CharField(_("Category Name"), max_length=100, unique=True,
                             help_text=_("Name of the destination category (e.g., Beach, Mountain, Temple)."))
     # Slug bisa ditambahkan jika Anda ingin URL yang lebih ramah untuk kategori
-    # slug = models.SlugField(_("Slug"), max_length=120, unique=True, blank=True)
+    slug = models.SlugField(_("Slug"), max_length=120, unique=True, blank=True)
 
     class Meta:
         verbose_name = _("Category")
