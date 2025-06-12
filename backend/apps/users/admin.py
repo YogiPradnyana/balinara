@@ -10,16 +10,16 @@ class UserAdmin(BaseUserAdmin):
     add_form = UserCreationFormAdmin
 
     model = User
-    list_display = ['email', 'username', 'role',
+    list_display = ['email', 'username',
                     'phone', 'is_staff', 'is_active', 'date_joined']
-    list_filter = ['is_staff', 'is_superuser', 'is_active', 'groups', 'role']
+    list_filter = ['is_staff', 'is_superuser', 'is_active', 'groups']
     search_fields = ['email', 'username', 'phone']
     ordering = ['email']
 
     # Fieldsets di-override dari BaseUserAdmin
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('username', 'phone', 'image', 'role')}),
+        ('Personal info', {'fields': ('username', 'phone', 'image')}),
         ('Permissions', {'fields': ('is_active', 'is_staff',
          'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login',
@@ -29,7 +29,7 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'username', 'password', 'password2', 'phone', 'role', 'is_staff', 'is_superuser'),
+            'fields': ('email', 'username', 'password', 'password2', 'phone', 'is_staff', 'is_superuser'),
         }),
     )
     readonly_fields = ('last_login', 'date_joined',

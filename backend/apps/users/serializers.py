@@ -12,10 +12,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'email', 'password')
-        extra_kwargs = {
-            'phone': {'required': False, 'allow_blank': True, 'allow_null': True},
-            'role': {'default': 'user', 'required': False},
-        }
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -52,7 +48,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'phone', 'role', 'image', 'image_url',
+        fields = ('id', 'username', 'email', 'phone', 'image', 'image_url',
                   'email_verified_at', 'date_joined', 'updated_at', 'is_active',
                   'is_staff', 'is_superuser')  # Menambahkan info permission
         read_only_fields = ('id', 'email', 'email_verified_at', 'date_joined', 'updated_at',

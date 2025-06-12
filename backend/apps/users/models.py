@@ -25,18 +25,12 @@ def user_image_path(instance, filename):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    ROLE_CHOICES = [
-        ('admin', _('Admin')),
-        ('user', _('User (Traveler)')),
-    ]
 
     username = models.CharField(_('username'), max_length=150, unique=True)
     email = models.EmailField(_('email address'), unique=True)
     # Password akan dihandle oleh AbstractBaseUser
     phone = models.CharField(
         _('phone number'), max_length=20, blank=True, null=True)
-    role = models.CharField(_('role'), max_length=20,
-                            choices=ROLE_CHOICES, default='user')
     image = models.ImageField(_('profile image'),
                               upload_to=user_image_path, null=True, blank=True)
     email_verified_at = models.DateTimeField(_('email verified at'),

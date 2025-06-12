@@ -211,8 +211,7 @@ router.beforeEach((to, from, next) => {
     */
   } else if (
     needsAdmin &&
-    (!authStore.isAuthenticated ||
-      (authStore.currentUser?.role !== 'admin' && authStore.currentUser?.is_staff !== true))
+    (!authStore.isAuthenticated || authStore.currentUser?.is_staff !== true)
   ) {
     // Jika rute memerlukan admin, tetapi pengguna bukan admin (atau belum login sama sekali):
     console.log(`Route ${to.name} requires admin. Access denied.`)

@@ -9,7 +9,7 @@ class UserCreationFormAdmin(UserCreationForm):
         model = User
         # Fields yang akan muncul di form pembuatan user di admin
         # 'password2' akan di-handle oleh UserCreationForm
-        fields = ('email', 'username', 'phone', 'role',
+        fields = ('email', 'username', 'phone',
                   'is_staff', 'is_superuser', 'is_active')
 
 
@@ -17,5 +17,5 @@ class UserChangeFormAdmin(UserChangeForm):
     class Meta(UserChangeForm.Meta):
         model = User
         # Fields yang akan muncul di form edit user di admin
-        fields = ('email', 'username', 'phone', 'role', 'image', 'is_active', 'is_staff',
+        fields = ('email', 'username', 'phone', 'image', 'is_active', 'is_staff',
                   'is_superuser', 'groups', 'user_permissions', 'email_verified_at')
