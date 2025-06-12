@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import Footer from '@/components/Footer.vue'
 import ArrowDown from '@/components/icons/ArrowDown.vue'
-import ArrowLeft from '@/components/icons/ArrowLeft.vue'
 import Exit from '@/components/icons/Exit.vue'
 import Subtract from '@/components/icons/Subtract.vue'
 import Sidebar from '@/components/Sidebar.vue'
+import { useAuthStore } from '@/stores/authStore'
+
+const authStore = useAuthStore()
 </script>
 
 <template>
-  <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
+  <div
+    v-if="authStore.isAuthenticated && authStore.currentUser"
+    class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30"
+  >
     <div class="mt-10 md:mt-16 flex gap-3 xl:gap-6">
       <!-- Sidebar -->
       <Sidebar />
