@@ -3,6 +3,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import Sidebar from '@/components/Sidebar.vue'
 import { useAuthStore } from '@/stores/authStore'
 import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
+import { toast } from 'vue-sonner'
 
 const authStore = useAuthStore()
 
@@ -150,13 +151,13 @@ const handleProfileUpdate = async () => {
     // dan reset profileImageFile
     populateProfileForm() // Ini akan mengisi ulang form dan initialProfileData
     // Set timeout untuk menghilangkan pesan sukses
-    setTimeout(() => {
-      profileUpdateStatus.value = ''
-    }, 3000)
+    toast.success('Profile updated successfully!')
   } catch (error) {
     profileUpdateStatus.value = 'error'
-    profileUpdateError.value = error.message || error.response?.data || 'Failed to update profile.'
+    profileUpdateError.value =
+      error.message || error.response?.data || 'Failed to update profile. Try again.'
     console.error('Profile update error:', error)
+    toast.error(profileUpdateError)
   }
 }
 
@@ -167,13 +168,15 @@ const handleChangePassword = async () => {
   // Validasi dasar apakah semua field terisi (sebenarnya sudah dihandle oleh :disabled)
   if (!isChangePasswordFormPopulated.value) {
     passwordChangeError.value = 'All password fields are required.'
-    passwordChangeStatus.value = 'error' // Set status error agar loading hilang
+    passwordChangeStatus.value = 'error'
+    toast.error(passwordChangeError)
     return
   }
 
   if (passwordForm.value.new_password !== passwordForm.value.new_password2) {
     passwordChangeError.value = 'New passwords do not match.'
     passwordChangeStatus.value = 'error'
+    toast.error(passwordChangeError)
     return
   }
   // Anda bisa menambahkan validasi panjang minimal password baru di sini juga jika mau
@@ -181,6 +184,7 @@ const handleChangePassword = async () => {
     // Contoh
     passwordChangeError.value = 'New password must be at least 8 characters long.'
     passwordChangeStatus.value = 'error'
+    toast.error(passwordChangeError)
     return
   }
 
@@ -195,17 +199,16 @@ const handleChangePassword = async () => {
     passwordForm.value.old_password = ''
     passwordForm.value.new_password = ''
     passwordForm.value.new_password2 = ''
-    setTimeout(() => {
-      passwordChangeStatus.value = ''
-    }, 3000)
+    toast.success('Password changed successfully!')
   } catch (error) {
     passwordChangeStatus.value = 'error'
     passwordChangeError.value =
       error.message ||
       error.response?.data?.detail ||
       error.response?.data ||
-      'Failed to change password.'
+      'Failed to change password. Try again.'
     console.error('Change password error:', error)
+    toast.error(passwordChangeError)
   }
 }
 
@@ -309,18 +312,6 @@ const getInitials = (username) => {
                   {{ profileUpdateStatus === 'loading' ? 'Saving...' : 'Save Changes' }}
                 </button>
               </div>
-              <p
-                v-if="profileUpdateStatus === 'success'"
-                class="text-sm text-green-600 dark:text-green-400 mt-2 text-right"
-              >
-                Profile updated successfully!
-              </p>
-              <p
-                v-if="profileUpdateStatus === 'error' && profileUpdateError"
-                class="text-sm text-red-600 dark:text-red-400 mt-2 text-right"
-              >
-                {{ profileUpdateError }}
-              </p>
             </form>
           </div>
         </div>
@@ -378,18 +369,6 @@ const getInitials = (username) => {
                   {{ passwordChangeStatus === 'loading' ? 'Changing...' : 'Change Password' }}
                 </button>
               </div>
-              <p
-                v-if="passwordChangeStatus === 'success'"
-                class="text-sm text-green-600 dark:text-green-400 mt-2 text-right"
-              >
-                Password changed successfully!
-              </p>
-              <p
-                v-if="passwordChangeStatus === 'error' && passwordChangeError"
-                class="text-sm text-red-600 dark:text-red-400 mt-2 text-right"
-              >
-                {{ passwordChangeError }}
-              </p>
             </form>
           </div>
         </div>

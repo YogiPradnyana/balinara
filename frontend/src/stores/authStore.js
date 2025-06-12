@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import authService from '@/services/authService' // Sekarang aman untuk diimpor
 import router from '@/router' // Impor router untuk navigasi
+import { toast } from 'vue-sonner'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -206,8 +207,12 @@ export const useAuthStore = defineStore('auth', {
         return response
       } catch (error) {
         this.status = 'error'
-        this.error = error.response?.data || 'Failed to update profile.'
-        throw this.error
+        this.error =
+          error.response?.data?.detail ||
+          error.response?.data?.message ||
+          'Failed to update profile. Try again.'
+
+        throw new Error(this.error)
       }
     },
 
@@ -222,8 +227,12 @@ export const useAuthStore = defineStore('auth', {
         return response
       } catch (error) {
         this.status = 'error'
-        this.error = error.response?.data || 'Failed to change password.'
-        throw this.error
+        this.error =
+          error.response?.data?.detail ||
+          error.response?.data?.message ||
+          'Failed to change password. Try again.'
+
+        throw new Error(this.error)
       }
     },
 
