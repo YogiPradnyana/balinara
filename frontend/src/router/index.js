@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
+import { useAuthStore } from '../stores/authStore'
 import About from '@/pages/About.vue'
 import Dashboard from '@/pages/admin/Dashboard.vue'
 import Destination from '@/pages/Destination.vue'
@@ -93,6 +93,7 @@ const router = createRouter({
         // User Profile
         {
           path: '/user',
+          meta: { requiresAuth: true },
           children: [
             { path: 'profile', name: 'Profile', component: Profile },
             { path: 'wishlist', name: 'Wishlist', component: Wishlist },
@@ -106,6 +107,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: AdminLayout,
+      meta: { requiresAuth: true, requiresAdmin: true },
       children: [
         { path: 'dashboard', name: 'Dashboard', component: Dashboard },
         {
@@ -165,6 +167,74 @@ const router = createRouter({
       return { top: 0 } // Scroll ke atas setiap halaman berubah
     }
   },
+})
+
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore() // Dapatkan instance store di dalam guard
+
+  const needsAuth = to.meta.requiresAuth
+  const needsAdmin = to.meta.requiresAdmin
+
+  // 1. Cek apakah pengguna sudah terautentikasi (mungkin token ada tapi belum fetch profile)
+  // Jika checkAuthStatus belum dipanggil atau sedang berjalan, state isAuthenticated mungkin belum akurat
+  // Anda bisa memanggil checkAuthStatus di App.vue onMounted untuk memastikan state awal benar.
+  // Untuk guard ini, kita andalkan state isAuthenticated yang ada saat ini.
+
+  if (needsAuth && !authStore.isAuthenticated) {
+    // Jika rute memerlukan autentikasi dan pengguna belum login:
+    console.log(`Route ${to.name} requires auth. User not authenticated. Opening login modal.`)
+    // Panggil action untuk membuka modal login.
+    // Simpan path tujuan agar setelah login bisa redirect ke sana.
+    authStore.openLoginModal(to.fullPath, from.fullPath)
+
+    // Jika halaman saat ini (from) adalah halaman publik, biarkan pengguna tetap di sana
+    // sambil modal login muncul.
+    // Jika pengguna mencoba langsung akses URL terproteksi, mereka akan melihat halaman
+    // yang kosong/loading sebentar lalu modal muncul.
+    // Kita bisa memutuskan untuk mengizinkan navigasi ke halaman tujuan (dan halaman itu
+    // yang akan menampilkan "Anda harus login" atau konten terbatas + modal),
+    // ATAU kita bisa mencegah navigasi dan tetap di halaman 'from' (jika ada).
+
+    // Opsi A: Izinkan navigasi, biarkan komponen tujuan menampilkan modal (lebih umum untuk SPA)
+    // Komponen di 'to.name' harus memeriksa authStore.showLoginModal
+    next()
+
+    // Opsi B: Mencegah navigasi ke rute terproteksi dan tetap di halaman 'from' jika valid,
+    // atau redirect ke Home jika 'from' tidak ada (misalnya, direct URL access).
+    // Ini bisa sedikit membingungkan UX jika modal muncul di atas halaman yang salah.
+    /*
+    if (from.name) { // Jika ada halaman sebelumnya
+      next(false); // Batalkan navigasi saat ini, modal akan muncul di atas halaman 'from'
+    } else { // Jika akses langsung via URL
+      next({ name: 'Home' }); // Redirect ke Home, modal akan muncul di atas Home
+    }
+    */
+  } else if (
+    needsAdmin &&
+    (!authStore.isAuthenticated ||
+      (authStore.currentUser?.role !== 'admin' && authStore.currentUser?.is_staff !== true))
+  ) {
+    // Jika rute memerlukan admin, tetapi pengguna bukan admin (atau belum login sama sekali):
+    console.log(`Route ${to.name} requires admin. Access denied.`)
+    // Redirect ke halaman yang aman, misalnya halaman utama atau halaman "Unauthorized"
+    if (authStore.isAuthenticated) {
+      // Pengguna login tapi bukan admin
+      next({ name: 'UnauthorizedAccess', replace: true }) // Buat rute 'UnauthorizedAccess'
+    } else {
+      // Pengguna belum login dan mencoba akses halaman admin
+      authStore.openLoginModal(to.fullPath, from.fullPath)
+      next({ name: 'Home', replace: true }) // Arahkan ke Home, modal akan muncul
+    }
+  } else {
+    // Jika tidak ada restriksi, atau pengguna memenuhi syarat, lanjutkan navigasi
+    // Jika modal login terbuka karena navigasi sebelumnya, tutup sekarang
+    if (authStore.showLoginModal && to.name !== from.name && !needsAuth && !needsAdmin) {
+      // Tutup jika navigasi ke rute publik
+      // Ini mungkin perlu logika lebih hati-hati agar tidak menutup modal yang sengaja dibuka pengguna
+      // authStore.closeLoginModal();
+    }
+    next()
+  }
 })
 
 export default router

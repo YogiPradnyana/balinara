@@ -9,6 +9,10 @@ export const useAuthStore = defineStore('auth', {
     userData: JSON.parse(localStorage.getItem('userData')) || null,
     status: 'idle', // 'idle', 'loading', 'success', 'error'
     error: null,
+    showLoginModal: false, // <-- State baru untuk kontrol modal
+    loginRedirectPath: null, // <-- Untuk menyimpan path tujuan setelah login
+    // Path untuk redirect JIKA modal DITUTUP tanpa login (khusus dari guard)
+    redirectOnClosePath: null,
   }),
 
   getters: {
@@ -30,8 +34,33 @@ export const useAuthStore = defineStore('auth', {
     _clearAuthData() {
       this.userData = null
       this.userToken = null
+      this.status = 'idle'
+      this.error = null
       localStorage.removeItem('userToken')
       localStorage.removeItem('userData')
+    },
+
+    openLoginModal(redirectPath = null, fromPath = null) {
+      this.loginRedirectPath = redirectPath || router.currentRoute.value.fullPath // Simpan path saat ini jika tidak ada redirect spesifik
+      // Simpan path asal HANYA jika diberikan (artinya dipicu oleh guard)
+      this.redirectOnClosePath = fromPath
+      this.showLoginModal = true
+    },
+    closeLoginModal() {
+      const pathToGoBack = this.redirectOnClosePath
+
+      this.showLoginModal = false
+      this.redirectOnClosePath = null
+      // Kita tidak mereset loginRedirectPath di sini, karena mungkin pengguna
+      // menutup lalu membukanya lagi sebelum login. Login action akan membersihkannya
+
+      // Jika ada path untuk kembali, lakukan navigasi
+      if (pathToGoBack) {
+        // Hindari navigasi yang tidak perlu jika sudah di halaman yang benar
+        if (router.currentRoute.value.fullPath !== pathToGoBack) {
+          router.push(pathToGoBack)
+        }
+      }
     },
 
     async register(credentials) {
@@ -66,8 +95,11 @@ export const useAuthStore = defineStore('auth', {
         const { user, token } = response.data
         this._setAuthData(user, token)
         this.status = 'success'
-        const redirectPath = router.currentRoute.value.query.redirect || { name: 'Home' }
-        router.push(redirectPath)
+        const redirect = this.loginRedirectPath || { name: 'Home' }
+        this.loginRedirectPath = null // Clear redirect path
+        this.redirectOnClosePath = null // Penting untuk dibersihkan juga
+        this.closeLoginModal() // Tutup modal setelah login
+        router.push(redirect)
         return response
       } catch (error) {
         this.status = 'error'
@@ -117,7 +149,6 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async logout() {
-      this.status = 'loading'
       this.error = null
       try {
         await authService.logout()
@@ -125,6 +156,9 @@ export const useAuthStore = defineStore('auth', {
         console.error('Logout API call failed, but user is logged out locally:', error)
       } finally {
         this._clearAuthData()
+        this.loginRedirectPath = null
+        this.redirectOnClosePath = null
+        this.closeLoginModal()
         this.status = 'idle'
 
         if (router.currentRoute.value.meta.requiresAuth) {

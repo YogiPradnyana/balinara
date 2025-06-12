@@ -1,5 +1,4 @@
 <script setup>
-import LoginModal from './auth/LoginModal.vue'
 import Exit from './icons/Exit.vue'
 import HamburgerMenu from './icons/HamburgerMenu.vue'
 import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
@@ -12,11 +11,9 @@ const handleImageError = (event) => {
   event.target.src = defaultAvatar
 }
 
-const isLoginOpen = ref(false)
-
 const authStore = useAuthStore()
 // Lock scroll saat login dibuka
-watch(isLoginOpen, (val) => {
+watch(authStore.showLoginModal, (val) => {
   if (val) {
     document.body.style.overflow = 'hidden'
   } else {
@@ -334,7 +331,7 @@ const toggleSidebar = () => {
         <div
           v-else
           class="hidden cursor-pointer sm:flex px-4.5 py-2.5 gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white whitespace-nowrap"
-          @click="isLoginOpen = true"
+          @click="authStore.openLoginModal()"
         >
           <Login :class="{ 'lg:flex': !isSticky, hidden: isSticky }" />
           Sign in
@@ -342,10 +339,6 @@ const toggleSidebar = () => {
       </div>
     </div>
   </nav>
-
-  <LoginModal v-if="isLoginOpen" @close="isLoginOpen = false" />
-  <!-- <LoginEmailModal /> -->
-  <!-- <RegisterEmailModal /> -->
 </template>
 
 <style scoped>
