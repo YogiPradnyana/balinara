@@ -26,7 +26,7 @@ class ChatAPIView(APIView):
         if not user_message_text:
             return Response({'error': 'Pesan tidak boleh kosong.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ Gunakan system_instruction agar pembatas topik aktif sepanjang sesi
+        # Gunakan system_instruction agar pembatas topik aktif sepanjang sesi
         try:
             gemini_model = genai.GenerativeModel(
                 'models/gemini-1.5-flash-latest',
