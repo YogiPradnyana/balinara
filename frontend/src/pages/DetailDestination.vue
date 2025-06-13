@@ -19,6 +19,7 @@ import Star from '@/components/icons/Star.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
 import Temple from '@/components/icons/Temple.vue'
 import StarRatingDisplay from '@/components/StarRatingDisplay.vue'
+import ImageModal from '@/components/ImageModal.vue'
 
 const searchTerm = ref('')
 
@@ -111,6 +112,7 @@ const reviewData = ref([
 }
 </style>
 <template>
+  <!-- <ImageModal /> -->
   <!-- Main Content -->
   <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <!-- Breadcrumb -->
@@ -125,7 +127,7 @@ const reviewData = ref([
 
     <!-- Hero Section -->
     <div
-      class="grid grid-rows-3 lg:grid-rows-1 lg:grid-cols-3 gap-2 sm:gap-3 mt-4 md:mt-8 h-96 sm:h-[435px]"
+      class="grid grid-rows-3 lg:grid-rows-1 relative lg:grid-cols-3 gap-2 sm:gap-3 mt-4 md:mt-8 h-96 sm:h-[435px]"
     >
       <div class="relative w-full h-full row-span-2 lg:row-span-1 lg:col-span-2">
         <img
@@ -151,6 +153,12 @@ const reviewData = ref([
           />
         </div>
       </div>
+      <button
+        type="button"
+        class="px-4 py-1.5 bottom-4 right-4 cursor-pointer flex absolute text-sm gap-2 w-fit items-center justify-center font-medium leading-6 bg-sur-50 rounded-full text-neu-900"
+      >
+        Sea All Photos
+      </button>
     </div>
 
     <!-- Info Section -->
