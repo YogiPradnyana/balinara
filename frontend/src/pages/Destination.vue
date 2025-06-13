@@ -9,6 +9,191 @@ import Location from '@/components/icons/Location.vue'
 import Penjor from '@/components/icons/Penjor.vue'
 import Search from '@/components/icons/Search.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
+import { ref, computed, onMounted } from 'vue'
+
+const regenciesData = {
+  badung: {
+    name: 'Badung',
+    description:
+      'Badung Regency is largely identified with popular beach destinations like Kuta, Seminyak, and Canggu, as well as upscale areas and vibrant nightlife. It is the center of tourism in Bali.',
+    topPlaces: ['Kuta Beach', 'Uluwatu Temple', 'Garuda Wisnu Kencana (GWK)'],
+  },
+  denpasar: {
+    name: 'Denpasar',
+    description:
+      'Denpasar is the capital city of Bali, acting as the main hub for government, business, and education. It offers a more local, urban experience away from the main tourist strips.',
+    topPlaces: ['Bajra Sandhi Monument', 'Bali Museum', 'Badung Market'],
+  },
+  gianyar: {
+    name: 'Gianyar',
+    description:
+      'Known as the cultural heart of Bali, Gianyar is home to Ubud, famous for its arts, crafts, traditional dances, wellness retreats, and lush rice paddies.',
+    topPlaces: ['Ubud Monkey Forest', 'Tegalalang Rice Terrace', 'Tirta Empul Temple'],
+  },
+  tabanan: {
+    name: 'Tabanan',
+    description:
+      'Often called the "rice bowl" of Bali, Tabanan boasts vast, scenic rice fields, including the UNESCO World Heritage site of Jatiluwih. It offers a more serene and natural atmosphere.',
+    topPlaces: ['Tanah Lot Temple', 'Jatiluwih Rice Terraces', 'Ulun Danu Beratan Temple'],
+  },
+  jembrana: {
+    name: 'Jembrana',
+    description:
+      'Located in the far west of Bali, Jembrana is known for its unique traditions like the "Mekepung" buffalo races. It offers a glimpse into a more rural and less-touristy side of the island.',
+    topPlaces: ['Mekepung Buffalo Races', 'Rambut Siwi Temple', 'Bunut Bolong'],
+  },
+  buleleng: {
+    name: 'Buleleng',
+    description:
+      'Covering the northern coast, Buleleng is famous for the black sand beaches of Lovina, dolphin watching tours, and an abundance of stunning waterfalls hidden in its lush highlands.',
+    topPlaces: ['Lovina Beach (Dolphin Watching)', 'Gitgit Waterfall', 'Sekumpul Waterfall'],
+  },
+  bangli: {
+    name: 'Bangli',
+    description:
+      'As the only landlocked regency in Bali, Bangli is characterized by its dramatic volcanic landscape. It is home to the majestic Kintamani caldera, with Mount Batur and its crater lake.',
+    topPlaces: ['Kintamani (Mount Batur View)', 'Penglipuran Village', 'Tukad Cepung Waterfall'],
+  },
+  klungkung: {
+    name: 'Klungkung',
+    description:
+      'While the smallest regency on the mainland, Klungkung includes the famous Nusa Islands (Penida, Lembongan, and Ceningan), known for their dramatic cliffs and world-class diving spots.',
+    topPlaces: [
+      'Kelingking Beach (Nusa Penida)',
+      "Devil's Tear (Nusa Lembongan)",
+      'Kerta Gosa Pavilion',
+    ],
+  },
+  karangasem: {
+    name: 'Karangasem',
+    description:
+      'The easternmost regency, Karangasem is dominated by the sacred Mount Agung. It is rich in history and spirituality, featuring the "Mother Temple" Besakih and beautiful water palaces.',
+    topPlaces: [
+      'Besakih Temple',
+      'Tirta Gangga Water Palace',
+      'Lempuyang Temple (Gates of Heaven)',
+    ],
+  },
+}
+
+// --- State untuk interaktivitas ---
+const clickedRegencyId = ref('null') // Default ke 'badung'
+const tooltipText = ref('')
+const tooltipVisible = ref(false)
+const tooltipX = ref(0)
+const tooltipY = ref(0)
+
+const isLoadingLocation = ref(true) // State untuk menampilkan loading
+const errorMessage = ref('') // Untuk menampilkan pesan error
+
+// --- Computed property untuk menampilkan data aktif ---
+const activeRegency = computed(() => {
+  // Jika tidak ada yang diklik, tampilkan data default (Badung)
+  const defaultId = 'badung'
+  return regenciesData[clickedRegencyId.value] || regenciesData[defaultId]
+})
+
+// --- Jalankan deteksi lokasi saat komponen dimuat ---
+onMounted(() => {
+  fetchUserRegency()
+})
+
+// --- Fungsi Utama untuk Mendapatkan Lokasi dan Regency ---
+async function fetchUserRegency() {
+  isLoadingLocation.value = true
+  errorMessage.value = ''
+
+  // 1. Cek apakah browser mendukung Geolocation API
+  if (!navigator.geolocation) {
+    errorMessage.value = 'Geolocation is not supported by your browser.'
+    clickedRegencyId.value = 'badung' // Fallback ke default
+    isLoadingLocation.value = false
+    return
+  }
+
+  // 2. Minta koordinat pengguna
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const { latitude, longitude } = position.coords
+
+      try {
+        // 3. Panggil API Nominatim untuk Reverse Geocoding
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+        )
+
+        if (!response.ok) throw new Error('Failed to fetch location name.')
+
+        const data = await response.json()
+
+        // 4. Ekstrak nama kabupaten dari respons API
+        // Nama kabupaten biasanya ada di 'state_district' atau 'county'
+        const regencyName = data.address?.district || ''
+        console.log(regencyName)
+
+        // 5. Cocokkan nama dari API dengan ID di data kita
+        if (regencyName) {
+          // Normalisasi: "Kabupaten Badung" -> "badung"
+          const detectedId = regencyName.toLowerCase().replace('kabupaten ', '')
+
+          // Cek apakah ID yang terdeteksi ada di data kita
+          if (regenciesData[detectedId]) {
+            clickedRegencyId.value = detectedId
+          } else {
+            // Pengguna tidak berada di salah satu kabupaten Bali
+            errorMessage.value = 'Location is outside of Bali. Showing default.'
+            clickedRegencyId.value = 'badung' // Fallback
+          }
+        } else {
+          // API tidak mengembalikan nama kabupaten
+          errorMessage.value = 'Could not determine regency. Showing default.'
+          clickedRegencyId.value = 'badung' // Fallback
+        }
+      } catch (error) {
+        console.error('Reverse geocoding error:', error)
+        errorMessage.value = 'Could not get location details.'
+        clickedRegencyId.value = 'badung' // Fallback
+      } finally {
+        isLoadingLocation.value = false
+      }
+    },
+    (error) => {
+      // Handle error jika pengguna menolak izin atau terjadi error lain
+      console.error('Geolocation error:', error.message)
+      if (error.code === 1) {
+        // User denied permission
+        errorMessage.value = 'Location access denied. Showing default map.'
+      } else {
+        errorMessage.value = 'Unable to retrieve your location.'
+      }
+      clickedRegencyId.value = 'badung' // Fallback ke default
+      isLoadingLocation.value = false
+    },
+  )
+}
+
+// --- Event Handlers ---
+function handleRegencyHover(regency) {
+  // 'regency' adalah object { id: 'badung', name: 'Badung' } dari event
+  tooltipText.value = regency.name
+  tooltipVisible.value = true
+}
+
+function handleRegencyClick(regency) {
+  clickedRegencyId.value = regency.id
+}
+
+function handleRegencyLeave() {
+  tooltipVisible.value = false
+  // Kita biarkan clickedRegencyId tetap agar deskripsi tidak hilang saat kursor keluar
+}
+
+function updateTooltipPosition(event) {
+  // event adalah mouse event asli
+  // Kita tambahkan sedikit offset agar tooltip tidak pas di bawah kursor
+  tooltipX.value = event.clientX + 15
+  tooltipY.value = event.clientY + 15
+}
 </script>
 
 <template>
@@ -227,31 +412,46 @@ import StarFilled from '@/components/icons/StarFilled.vue'
           </div>
         </div>
       </div>
+      <div
+        v-if="tooltipVisible"
+        :style="{ top: `${tooltipY}px`, left: `${tooltipX}px` }"
+        class="fixed z-50 rounded-md bg-neu-900 px-3 py-1.5 text-sm text-white shadow-lg pointer-events-none transition-opacity duration-200"
+      >
+        {{ tooltipText }}
+      </div>
       <div class="mt-5">
         <div class="flex gap-10 items-center lg:items-start flex-col lg:flex-row">
           <div class="flex flex-col flex-1 order-2 lg:order-1">
-            <h3 class="text-xl sm:text-2xl font-semibold mb-2">Badung</h3>
+            <h3 class="text-xl sm:text-2xl font-semibold mb-2">{{ activeRegency.name }}</h3>
             <p class="text-sm sm:text-base text-neu-600 mb-4">
-              Badung Regency is largely identified with popular beach destinations like Kuta,
-              Seminyak, and Canggu, as well as upscale areas and vibrant nightlife.
+              {{ activeRegency.description }}
             </p>
             <h3 class="text-base sm:text-lg mb-2 font-semibold">Top Places to Visit</h3>
             <ul class="flex ml-3 flex-col text-sm sm:text-base gap-2 mb-6">
-              <li class="flex gap-2 items-center"><ArrowRight class="size-4" />Kuta Beach</li>
-              <li class="flex gap-2 items-center">
-                <ArrowRight class="size-4" />Sangeh Monkey Forest
+              <li
+                v-for="place in activeRegency.topPlaces"
+                :key="place"
+                class="flex gap-2 items-center"
+              >
+                <ArrowRight class="size-4" />{{ place }}
               </li>
-              <li class="flex gap-2 items-center"><ArrowRight class="size-4" />Mengening Beach</li>
             </ul>
 
             <button
-              type="submit"
+              type="button"
               class="px-6 py-2 flex gap-2 w-fit items-center justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
             >
               View More Destinations
             </button>
           </div>
-          <BigBali class="w-full sm:w-3/4 lg:w-120 xl:w-[648px] order-1 lg:order-2" />
+          <BigBali
+            :clicked-id="clickedRegencyId"
+            @regency-hover="handleRegencyHover"
+            @regency-click="handleRegencyClick"
+            @regency-leave="handleRegencyLeave"
+            @map-mousemove="updateTooltipPosition"
+            class="w-full sm:w-3/4 lg:w-120 xl:w-[648px] order-1 lg:order-2"
+          />
         </div>
       </div>
     </section>
