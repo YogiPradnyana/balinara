@@ -77,7 +77,7 @@ const regenciesData = {
 }
 
 // --- State untuk interaktivitas ---
-const clickedRegencyId = ref('null') // Default ke 'badung'
+const clickedRegencyId = ref('')
 const tooltipText = ref('')
 const tooltipVisible = ref(false)
 const tooltipX = ref(0)
@@ -89,88 +89,8 @@ const errorMessage = ref('') // Untuk menampilkan pesan error
 // --- Computed property untuk menampilkan data aktif ---
 const activeRegency = computed(() => {
   // Jika tidak ada yang diklik, tampilkan data default (Badung)
-  const defaultId = 'badung'
-  return regenciesData[clickedRegencyId.value] || regenciesData[defaultId]
+  return regenciesData[clickedRegencyId.value] || ''
 })
-
-// --- Jalankan deteksi lokasi saat komponen dimuat ---
-onMounted(() => {
-  fetchUserRegency()
-})
-
-// --- Fungsi Utama untuk Mendapatkan Lokasi dan Regency ---
-async function fetchUserRegency() {
-  isLoadingLocation.value = true
-  errorMessage.value = ''
-
-  // 1. Cek apakah browser mendukung Geolocation API
-  if (!navigator.geolocation) {
-    errorMessage.value = 'Geolocation is not supported by your browser.'
-    clickedRegencyId.value = 'badung' // Fallback ke default
-    isLoadingLocation.value = false
-    return
-  }
-
-  // 2. Minta koordinat pengguna
-  navigator.geolocation.getCurrentPosition(
-    async (position) => {
-      const { latitude, longitude } = position.coords
-
-      try {
-        // 3. Panggil API Nominatim untuk Reverse Geocoding
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-        )
-
-        if (!response.ok) throw new Error('Failed to fetch location name.')
-
-        const data = await response.json()
-
-        // 4. Ekstrak nama kabupaten dari respons API
-        // Nama kabupaten biasanya ada di 'state_district' atau 'county'
-        const regencyName = data.address?.district || ''
-        console.log(regencyName)
-
-        // 5. Cocokkan nama dari API dengan ID di data kita
-        if (regencyName) {
-          // Normalisasi: "Kabupaten Badung" -> "badung"
-          const detectedId = regencyName.toLowerCase().replace('kabupaten ', '')
-
-          // Cek apakah ID yang terdeteksi ada di data kita
-          if (regenciesData[detectedId]) {
-            clickedRegencyId.value = detectedId
-          } else {
-            // Pengguna tidak berada di salah satu kabupaten Bali
-            errorMessage.value = 'Location is outside of Bali. Showing default.'
-            clickedRegencyId.value = 'badung' // Fallback
-          }
-        } else {
-          // API tidak mengembalikan nama kabupaten
-          errorMessage.value = 'Could not determine regency. Showing default.'
-          clickedRegencyId.value = 'badung' // Fallback
-        }
-      } catch (error) {
-        console.error('Reverse geocoding error:', error)
-        errorMessage.value = 'Could not get location details.'
-        clickedRegencyId.value = 'badung' // Fallback
-      } finally {
-        isLoadingLocation.value = false
-      }
-    },
-    (error) => {
-      // Handle error jika pengguna menolak izin atau terjadi error lain
-      console.error('Geolocation error:', error.message)
-      if (error.code === 1) {
-        // User denied permission
-        errorMessage.value = 'Location access denied. Showing default map.'
-      } else {
-        errorMessage.value = 'Unable to retrieve your location.'
-      }
-      clickedRegencyId.value = 'badung' // Fallback ke default
-      isLoadingLocation.value = false
-    },
-  )
-}
 
 // --- Event Handlers ---
 function handleRegencyHover(regency) {
@@ -419,9 +339,12 @@ function updateTooltipPosition(event) {
       >
         {{ tooltipText }}
       </div>
-      <div class="mt-5">
-        <div class="flex gap-10 items-center lg:items-start flex-col lg:flex-row">
-          <div class="flex flex-col flex-1 order-2 lg:order-1">
+      <div class="mt-10">
+        <div
+          class="flex gap-10 items-center lg:items-start flex-col lg:flex-row transition-all duration-500 ease-in-out"
+          :class="[clickedRegencyId ? 'lg:justify-normal' : 'lg:justify-end']"
+        >
+          <div v-if="clickedRegencyId" class="flex flex-col flex-1 order-2 lg:order-1">
             <h3 class="text-xl sm:text-2xl font-semibold mb-2">{{ activeRegency.name }}</h3>
             <p class="text-sm sm:text-base text-neu-600 mb-4">
               {{ activeRegency.description }}
@@ -450,7 +373,8 @@ function updateTooltipPosition(event) {
             @regency-click="handleRegencyClick"
             @regency-leave="handleRegencyLeave"
             @map-mousemove="updateTooltipPosition"
-            class="w-full sm:w-3/4 lg:w-120 xl:w-[648px] order-1 lg:order-2"
+            class="w-full sm:w-3/4 lg:w-120 xl:w-[648px] order-1 lg:order-2 transition-all duration-500 ease-in-out"
+            :class="[clickedRegencyId ? 'lg:translate-x-0' : 'lg:-translate-x-1/2']"
           />
         </div>
       </div>
