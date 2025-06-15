@@ -10,6 +10,11 @@ import TrashCan from '@/components/icons/TrashCan.vue'
 import CategoryFormModal from './CategoryFormModal.vue'
 import { toast } from 'vue-sonner'
 import ConfirmationToast from '@/components/ConfirmationToast.vue'
+import {
+  showNotification,
+  showConfirmationToast,
+  dismissCurrentConfirmationToast,
+} from '@/services/notificationService'
 
 const showFormModal = ref(false)
 const categoryToEdit = ref(null)
@@ -90,11 +95,11 @@ const handleSaveCategory = async (formData) => {
     if (formData.slug) {
       // Jika ada slug, berarti update
       await categoryStore.updateCategory(formData.slug, formData)
-      toast.success('Category updated successfully')
+      showNotification('success', 'Category updated successfully')
     } else {
       // Jika tidak ada ID, berarti create
       await categoryStore.createCategory(formData)
-      toast.success('Category added successfully')
+      showNotification('success', 'Category added successfully')
     }
     closeFormModal()
     // Opsional: panggil fetchCategories lagi jika ingin data benar-benar sinkron,
@@ -107,44 +112,49 @@ const handleSaveCategory = async (formData) => {
     // Biarkan error ditampilkan oleh CategoryFormModal atau getter categoryStore.categoryError
   }
 }
+
+// Di dalam confirmDelete di CategoryLists.vue
 const confirmDelete = async (category) => {
   const message = `Are you sure you want to delete category "${category.name}"? This cannot be undone.`
 
   // Fungsi yang akan dijalankan jika user menekan "Ya"
   const handleConfirm = async () => {
+    // 'toastId' dari scope luar tidak langsung tersedia di sini
+    // kecuali jika Anda menangkapnya dan meneruskannya atau menggunakan cara lain
+    // Namun, kita akan dismiss berdasarkan ID yang dibuat oleh showConfirmationToast
     try {
-      await categoryStore.deleteCategory(category.slug) // Gunakan slug
-      toast.success('Category deleted successfully')
-      // Jika kategori yang dihapus ada di halaman saat ini dan halaman jadi kosong,
-      // mungkin perlu fetch halaman sebelumnya jika ada.
+      await categoryStore.deleteCategory(category.slug)
+      showNotification('success', 'Category deleted successfully') // Gunakan helper notifikasi
       if (categories.value.length === 0 && queryParams.value.page > 1) {
         queryParams.value.page--
       }
-      fetchCategoriesWithParams() // Fetch ulang
+      fetchCategoriesWithParams()
     } catch (error) {
-      toast.error(categoryStore.categoryError || 'Failed to delete category.')
+      showNotification('error', categoryStore.categoryError || 'Failed to delete category.')
     }
   }
 
   // Fungsi yang akan dijalankan jika user menekan "Batal"
   const handleCancel = () => {
     console.log('Penghapusan dibatalkan.')
+    // Tidak perlu dismiss di sini jika onCancel di ConfirmationToast sudah melakukannya
   }
 
   // Menampilkan toast dengan komponen kustom
-  toast(
+  // showConfirmationToast akan membuat ID internal dan mengembalikannya
+  showConfirmationToast(
+    // Simpan ID yang dikembalikan
     h(ConfirmationToast, {
       message,
-      onConfirm: handleConfirm,
-      onCancel: handleCancel,
-      // Menangani event 'close' dari komponen anak untuk menutup toast
-      onClose: () => toast.dismiss(),
+      onConfirm: () => {
+        dismissCurrentConfirmationToast()
+        handleConfirm()
+      },
+      onCancel: () => {
+        dismissCurrentConfirmationToast()
+        handleCancel()
+      },
     }),
-    {
-      // Opsi tambahan untuk toast
-      position: 'top-center',
-      duration: Infinity, // Agar tidak hilang otomatis
-    },
   )
 }
 

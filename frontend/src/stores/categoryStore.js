@@ -35,6 +35,7 @@ export const useCategoryStore = defineStore('category', {
           this.pagination.count = response.data.count
           this.pagination.next = response.data.next
           this.pagination.previous = response.data.previous
+          console.log(this.categories)
         } else {
           // Jika API mengembalikan array langsung (tanpa paginasi wrapper)
           this.categories = Array.isArray(response.data) ? response.data : []

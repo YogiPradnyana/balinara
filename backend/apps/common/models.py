@@ -9,11 +9,17 @@ class Category(models.Model):
                             help_text=_("Name of the destination category (e.g., Beach, Mountain, Temple)."))
     # Slug bisa ditambahkan jika Anda ingin URL yang lebih ramah untuk kategori
     slug = models.SlugField(_("Slug"), max_length=120, unique=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_(
+        # null & blank True jika ditambahkan belakangan
+        "Created At"), null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_(
+        # null & blank True jika ditambahkan belakangan
+        "Updated At"), null=True, blank=True)
 
     class Meta:
         verbose_name = _("Category")
         verbose_name_plural = _("Categories")
-        ordering = ['name']
+        ordering = ['-id']
 
     def __str__(self):
         return self.name
