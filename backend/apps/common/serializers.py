@@ -6,7 +6,8 @@ from .models import Category, Facility, Address, Contact
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name']  # Tambahkan 'slug' jika ada
+        fields = ['id', 'name', 'slug']
+        read_only_fields = ['slug']
 
 
 class FacilitySerializer(serializers.ModelSerializer):

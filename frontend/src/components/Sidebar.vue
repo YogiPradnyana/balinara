@@ -16,13 +16,13 @@ const authStore = useAuthStore()
           v-if="authStore.currentUser?.image"
           :src="authStore.currentUser.image"
           alt="User Profile"
-          class="size-12 object-cover rounded-full border-2 border-gray-200"
+          class="size-12 object-cover rounded-full border-2 border-neu-200"
         />
         <img
           v-else
           :src="defaultAvatar"
           alt="Default Profile"
-          class="size-12 rounded-full border border-neu-200 object-cover"
+          class="size-12 rounded-full border-2 border-neu-200 object-cover"
         />
         <div class="flex flex-col items-center xl:items-start gap-[2px]">
           <p class="font-medium whitespace-nowrap text-xs md:text-sm">

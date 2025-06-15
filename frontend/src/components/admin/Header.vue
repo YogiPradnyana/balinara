@@ -2,6 +2,10 @@
 import ArrowDown from '@/components/icons/ArrowDown.vue'
 import HamburgerMenu from '../icons/HamburgerMenu.vue'
 import Exit from '../icons/Exit.vue'
+import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
+import { useAuthStore } from '@/stores/authStore'
+
+const authStore = useAuthStore()
 
 const props = defineProps({
   isSidebarOpen: Boolean,
@@ -29,9 +33,21 @@ const handleSidebar = () => {
       </button>
     </div>
     <div class="gap-3 w-fit flex items-center">
-      <img src="@/assets/images/User Avatar.jpg" alt="User Profile" class="size-9 rounded-full" />
+      <img
+        v-if="authStore.currentUser?.image"
+        :src="authStore.currentUser.image"
+        alt="User Profile"
+        class="size-9 object-cover rounded-full border-2 border-neu-200"
+      />
+      <img
+        v-else
+        :src="defaultAvatar"
+        alt="Default Profile"
+        class="size-9 rounded-full border-2 border-neu-200 object-cover"
+      />
       <p class="text-neu-900 gap-0.5 flex items-center font-medium text-sm max-w-36 line-clamp-1">
-        <span class="hidden sm:block">Udin Surudin</span><ArrowDown class="text-neu-900" />
+        <span class="hidden sm:block">{{ authStore.currentUser.username }}</span
+        ><ArrowDown class="text-neu-900" />
       </p>
     </div>
   </div>

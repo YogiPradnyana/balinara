@@ -82,41 +82,53 @@ const toggleSidebar = () => {
   >
     <div>
       <div class="w-full flex justify-end">
-        <Exit @click="isSidebarOpen = false" />
+        <Exit @click="isSidebarOpen = false" class="cursor-pointer" />
       </div>
       <div class="px-2 mt-4 flex flex-col gap-4 font-pr">
-        <div class="gap-3 flex items-center">
-          <img
-            src="@/assets/images/User Avatar.jpg"
-            alt="User Profile"
-            class="size-12 rounded-full"
-          />
-          <div class="flex-col flex w-full">
-            <p class="text-neu-600 text-sm">Hello,</p>
-            <p class="text-neu-900 font-medium whitespace-nowrap max-w-36 line-clamp-1">
-              Udin Surudin
-            </p>
-          </div>
-        </div>
         <h1 class="text-2xl md:text-3xl font-se font-semibold leading-[38px]">
           Bali<span class="text-pr-500">nara</span>
         </h1>
 
         <div class="bg-neu-100 h-[1px] w-full"></div>
         <ul class="flex flex-col font-medium text-neu-700 gap-4">
-          <li>Discover</li>
+          <li class="relative">
+            <span
+              class="w-0 h-[2px] -left-1/2 bg-pr-500 rounded-full absolute top-1/2 -translate-y-1/2 transition-all duration-500 ease-in-out"
+              :class="{ 'w-10 -left-7': $route.name === 'Destinations' }"
+            ></span
+            ><RouterLink
+              :to="{ name: 'Destinations' }"
+              :class="{ 'text-pr-500 ps-6': $route.name === 'Destinations' }"
+              class="transition-all duration-400 cursor-pointer"
+              >Discover</RouterLink
+            >
+          </li>
           <li>Review</li>
-          <li>About</li>
+          <li class="relative">
+            <span
+              class="w-0 h-[2px] -left-1/2 bg-pr-500 rounded-full absolute top-1/2 -translate-y-1/2 transition-all duration-500 ease-in-out"
+              :class="{ 'w-10 -left-7': $route.name === 'About' }"
+            ></span
+            ><RouterLink
+              :to="{ name: 'About' }"
+              :class="{ 'text-pr-500 ps-6': $route.name === 'About' }"
+              class="transition-all duration-400 cursor-pointer"
+              >About</RouterLink
+            >
+          </li>
         </ul>
       </div>
     </div>
     <div class="px-2">
-      <div
-        class="px-4.5 py-2.5 flex gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
+      <button
+        v-if="!authStore.isAuthenticated"
+        type="button"
+        class="px-4.5 py-2.5 flex cursor-pointer w-full gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
+        @click="authStore.openLoginModal()"
       >
         <Login />
         Sign in
-      </div>
+      </button>
     </div>
   </aside>
 
@@ -149,7 +161,7 @@ const toggleSidebar = () => {
       <!-- Burger Icon (Mobile) -->
       <div class="sm:hidden">
         <button @click="toggleSidebar" aria-label="Toggle sidebar">
-          <HamburgerMenu class="size-5" />
+          <HamburgerMenu class="size-5 cursor-pointer" />
         </button>
       </div>
 
@@ -264,7 +276,7 @@ const toggleSidebar = () => {
         <div v-if="authStore.isAuthenticated">
           <div
             @click="toggleUserDropdown"
-            class="rounded-full user-dropdown relative size-9 lg:size-11 border border-neu-200 cursor-pointer"
+            class="rounded-full user-dropdown relative size-9 lg:size-11 border-2 border-neu-200 cursor-pointer"
           >
             <img
               v-if="authStore.currentUser?.image"
@@ -277,7 +289,7 @@ const toggleSidebar = () => {
               v-else
               :src="defaultAvatar"
               alt="Default Profile"
-              class="size-full rounded-full border border-neu-200 object-cover"
+              class="size-full rounded-full border-2 border-neu-200 object-cover"
             />
             <!-- User Dropdown -->
             <div
@@ -285,14 +297,21 @@ const toggleSidebar = () => {
               class="z-50 absolute flex w-fit top-full right-0 mt-3 bg-sur-50 rounded-2xl p-2 shadow-md"
             >
               <ul class="flex flex-col gap-2">
-                <li>
+                <li v-if="authStore.currentUser.is_staff">
+                  <RouterLink
+                    :to="{ name: 'Dashboard' }"
+                    class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
+                    >Dashboard</RouterLink
+                  >
+                </li>
+                <li v-else>
                   <RouterLink
                     :to="{ name: 'Profile' }"
                     class="flex w-full min-w-38 whitespace-nowrap text-start rounded-xl ps-3 pe-4.5 py-2 hover:bg-[#EFF6F2]"
                     >My Profile</RouterLink
                   >
                 </li>
-                <div class="block sm:hidden">
+                <div class="block sm:hidden space-y-2" v-if="!authStore.currentUser.is_staff">
                   <li>
                     <RouterLink
                       :to="{ name: 'Wishlist' }"
