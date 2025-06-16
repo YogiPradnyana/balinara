@@ -1,17 +1,65 @@
 <script setup>
+import { ref, watch, onMounted, computed, h } from 'vue'
 import ArrowRight from '@/components/icons/ArrowRight.vue'
 import ArrowRight2Bold from '@/components/icons/ArrowRight2Bold.vue'
 import Edit from '@/components/icons/Edit.vue'
 import Plus from '@/components/icons/Plus.vue'
 import Search from '@/components/icons/Search.vue'
 import TrashCan from '@/components/icons/TrashCan.vue'
-import CreateModal from './CreateModal.vue'
-import { ref, watch } from 'vue'
-import EditModal from './EditModal.vue'
-const isCreateOpen = ref(false)
-const isEditOpen = ref(false)
+import ConfirmationToast from '@/components/ConfirmationToast.vue'
+import {
+  showNotification,
+  showConfirmationToast,
+  dismissCurrentConfirmationToast,
+} from '@/services/notificationService'
+import { useFacilityStore } from '@/stores/facilityStore'
+import FacilityFormModal from './FacilityFormModal.vue'
 
-watch(isCreateOpen, (val) => {
+const showFormModal = ref(false)
+const facilityToEdit = ref(null)
+
+const facilityStore = useFacilityStore()
+
+const facilities = computed(() => facilityStore.allFacilities)
+const pagination = computed(() => facilityStore.pagination)
+
+const queryParams = ref({
+  page: 1,
+  search: '',
+})
+
+const ITEMS_PER_PAGE = 10
+
+const firstItemNumber = computed(() => {
+  if (pagination.value.count === 0) return 0
+  return (queryParams.value.page - 1) * ITEMS_PER_PAGE + 1
+})
+const lastItemNumber = computed(() => {
+  const last = queryParams.value.page * ITEMS_PER_PAGE
+  return Math.min(last, pagination.value.count)
+})
+
+const fetchFacilitiesWithParams = () => {
+  facilityStore.fetchFacilities(queryParams.value)
+}
+
+onMounted(() => {
+  fetchFacilitiesWithParams()
+})
+
+let searchTimeout = null
+watch(
+  () => queryParams.value.search,
+  (newSearchTerm) => {
+    clearTimeout(searchTimeout)
+    searchTimeout = setTimeout(() => {
+      queryParams.value.page = 1 // Reset ke halaman 1 saat search baru
+      fetchFacilitiesWithParams()
+    }, 500) // Debounce 500ms
+  },
+)
+
+watch(showFormModal, (val) => {
   if (val) {
     document.body.style.overflow = 'hidden'
   } else {
@@ -19,17 +67,108 @@ watch(isCreateOpen, (val) => {
   }
 })
 
-watch(isEditOpen, (val) => {
-  if (val) {
-    document.body.style.overflow = 'hidden'
-  } else {
-    document.body.style.overflow = ''
+const openCreateModal = () => {
+  facilityToEdit.value = null // Mode create
+  facilityStore.clearError() // Bersihkan error sebelumnya jika ada
+  showFormModal.value = true
+}
+
+const openEditModal = (facility) => {
+  facilityToEdit.value = { ...facility } // Kirim salinan agar tidak langsung mengubah state
+  facilityStore.clearError()
+  showFormModal.value = true
+}
+
+const closeFormModal = () => {
+  showFormModal.value = false
+  facilityToEdit.value = null
+}
+
+const handleSaveFacility = async (formData) => {
+  try {
+    if (formData.slug) {
+      // Jika ada slug, berarti update
+      await facilityStore.updateFacility(formData.slug, formData)
+      showNotification('success', 'Facility updated successfully')
+    } else {
+      // Jika tidak ada ID, berarti create
+      await facilityStore.createFacility(formData)
+      showNotification('success', 'Facility added successfully')
+    }
+    closeFormModal()
+    fetchFacilitiesWithParams()
+  } catch (error) {
+    console.error('Save facility failed in page:', error)
   }
-})
+}
+
+const confirmDelete = async (facility) => {
+  const message = `Are you sure you want to delete facility "${facility.name}"? This cannot be undone.`
+
+  const handleConfirm = async () => {
+    try {
+      await facilityStore.deleteFacility(facility.slug)
+      showNotification('success', 'Facility deleted successfully') // Gunakan helper notifikasi
+      if (facilities.value.length === 0 && queryParams.value.page > 1) {
+        queryParams.value.page--
+      }
+      fetchFacilitiesWithParams()
+    } catch (error) {
+      showNotification('error', facilityStore.facilityError || 'Failed to delete facility.')
+    }
+  }
+
+  const handleCancel = () => {
+    console.log('Penghapusan dibatalkan.')
+  }
+
+  showConfirmationToast(
+    h(ConfirmationToast, {
+      message,
+      onConfirm: () => {
+        dismissCurrentConfirmationToast()
+        handleConfirm()
+      },
+      onCancel: () => {
+        dismissCurrentConfirmationToast()
+        handleCancel()
+      },
+    }),
+  )
+}
+
+const calculateItemNumber = (indexInPage) => {
+  return (queryParams.value.page - 1) * ITEMS_PER_PAGE + indexInPage + 1
+}
+
+const goToPage = (pageNumber) => {
+  if (pageNumber < 1) return
+  const totalPages = Math.ceil(pagination.value.count / ITEMS_PER_PAGE)
+  if (pageNumber > totalPages && pagination.value.count > 0) return
+
+  queryParams.value.page = pageNumber
+  fetchFacilitiesWithParams()
+}
+
+const goToNextPage = () => {
+  if (pagination.value.next) {
+    goToPage(queryParams.value.page + 1)
+  }
+}
+
+const goToPrevPage = () => {
+  if (pagination.value.previous) {
+    goToPage(queryParams.value.page - 1)
+  }
+}
 </script>
 <template>
-  <CreateModal v-if="isCreateOpen" @close="isCreateOpen = false" />
-  <EditModal v-if="isEditOpen" @close="isEditOpen = false" />
+  <FacilityFormModal
+    v-if="showFormModal"
+    :facility-data="facilityToEdit"
+    @save="handleSaveFacility"
+    @close="closeFormModal"
+  />
   <div class="space-y-6">
     <div class="flex justify-between gap-3 flex-wrap">
       <h1 class="text-3xl font-se font-semibold">Facilities</h1>
@@ -49,21 +188,42 @@ watch(isEditOpen, (val) => {
             <Search class="size-6" />
             <input
               type="text"
+              v-model="queryParams.search"
               class="w-full text-xs md:text-sm leading-5 placeholder:text-neu-500 focus:outline-none"
               placeholder="Search something..."
+              aria-label="Search facilities"
             />
           </div>
           <button
             type="button"
-            @click="isCreateOpen = true"
+            @click="openCreateModal"
             class="whitespace-nowrap flex px-4.5 order-1 sm:order-2 py-2.5 cursor-pointer w-fit hover:bg-pr-600 text-sm gap-2 items-center justify-center font-medium bg-pr-500 rounded-full text-white"
           >
             <Plus class="size-5" />
             New Facility
           </button>
         </div>
+        <!-- Indikator Loading -->
+        <div
+          v-if="facilityStore.isLoadingFacilities && facilities.length === 0"
+          class="text-center py-8"
+        >
+          <p class="text-gray-500 dark:text-gray-400">Loading facilities...</p>
+          <!-- Anda bisa menambahkan spinner di sini -->
+        </div>
 
-        <div class="mt-4 overflow-hidden border border-neu-100 rounded-2xl">
+        <!-- Pesan Error -->
+        <div
+          v-if="facilityStore.facilityError && facilities.length === 0"
+          class="mb-4 p-3 bg-red-100 text-red-700 rounded-md"
+        >
+          <p>Error: {{ facilityStore.facilityError }}</p>
+        </div>
+
+        <div
+          v-if="!facilityStore.isLoadingFacilities && facilities.length > 0"
+          class="mt-4 overflow-hidden border border-neu-100 rounded-2xl"
+        >
           <div class="max-w-full overflow-x-auto">
             <table class="min-w-180 w-full">
               <thead class="bg-pr-500 text-xs text-white">
@@ -74,19 +234,25 @@ watch(isEditOpen, (val) => {
                 </tr>
               </thead>
               <tbody>
-                <tr class="text-sm text-neu-700 border-b border-neu-100">
-                  <td class="p-4 text-neu-900">1</td>
-                  <td class="p-4 text-neu-900 font-semibold">Parking</td>
+                <tr
+                  v-for="(facility, index) in facilities"
+                  :key="facility.id"
+                  class="text-sm text-neu-700 border-b border-neu-100"
+                >
+                  <td class="p-4 text-neu-900">{{ calculateItemNumber(index) }}</td>
+                  <td class="p-4 text-neu-900 font-semibold">{{ facility.name }}</td>
                   <td class="p-4 flex gap-3">
                     <button
                       type="button"
-                      @click="isEditOpen = true"
+                      @click="openEditModal(facility)"
                       class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#F0BF05] bg-[#FACA15]"
                     >
                       <Edit class="size-5 text-neu-900" />
                     </button>
                     <button
                       type="button"
+                      @click="confirmDelete(facility)"
+                      aria-label="Delete facility"
                       class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#B71A1A] bg-[#E02424]"
                     >
                       <TrashCan class="size-5 text-neu-50" />
@@ -98,19 +264,49 @@ watch(isEditOpen, (val) => {
           </div>
         </div>
 
-        <div class="flex justify-between items-center gap-3 flex-wrap mt-3">
+        <div
+          v-if="
+            !facilityStore.isLoadingFacilities &&
+            facilities.length === 0 &&
+            !facilityStore.facilityError
+          "
+          class="text-center py-8 text-gray-500 dark:text-gray-400"
+        >
+          No facilities found. Try a different search or add a new one!
+        </div>
+
+        <div
+          v-if="pagination.count > 0"
+          class="flex justify-between items-center gap-3 flex-wrap mt-3"
+        >
           <div class="text-sm text-neu-600">
-            Showing <span class="font-medium text-neu-900">1</span> to
-            <span class="font-medium text-neu-900">1</span> of
-            <span class="font-medium text-neu-900">10</span> Entries
+            Showing <span class="font-medium text-neu-900">{{ firstItemNumber }}</span> to
+            <span class="font-medium text-neu-900">{{ lastItemNumber }}</span> of
+            <span class="font-medium text-neu-900">{{ pagination.count }}</span> Entries
           </div>
           <div class="flex items-center rounded-[8px] overflow-hidden">
-            <div class="flex bg-neu-100 text-neu-300 gap-2 h-8 px-3 items-center font-semibold">
+            <button
+              @click="goToPrevPage"
+              :disabled="!pagination.previous"
+              :class="[
+                'flex bg-neu-100 gap-2 h-8 px-3 items-center font-semibold transition-colors',
+                pagination.previous ? 'cursor-pointer hover:bg-neu-200' : 'text-neu-300 ',
+              ]"
+              aria-label="Prev Page"
+            >
               <ArrowRight2Bold class="size-4 scale-x-[-1]" />Prev
-            </div>
-            <div class="flex bg-neu-100 gap-2 h-8 px-3 cursor-pointer items-center font-semibold">
+            </button>
+            <button
+              @click="goToNextPage"
+              :disabled="!pagination.next"
+              :class="[
+                'flex bg-neu-100 gap-2 h-8 px-3 items-center font-semibold transition-colors',
+                pagination.next ? 'cursor-pointer hover:bg-neu-200' : 'text-neu-300 ',
+              ]"
+              aria-label="Next Page"
+            >
               Next<ArrowRight2Bold class="size-4" />
-            </div>
+            </button>
           </div>
         </div>
       </div>

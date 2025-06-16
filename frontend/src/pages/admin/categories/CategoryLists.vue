@@ -8,7 +8,6 @@ import Plus from '@/components/icons/Plus.vue'
 import Search from '@/components/icons/Search.vue'
 import TrashCan from '@/components/icons/TrashCan.vue'
 import CategoryFormModal from './CategoryFormModal.vue'
-import { toast } from 'vue-sonner'
 import ConfirmationToast from '@/components/ConfirmationToast.vue'
 import {
   showNotification,
@@ -80,6 +79,8 @@ const openCreateModal = () => {
 }
 
 const openEditModal = (category) => {
+  console.log(category)
+
   categoryToEdit.value = { ...category } // Kirim salinan agar tidak langsung mengubah state
   categoryStore.clearError()
   showFormModal.value = true

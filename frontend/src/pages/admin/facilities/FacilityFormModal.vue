@@ -1,64 +1,64 @@
 <script setup>
 import { ref, computed, watchEffect } from 'vue'
-import { useCategoryStore } from '@/stores/categoryStore'
+import { useFacilityStore } from '@/stores/facilityStore'
 import ArrowRight from '@/components/icons/ArrowRight.vue'
 import Exit from '@/components/icons/Exit.vue'
 
 const props = defineProps({
-  categoryData: {
-    // Menerima data kategori yang akan diedit (null jika mode create)
+  facilityData: {
     type: Object,
     default: null,
   },
 })
 
-const categoryStore = useCategoryStore()
+const facilityStore = useFacilityStore()
 
 const emit = defineEmits(['close', 'save'])
 
 const form = ref({
   id: null,
   name: '',
+  icon_url: '',
   slug: '',
 })
 
-const formErrors = ref({}) // Untuk menyimpan error validasi field dari backend
+const formErrors = ref({})
 
 const isEditMode = computed(() => !!form.value.id)
 
-// Isi form jika categoryData ada (mode edit)
 watchEffect(() => {
-  if (props.categoryData) {
-    form.value = { ...props.categoryData } // Salin data agar tidak mengubah prop secara langsung
+  if (props.facilityData) {
+    form.value = { ...props.facilityData }
   } else {
-    // Reset form untuk mode create
-    form.value = { id: null, name: '', slug: '' }
+    form.value = { id: null, name: '', icon_url: '', slug: '' }
   }
-  formErrors.value = {} // Reset error saat data berubah
-  categoryStore.clearError() // Bersihkan juga error global di store
+  formErrors.value = {}
+  facilityStore.clearError()
 })
 
 const submitForm = async () => {
-  formErrors.value = {} // Reset error field sebelum submit
-  categoryStore.clearError() // Reset error global di store
+  formErrors.value = {}
+  facilityStore.clearError()
   try {
-    // Kirim hanya field yang relevan (tanpa ID jika create)
     const payload = {
       name: form.value.name,
     }
+    if (form.value.icon_url) {
+      payload.icon_url = form.value.icon_url
+    }
+
     if (form.value.slug) {
       // Hanya kirim slug jika diisi, biarkan backend generate jika tidak
       payload.slug = form.value.slug
     }
+
     if (isEditMode.value) {
       payload.id = form.value.id
     }
 
     await emit('save', payload) // Emit event save dengan data form
   } catch (error) {
-    // Tangkap error yang mungkin di-throw oleh parent atau store
     if (error && typeof error === 'object' && !Array.isArray(error) && !(error instanceof Error)) {
-      // Jika error adalah objek validasi field dari DRF (dilempar oleh store)
       formErrors.value = error
     }
   }
@@ -83,47 +83,64 @@ const handleClose = () => {
       <form @submit.prevent="submitForm" class="w-full flex flex-col mt-4 space-y-6 px-4">
         <div class="flex flex-col gap-1">
           <h1 class="text-3xl font-se font-semibold">
-            {{ isEditMode ? 'Edit Category' : 'Create Category' }}
+            {{ isEditMode ? 'Edit Facility' : 'Create Facility' }}
           </h1>
           <div class="flex gap-2 items-center text-sm font-medium">
             <span>Katalog</span>
             <ArrowRight class="size-4 text-neu-500" />
-            <RouterLink :to="{ name: 'AdminCategories' }" class="hover:underline"
-              >Categories</RouterLink
+            <RouterLink :to="{ name: 'AdminFacilities' }" class="hover:underline"
+              >Facilities</RouterLink
             >
             <ArrowRight class="size-4 text-neu-500" />
             <span class="text-neu-500">{{ isEditMode ? 'Edit' : 'Create' }}</span>
           </div>
         </div>
-        <div class="bg-sur-50 border border-neu-100 p-4 rounded-3xl flex flex-col flex-1 gap-3">
-          <label for="category-name" class="text-base font-semibold">Category Name</label>
-          <input
-            type="text"
-            id="category-name"
-            v-model="form.name"
-            placeholder="Category"
-            required
-            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
-            :class="{ 'border-red-500': formErrors.name }"
-          />
-          <p v-if="formErrors.name" class="mt-1 text-xs text-red-500">
-            {{ formErrors.name.join(', ') }}
-          </p>
+        <div class="bg-sur-50 border border-neu-100 p-4 rounded-3xl flex flex-col flex-1 gap-4">
+          <div class="flex flex-col gap-3">
+            <label for="facility-name" class="text-base font-semibold">Facility Name</label>
+            <input
+              type="text"
+              id="facility-name"
+              v-model="form.name"
+              placeholder="Name"
+              required
+              class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+              :class="{ 'border-red-500': formErrors.name }"
+            />
+            <p v-if="formErrors.name" class="mt-1 text-xs text-red-500">
+              {{ formErrors.name.join(', ') }}
+            </p>
+          </div>
+          <div class="flex flex-col gap-3">
+            <label for="facility-icon" class="text-base font-semibold">SVG</label>
+            <textarea
+              id="facility-icon"
+              rows="7"
+              required
+              placeholder="SVG Tag"
+              class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-3xl"
+              v-model="form.icon_url"
+              :class="{ 'border-red-500': formErrors.icon_url }"
+            ></textarea>
+            <p v-if="formErrors.icon_url" class="mt-1 text-xs text-red-500">
+              {{ formErrors.icon_url.join(', ') }}
+            </p>
+          </div>
         </div>
         <!-- Tampilkan error umum dari store -->
         <p
-          v-if="categoryStore.categoryError && !Object.keys(formErrors).length"
+          v-if="facilityStore.facilityError && !Object.keys(formErrors).length"
           class="text-sm text-red-500"
         >
-          {{ categoryStore.categoryError.name[0] }}
+          {{ facilityStore.facilityError.name[0] }}
         </p>
         <div class="flex gap-2.5 items-center">
           <button
             type="submit"
-            :disabled="categoryStore.isLoadingCategories"
+            :disabled="facilityStore.isLoadingFacilities"
             class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-pr-600 justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
           >
-            {{ categoryStore.isLoadingCategories ? 'Saving...' : 'Save' }}
+            {{ facilityStore.isLoadingFacilities ? 'Saving...' : 'Save' }}
           </button>
           <button
             type="button"

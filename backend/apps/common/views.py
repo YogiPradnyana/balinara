@@ -19,18 +19,20 @@ class CategoryViewSet(viewsets.ModelViewSet):
     lookup_field = 'slug'
 
     filter_backends = [DjangoFilterBackend, SearchFilter,
-                       OrderingFilter]  # Tambahkan SearchFilter
-    # filterset_fields = {} # Jika Anda punya filter spesifik via django-filter
-    # Field yang akan dicari oleh SearchFilter
+                       OrderingFilter]
     search_fields = ['name', 'slug']
-    # ?search=keyword
 
 
-class FacilityViewSet(viewsets.ReadOnlyModelViewSet):
+class FacilityViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows facilities to be viewed.
+    API endpoint that allows facilities to be viewed, created, edited or deleted.
     """
     queryset = Facility.objects.all()
     serializer_class = FacilitySerializer
     # Siapa saja bisa melihat fasilitas
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    lookup_field = 'slug'
+
+    filter_backends = [DjangoFilterBackend, SearchFilter,
+                       OrderingFilter]
+    search_fields = ['name', 'slug']

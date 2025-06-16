@@ -13,7 +13,8 @@ class CategorySerializer(serializers.ModelSerializer):
 class FacilitySerializer(serializers.ModelSerializer):
     class Meta:
         model = Facility
-        fields = ['id', 'name', 'icon_url']  # Atau 'icon_image'
+        fields = ['id', 'name', 'icon_url', 'slug']  # Atau 'icon_image'
+        read_only_fields = ['slug']
 
 
 class AddressSerializer(serializers.ModelSerializer):

@@ -7,7 +7,6 @@ from django.utils.translation import gettext_lazy as _
 class Category(models.Model):
     name = models.CharField(_("Category Name"), max_length=100, unique=True,
                             help_text=_("Name of the destination category (e.g., Beach, Mountain, Temple)."))
-    # Slug bisa ditambahkan jika Anda ingin URL yang lebih ramah untuk kategori
     slug = models.SlugField(_("Slug"), max_length=120, unique=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_(
         # null & blank True jika ditambahkan belakangan
@@ -33,18 +32,28 @@ class Category(models.Model):
 class Facility(models.Model):
     name = models.CharField(_("Facility Name"), max_length=100, unique=True,
                             help_text=_("Name of the facility (e.g., Parking, Toilet, Wi-Fi)."))
-    icon_url = models.CharField(_("Icon URL or Class"), max_length=255, blank=True, null=True,
+    icon_url = models.CharField(_("Icon URL or Class"), max_length=255,
                                 help_text=_("URL to an icon image or a CSS class for an icon font."))
-    # Anda bisa menggunakan ImageField jika ikon adalah file gambar yang diupload:
-    # icon_image = models.ImageField(upload_to='facility_icons/', blank=True, null=True)
+    slug = models.SlugField(_("Slug"), max_length=120, unique=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_(
+        # null & blank True jika ditambahkan belakangan
+        "Created At"), null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_(
+        # null & blank True jika ditambahkan belakangan
+        "Updated At"), null=True, blank=True)
 
     class Meta:
         verbose_name = _("Facility")
         verbose_name_plural = _("Facilities")
-        ordering = ['name']
+        ordering = ['-id']
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
 
 
 class Address(models.Model):

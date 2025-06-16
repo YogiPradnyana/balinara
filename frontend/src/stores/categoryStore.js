@@ -35,7 +35,6 @@ export const useCategoryStore = defineStore('category', {
           this.pagination.count = response.data.count
           this.pagination.next = response.data.next
           this.pagination.previous = response.data.previous
-          console.log(this.categories)
         } else {
           // Jika API mengembalikan array langsung (tanpa paginasi wrapper)
           this.categories = Array.isArray(response.data) ? response.data : []
@@ -76,7 +75,7 @@ export const useCategoryStore = defineStore('category', {
     },
 
     async createCategory(categoryData) {
-      // categoryData adalah objek { name, description? }
+      // categoryData adalah objek { name? }
       this.isLoading = true
       this.error = null
       try {
@@ -101,14 +100,6 @@ export const useCategoryStore = defineStore('category', {
       this.error = null
       try {
         const response = await apiClient.put(`${CATEGORIES_API_PATH}${idOrSlug}/`, categoryData) // atau .patch()
-        // // Update kategori di state lokal
-        // const index = this.categories.findIndex((cat) => cat.id === response.data.id)
-        // if (index !== -1) {
-        //   this.categories[index] = response.data
-        // }
-        // if (this.currentCategory && this.currentCategory.id === response.data.id) {
-        //   this.currentCategory = response.data
-        // }
         await this.fetchCategories() // Alternatif: fetch ulang semua
         return response.data
       } catch (err) {
@@ -125,17 +116,7 @@ export const useCategoryStore = defineStore('category', {
       this.error = null
       try {
         await apiClient.delete(`${CATEGORIES_API_PATH}${idOrSlug}/`)
-        // Hapus kategori dari state lokal
-        this.categories = this.categories.filter(
-          (cat) => cat.id !== idOrSlug && cat.slug !== idOrSlug,
-        )
-        if (
-          this.currentCategory &&
-          (this.currentCategory.id === idOrSlug || this.currentCategory.slug === idOrSlug)
-        ) {
-          this.currentCategory = null
-        }
-        // await this.fetchCategories(); // Alternatif: fetch ulang semua
+        await this.fetchCategories()
       } catch (err) {
         console.error(`Error deleting category ${idOrSlug}:`, err)
         this.error =
