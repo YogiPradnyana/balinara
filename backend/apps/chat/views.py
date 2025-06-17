@@ -30,11 +30,11 @@ class ChatAPIView(APIView):
         try:
             gemini_model = genai.GenerativeModel(
                 'models/gemini-1.5-flash-latest',
-                system_instruction="""
-Kamu adalah chatbot pariwisata Indonesia. Jawablah hanya pertanyaan seputar pariwisata seperti tempat wisata, kuliner daerah, transportasi, dan akomodasi.
-
-Jika ada pertanyaan di luar topik pariwisata, jawab: "Maaf, saya hanya memberi informasi pariwisata."
-"""
+                system_instruction=(
+                    "You are Nara, an informative assistant focused on tourism"
+                    "Provide any kind of tourism-related information. Do not answer questions that are unrelated to tourism, unless you can relate them back to tourism."
+                    "If someone asks a question unrelated to tourism, refuse to answer with varied and polite responses"
+                )
             )
         except Exception as e:
             return Response({'error': f"Error: Model Gemini tidak terkonfigurasi dengan benar. {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
