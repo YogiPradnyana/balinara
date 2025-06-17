@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/authStore'
 import About from '@/pages/About.vue'
 import Dashboard from '@/pages/admin/Dashboard.vue'
-import Destination from '@/pages/Destination.vue'
+import DestinationsLanding from '@/pages/Destination.vue'
 import DetailDestination from '@/pages/DetailDestination.vue'
 import DetailSuggest from '@/pages/Profile/DetailSuggest.vue'
 import Home from '@/pages/Home.vue'
@@ -10,7 +10,7 @@ import Profile from '@/pages/Profile/Profile.vue'
 import Review from '@/pages/Profile/Review.vue'
 import Suggest from '@/pages/Profile/Suggest.vue'
 import Wishlist from '@/pages/Profile/Wishlist.vue'
-import Search from '@/pages/Search.vue'
+import DestinationSearch from '@/pages/Search.vue'
 import SuggestSpot from '@/pages/SuggestSpot.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import AppLayout from '@/layouts/AppLayout.vue'
@@ -52,7 +52,7 @@ const router = createRouter({
         {
           path: '/destinations',
           name: 'Destinations',
-          component: Destination,
+          component: DestinationsLanding,
         },
         {
           path: '/destinations/:id',
@@ -78,7 +78,7 @@ const router = createRouter({
         {
           path: '/search',
           name: 'Search',
-          component: Search,
+          component: DestinationSearch,
         },
         // User Profile
         {

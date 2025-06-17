@@ -36,9 +36,6 @@ class Destination(models.Model):
     ticket_price_range = models.CharField(
         _("Ticket Price Range"), max_length=100, blank=True, null=True,
         help_text=_("e.g., Rp 50.000 - Rp 100.000, Free, or Starting from Rp 25.000"))
-    operational_hours = models.CharField(
-        _("Operational Hours"), max_length=150, blank=True, null=True,
-        help_text=_("e.g., 08:00 - 17:00 (Daily), 09:00 - 15:00 (Weekends only)"))
 
     # Field untuk rating dan review (akan diupdate oleh logika lain, misal signals dari Review)
     average_rating = models.DecimalField(
@@ -91,7 +88,7 @@ class Destination(models.Model):
         verbose_name = _("Destination")
         verbose_name_plural = _("Destinations")
         # Urutkan destinasi berdasarkan nama secara default
-        ordering = ['name']
+        ordering = ['-id']
 
     def __str__(self):
         return self.name

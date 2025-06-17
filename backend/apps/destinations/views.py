@@ -1,5 +1,5 @@
 # apps/destinations/views.py
-from rest_framework import viewsets, permissions, status, generics
+from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 # Untuk menangani berbagai tipe request
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -8,11 +8,12 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 # Untuk pencarian dan pengurutan
 from rest_framework.filters import SearchFilter, OrderingFilter
+from .filters import DestinationFilter
 
 from .models import Destination, DestinationImage
 from .serializers import (
     DestinationListSerializer,
-    DestinationDetailSerializer,
+    DestinationDetailCRUDSerializer,
     DestinationImageSerializer
 )
 # Impor jika perlu untuk filter atau validasi
@@ -24,127 +25,112 @@ from apps.common.serializers import CategorySerializer, FacilitySerializer
 
 
 class DestinationViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint yang memungkinkan destinasi untuk dilihat, dibuat, diupdate, atau dihapus.
-    - List: GET /api/destinations/ (dengan filter, search, ordering)
-    - Create: POST /api/destinations/ (membutuhkan autentikasi admin)
-    - Retrieve: GET /api/destinations/{id_atau_slug}/
-    - Update: PUT /api/destinations/{id_atau_slug}/ (membutuhkan autentikasi admin)
-    - Partial Update: PATCH /api/destinations/{id_atau_slug}/ (membutuhkan autentikasi admin)
-    - Destroy: DELETE /api/destinations/{id_atau_slug}/ (membutuhkan autentikasi admin)
-    - Upload Image: POST /api/destinations/{id_atau_slug}/upload_image/
-    - Delete Image: DELETE /api/destinations/{id_atau_slug}/delete_image/{image_pk}/
-    """
-    # Queryset default, hanya tampilkan yang sudah dipublikasi untuk non-admin
-    # Admin akan melihat semua di Django Admin interface
-    queryset = Destination.objects.filter(is_published=True)\
-        .select_related('category', 'address', 'contact')\
-        .prefetch_related('facilities', 'images')  # Optimasi query
+    queryset = Destination.objects.all().select_related(  # Ambil semua untuk admin, filter is_published di get_queryset
+        'category', 'address', 'contact'
+        # Tambahkan reviews jika sudah ada modelnya
+    ).prefetch_related('facilities', 'images',  # 'reviews'
+                       )
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
-    parser_classes = [MultiPartParser, FormParser,
-                      JSONParser]  # Izinkan berbagai tipe input
-
-    # Konfigurasi untuk filtering, searching, dan ordering
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = {  # Filter yang lebih spesifik
-        'category__slug': ['exact'],  # ?category__slug=nama-slug-kategori
-        # ?address__regency=Gianyar
-        'address__regency': ['iexact', 'icontains'],
-        # ?facilities__id=1 (filter by facility ID)
-        'facilities__id': ['exact'],
-        'average_rating': ['gte', 'lte', 'exact'],  # ?average_rating__gte=4.0
-    }
-    search_fields = [  # Field yang bisa dicari menggunakan ?search=keyword
-        'name',
-        'description',
-        'category__name',
-        'address__street',
-        'address__sub_district',
-        'address__regency',
-        'facilities__name'
+    # Atau filterset_fields jika belum ada DestinationFilter
+    filterset_class = DestinationFilter
+    search_fields = [
+        'name', 'description', 'category__name',
+        'address__regency', 'facilities__name'
     ]
-    ordering_fields = ['name', 'average_rating', 'total_reviews',
-                       'created_at', 'updated_at']  # Field untuk ?ordering=
-    ordering = ['-average_rating', 'name']  # Default ordering
-
-    lookup_field = 'slug'  # Menggunakan slug sebagai lookup selain pk (ID)
-    # Pastikan slug unik. Jika tidak, gunakan 'pk' saja.
+    ordering_fields = ['name', 'average_rating', 'created_at']
+    ordering = ['-average_rating', 'name']
+    lookup_field = 'slug'
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return DestinationListSerializer  # Serializer ringkas untuk daftar
-        # Untuk retrieve, create, update, partial_update, destroy, gunakan serializer detail
-        return DestinationDetailSerializer
+            return DestinationListSerializer
+        # Untuk retrieve, create, update, partial_update, destroy, gunakan serializer CRUD
+        return DestinationDetailCRUDSerializer
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Jika pengguna bukan staf (admin), hanya tampilkan yang is_published=True
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(is_published=True)
+        return queryset
 
     def get_permissions(self):
-        """
-        Mengatur permission berdasarkan aksi.
-        - Siapa saja bisa melihat daftar (list) dan detail (retrieve).
-        - Hanya admin (atau user terautentikasi dengan logic tambahan) yang bisa membuat,
-          mengupdate, atau menghapus destinasi.
-        """
         if self.action in ['list', 'retrieve']:
             self.permission_classes = [permissions.AllowAny]
-        # create, update, partial_update, destroy, dan custom actions (upload_image, delete_image)
-        else:
-            self.permission_classes = [permissions.IsAdminUser]  # Hanya admin
-            # Atau, jika user biasa bisa membuat/mengedit destinasi mereka sendiri:
-            # self.permission_classes = [permissions.IsAuthenticated]
-            # dan Anda perlu menambahkan logika untuk cek ownership di perform_update/perform_destroy
+        else:  # create, update, partial_update, destroy, dan custom actions
+            # Hanya admin yang bisa CUD
+            self.permission_classes = [permissions.IsAdminUser]
         return super().get_permissions()
 
     def perform_create(self, serializer):
-        # Jika Anda ingin set 'created_by' secara otomatis saat admin membuat destinasi
-        # if self.request.user.is_authenticated and self.request.user.is_staff:
-        #     serializer.save(created_by=self.request.user)
-        # else:
-        serializer.save()  # Simpan data destinasi
-
-    def perform_update(self, serializer):
-        # Jika Anda ingin set 'last_updated_by'
-        # if self.request.user.is_authenticated and self.request.user.is_staff:
-        #     serializer.save(last_updated_by=self.request.user)
-        # else:
+        # Logika tambahan saat create, misal set created_by jika ada fieldnya
+        # serializer.save(created_by=self.request.user)
         serializer.save()
 
-    # Action kustom untuk mengunggah gambar ke destinasi yang sudah ada
+    def perform_update(self, serializer):
+        # Logika tambahan saat update, misal set last_updated_by
+        # serializer.save(last_updated_by=self.request.user)
+        serializer.save()
+
+    # Action untuk upload gambar
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser],
-            parser_classes=[MultiPartParser, FormParser], url_path='upload-image')
-    # Menggunakan slug karena lookup_field='slug'
+            parser_classes=[MultiPartParser, FormParser], url_path='images/upload')
     def upload_image(self, request, slug=None):
-        destination = self.get_object()  # Mendapatkan instance Destination
-        # 'image' adalah nama field yang diharapkan dari FormData
-        # 'alt_text' dan 'is_primary' bisa dikirim juga
-        serializer_context = {'request': request}  # Penting untuk image_url
+        destination = self.get_object()
+        # Kirim destination ke context jika perlu
+        serializer_context = {'request': request, 'destination': destination}
+
+        # Kita bisa menerima satu atau banyak file gambar di sini
+        # Jika hanya satu: request.FILES.get('image')
+        # Jika banyak: request.FILES.getlist('images') -> frontend harus kirim dengan nama 'images'
+        # Untuk contoh, kita asumsikan satu gambar per request ke action ini
+        # Frontend akan mengirim FormData dengan field 'image', 'alt_text' (opsional), 'is_primary' (opsional)
+
+        image_data = request.data.copy()  # Salin request data
+        # Tambahkan pk destinasi secara manual jika serializer butuh
+        image_data['destination'] = destination.pk
+        # atau biarkan serializer.save(destination=destination)
+
         image_serializer = DestinationImageSerializer(
-            data=request.data, context=serializer_context)
+            data=image_data, context=serializer_context)
 
         if image_serializer.is_valid():
-            # Pastikan ada file gambar yang diupload
-            if 'image' not in request.FILES:
-                return Response({'error': 'No image file provided in the "image" field.'}, status=status.HTTP_400_BAD_REQUEST)
+            if 'image' not in request.FILES:  # Pastikan file benar-benar ada di FILES
+                return Response({'image': ['No image file provided.']}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Set relasi destination
+            # Explicitly set destination
             image_serializer.save(destination=destination)
             return Response(image_serializer.data, status=status.HTTP_201_CREATED)
         return Response(image_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    # Action kustom untuk menghapus gambar dari destinasi
+    # Action untuk list gambar suatu destinasi (sebenarnya sudah ada di 'images' pada DestinationDetailCRUDSerializer)
+    # Tapi ini bisa berguna jika ingin endpoint khusus gambar
+    @action(detail=True, methods=['get'], permission_classes=[permissions.AllowAny], url_path='images')
+    def list_images(self, request, slug=None):
+        destination = self.get_object()
+        # Menggunakan related_name dari DestinationImage
+        images = destination.images.all()
+        serializer_context = {'request': request}
+        serializer = DestinationImageSerializer(
+            images, many=True, context=serializer_context)
+        return Response(serializer.data)
+
+    # Action untuk menghapus gambar destinasi
     @action(detail=True, methods=['delete'], permission_classes=[permissions.IsAdminUser],
-            # (?P<image_pk>[0-9]+) menangkap ID gambar
-            url_path='delete-image/(?P<image_pk>[0-9]+)')
+            url_path='images/(?P<image_pk>[0-9]+)/delete')
     def delete_image(self, request, slug=None, image_pk=None):
+        # Tidak terpakai langsung tapi baik untuk validasi awal
         destination = self.get_object()
         try:
             image_instance = DestinationImage.objects.get(
-                id=image_pk, destination=destination)
+                id=image_pk, destination__slug=slug)  # Pastikan gambar milik destinasi ini
             # Ini akan memanggil metode delete kustom di model DestinationImage
             image_instance.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except DestinationImage.DoesNotExist:
             return Response({'error': 'Image not found for this destination.'}, status=status.HTTP_404_NOT_FOUND)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # === ViewSet untuk Kategori (Read-Only) ===

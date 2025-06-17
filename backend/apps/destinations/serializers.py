@@ -1,29 +1,32 @@
 # apps/destinations/serializers.py
 from rest_framework import serializers
+# Untuk atomic transaction saat create/update nested
+from django.db import transaction
+
 from .models import Destination, DestinationImage
-# Impor model dari common
 from apps.common.models import Category, Address, Contact, Facility
-from apps.common.serializers import (  # Impor serializer dari common
+from apps.common.serializers import (
     CategorySerializer,
     AddressSerializer,
     ContactSerializer,
     FacilitySerializer
 )
 
+# --- Serializer untuk DestinationImage ---
+
 
 class DestinationImageSerializer(serializers.ModelSerializer):
-    # image_url akan memberikan URL absolut ke gambar
     image_url = serializers.SerializerMethodField(read_only=True)
-    # image field akan digunakan untuk upload dan akan berisi path relatif saat dibaca (jika use_url=False)
-    # atau URL jika use_url=True (default). Untuk create/update, kita ingin menerima file.
-    # use_url=False agar saat create/update tidak error jika request bukan dari context view
-    image = serializers.ImageField(use_url=False, required=True)
+    image = serializers.ImageField(
+        use_url=False, required=True, allow_empty_file=False)
+    # 'destination' akan di-set oleh view saat upload melalui action, jadi tidak perlu di sini saat create
+    # Jika serializer ini digunakan untuk nested create di DestinationDetailSerializer, maka perlu
+    # Namun, kita akan handle upload gambar via action terpisah untuk kesederhanaan.
 
     class Meta:
         model = DestinationImage
         fields = ['id', 'image', 'image_url',
                   'alt_text', 'is_primary', 'uploaded_at']
-        # image_url dan uploaded_at dibuat otomatis
         read_only_fields = ('id', 'image_url', 'uploaded_at')
 
     def get_image_url(self, obj):
@@ -33,21 +36,16 @@ class DestinationImageSerializer(serializers.ModelSerializer):
         return None
 
     def validate_image(self, value):
-        # Contoh validasi ukuran file (misalnya, maks 2MB)
-        if value.size > 2 * 1024 * 1024:  # 2MB
-            raise serializers.ValidationError("Image size cannot exceed 2MB.")
-        # Anda bisa menambahkan validasi tipe file di sini jika perlu,
-        # meskipun ImageField sudah melakukan beberapa validasi dasar.
+        if value.size > 5 * 1024 * 1024:  # Maks 5MB
+            raise serializers.ValidationError("Image size cannot exceed 5MB.")
         return value
+
+# --- Serializer untuk Daftar Destinasi (Ringkas) ---
 
 
 class DestinationListSerializer(serializers.ModelSerializer):
-    """
-    Serializer untuk daftar destinasi (tampilan lebih ringkas).
-    """
     category = CategorySerializer(read_only=True)
     primary_image_url = serializers.SerializerMethodField()
-    # Misal hanya menampilkan Kabupaten/Kota
     address_brief = serializers.SerializerMethodField()
 
     class Meta:
@@ -56,134 +54,132 @@ class DestinationListSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'average_rating', 'total_reviews',
             'category', 'primary_image_url', 'address_brief', 'is_published'
         ]
+        read_only_fields = ('id', 'slug', 'average_rating',
+                            'total_reviews', 'primary_image_url', 'address_brief')
 
     def get_primary_image_url(self, obj):
+        # ... (logika sama seperti sebelumnya) ...
         request = self.context.get('request')
         primary_image = obj.images.filter(is_primary=True).first()
+        if not primary_image:
+            primary_image = obj.images.order_by('uploaded_at').first()
         if primary_image and primary_image.image and hasattr(primary_image.image, 'url'):
             return request.build_absolute_uri(primary_image.image.url) if request else primary_image.image.url
-        # Fallback ke gambar pertama jika tidak ada primary
-        # Ambil gambar pertama yang diupload
-        first_image = obj.images.order_by('uploaded_at').first()
-        if first_image and first_image.image and hasattr(first_image.image, 'url'):
-            return request.build_absolute_uri(first_image.image.url) if request else first_image.image.url
-        return None  # Atau URL ke gambar placeholder default
+        return None
 
     def get_address_brief(self, obj):
         if obj.address:
-            return f"{obj.address.regency}"  # Contoh, bisa juga provinsi
+            return f"{obj.address.regency}"
         return None
 
 
-class DestinationDetailSerializer(serializers.ModelSerializer):
-    """
-    Serializer untuk detail destinasi (tampilan lebih lengkap, termasuk create/update).
-    """
-    category = CategorySerializer(read_only=True)  # Untuk GET request
-    category_id = serializers.PrimaryKeyRelatedField(
-        queryset=Category.objects.all(), source='category', write_only=True, required=False, allow_null=True
-    )
-
-    # Untuk GET, dan untuk nested create/update
-    address = AddressSerializer(required=False, allow_null=True)
-    # Untuk GET, dan untuk nested create/update
-    contact = ContactSerializer(required=False, allow_null=True)
-
-    facilities = FacilitySerializer(
-        many=True, read_only=True)  # Untuk GET request
-    facility_ids = serializers.PrimaryKeyRelatedField(
-        queryset=Facility.objects.all(), source='facilities', write_only=True, many=True, required=False
-    )
-
+# --- Serializer untuk Detail, Create, dan Update Destinasi ---
+class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
+    # --- READ-ONLY fields (untuk GET response) ---
+    category = CategorySerializer(read_only=True)
+    address = AddressSerializer(read_only=True)
+    contact = ContactSerializer(read_only=True)
+    facilities = FacilitySerializer(many=True, read_only=True)
     images = DestinationImageSerializer(
-        many=True, read_only=True)  # Untuk GET request
-    # Untuk upload gambar baru saat membuat/mengupdate destinasi,
-    # kita akan menggunakan action terpisah atau menangani `request.FILES` di view.
-    # Atau, Anda bisa menambahkan field ListField dari ImageField di sini, tapi itu bisa jadi rumit.
+        many=True, read_only=True)  # Gambar dikelola via action
 
-    # Field yang hanya dibaca (dihitung atau di-set oleh sistem)
-    average_rating = serializers.DecimalField(
-        max_digits=3, decimal_places=2, read_only=True)
-    total_reviews = serializers.IntegerField(read_only=True)
+    # --- WRITE-ONLY fields (untuk POST/PUT/PATCH request) ---
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), source='category', write_only=True,
+        required=False, allow_null=True
+    )
+    # Untuk Address dan Contact, kita akan terima data nested dan proses di create/update
+    address_data = AddressSerializer(
+        write_only=True, required=False, allow_null=True)
+    contact_data = ContactSerializer(
+        write_only=True, required=False, allow_null=True)
+
+    facility_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Facility.objects.all(), source='facilities', write_only=True,
+        many=True, required=False
+    )
 
     class Meta:
         model = Destination
         fields = [
-            'id', 'name', 'slug', 'description', 'ticket_price_range', 'operational_hours',
-            'average_rating', 'total_reviews',
-            'category', 'category_id',  # category untuk read, category_id untuk write
-            'address',
-            'contact',
-            'facilities', 'facility_ids',  # facilities untuk read, facility_ids untuk write
-            'images',
-            'is_published',
+            'id', 'name', 'slug', 'description', 'ticket_price_range',
+            'average_rating', 'total_reviews', 'is_published',
+            # Read-only representasi
+            'category', 'address', 'contact', 'facilities', 'images',
+            # Write-only/input fields
+            'category_id', 'address_data', 'contact_data', 'facility_ids',
             'created_at', 'updated_at'
         ]
-        read_only_fields = ('id', 'slug', 'average_rating',
-                            'total_reviews', 'created_at', 'updated_at', 'images')
-        # 'slug' akan dibuat otomatis oleh model.
-        # 'images' akan dikelola melalui endpoint/action terpisah atau setelah destinasi dibuat.
+        read_only_fields = (
+            'id', 'slug', 'average_rating', 'total_reviews', 'created_at', 'updated_at',
+            'images',  # images dikelola oleh action terpisah
+            # Field di bawah ini adalah representasi objek, bukan input langsung untuk create/update utama
+            'category', 'address', 'contact', 'facilities'
+        )
+        # Slug akan dibuat otomatis oleh model.
 
+    def _handle_nested_one_to_one_write(self, instance_field_obj, nested_data_dict, NestedModel):
+        """Helper untuk create/update/delete nested OneToOne (Address, Contact) saat write."""
+        if nested_data_dict is None:  # Klien mengirim null -> hapus jika ada
+            if instance_field_obj:
+                instance_field_obj.delete()
+            return None
+        elif nested_data_dict:  # Klien mengirim data objek
+            # Hapus ID jika ada di nested_data_dict karena kita tidak ingin error jika ID tidak cocok
+            # atau jika ini adalah pembuatan objek baru.
+            nested_data_dict.pop('id', None)
+            if instance_field_obj:  # Update yang ada
+                for attr, value in nested_data_dict.items():
+                    setattr(instance_field_obj, attr, value)
+                instance_field_obj.save()
+                return instance_field_obj
+            else:  # Buat baru
+                return NestedModel.objects.create(**nested_data_dict)
+        return instance_field_obj  # Tidak ada perubahan pada field nested ini
+
+    @transaction.atomic  # Pastikan operasi database bersifat atomic
     def create(self, validated_data):
-        address_data = validated_data.pop('address', None)
-        contact_data = validated_data.pop('contact', None)
-        # 'facilities' sudah di-handle oleh source='facilities' di facility_ids
-        # dan akan otomatis di-set oleh DRF jika facility_ids dikirim.
+        address_data = validated_data.pop('address_data', None)
+        contact_data = validated_data.pop('contact_data', None)
+        # facilities dan category sudah di-handle oleh source di PrimaryKeyRelatedField
+        # dan akan di-set saat super().create() atau setelahnya.
 
-        address_instance = None
-        if address_data:
-            address_instance = Address.objects.create(**address_data)
+        address_instance = self._handle_nested_one_to_one_write(
+            None, address_data, Address)
+        contact_instance = self._handle_nested_one_to_one_write(
+            None, contact_data, Contact)
 
-        contact_instance = None
-        if contact_data:
-            contact_instance = Contact.objects.create(**contact_data)
+        # Ambil facility_ids yang sudah divalidasi (menjadi instance Facility)
+        # 'facilities' adalah hasil dari source='facilities'
+        facilities_qs = validated_data.pop('facilities', [])
 
         destination = Destination.objects.create(
             address=address_instance,
             contact=contact_instance,
+            # validated_data sudah termasuk category (hasil dari category_id)
             **validated_data
         )
-        # Fasilitas sudah di-set jika facility_ids ada di validated_data
+        if facilities_qs:  # Set relasi M2M setelah destination dibuat
+            destination.facilities.set(facilities_qs)
         return destination
 
+    @transaction.atomic
     def update(self, instance, validated_data):
-        address_data = validated_data.pop('address', None)
-        contact_data = validated_data.pop('contact', None)
-        # 'facilities' di-handle oleh source='facilities' dari facility_ids
+        # Handle nested Address and Contact
+        # Jika 'address_data' atau 'contact_data' ada di validated_data, proses.
+        # Jika tidak ada, biarkan field address/contact pada instance apa adanya.
+        if 'address_data' in validated_data:
+            address_data = validated_data.pop('address_data')
+            instance.address = self._handle_nested_one_to_one_write(
+                instance.address, address_data, Address)
 
-        # Update Address
-        if address_data:
-            if instance.address:
-                # Update field-field address yang ada
-                for attr, value in address_data.items():
-                    setattr(instance.address, attr, value)
-                instance.address.save()
-            else:  # Jika destinasi belum punya alamat, buat baru
-                instance.address = Address.objects.create(**address_data)
-        elif 'address' in validated_data and validated_data['address'] is None:
-            # Jika frontend mengirim null untuk address (menghapus alamat)
-            if instance.address:
-                instance.address.delete()  # Hapus objek Address terkait
-            instance.address = None
+        if 'contact_data' in validated_data:
+            contact_data = validated_data.pop('contact_data')
+            instance.contact = self._handle_nested_one_to_one_write(
+                instance.contact, contact_data, Contact)
 
-        # Update Contact
-        if contact_data:
-            if instance.contact:
-                for attr, value in contact_data.items():
-                    setattr(instance.contact, attr, value)
-                instance.contact.save()
-            else:
-                instance.contact = Contact.objects.create(**contact_data)
-        elif 'contact' in validated_data and validated_data['contact'] is None:
-            if instance.contact:
-                instance.contact.delete()
-            instance.contact = None
-
-        # Update field-field Destination lainnya
-        # fasilitas akan diupdate secara otomatis oleh DRF karena 'facility_ids'
-        # dan source='facilities'
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-
-        instance.save()
+        # 'facilities' (dari facility_ids) dan 'category' (dari category_id)
+        # akan diupdate oleh DRF secara default jika ada di validated_data.
+        # Kita panggil super().update() untuk menangani field Destination standar dan relasi M2M/FK.
+        instance = super().update(instance, validated_data)
         return instance
