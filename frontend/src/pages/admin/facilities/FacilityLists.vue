@@ -85,14 +85,17 @@ const closeFormModal = () => {
 }
 
 const handleSaveFacility = async (formData) => {
+  console.log(formData)
+
+  const { identifier, payload } = formData
   try {
-    if (formData.slug) {
+    if (identifier) {
       // Jika ada slug, berarti update
-      await facilityStore.updateFacility(formData.slug, formData)
+      await facilityStore.updateFacility(identifier, payload)
       showNotification('success', 'Facility updated successfully')
     } else {
-      // Jika tidak ada ID, berarti create
-      await facilityStore.createFacility(formData)
+      // Jika tidak ada slug, berarti create
+      await facilityStore.createFacility(payload)
       showNotification('success', 'Facility added successfully')
     }
     closeFormModal()

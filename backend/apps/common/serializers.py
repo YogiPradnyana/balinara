@@ -11,10 +11,27 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class FacilitySerializer(serializers.ModelSerializer):
+    icon_url = serializers.SerializerMethodField(read_only=True)
+    icon = serializers.FileField(
+        use_url=False,
+        required=False,
+        allow_null=False
+    )
+
     class Meta:
         model = Facility
-        fields = ['id', 'name', 'icon_url', 'slug']  # Atau 'icon_image'
-        read_only_fields = ['slug']
+        fields = ['id', 'name', 'icon_url',
+                  'icon', 'slug']
+        read_only_fields = ['slug', 'icon_url']
+
+    def get_icon_url(self, obj):
+        """
+        Membangun URL absolut untuk ikon. Kode Anda sudah sempurna.
+        """
+        request = self.context.get('request')
+        if obj.icon and hasattr(obj.icon, 'url'):
+            return request.build_absolute_uri(obj.icon.url) if request else obj.icon.url
+        return None
 
 
 class AddressSerializer(serializers.ModelSerializer):

@@ -126,7 +126,7 @@ import { RouterLink } from 'vue-router'
         </div>
 
         <div class="flex flex-col gap-3">
-          <label for="name" class="text-base font-semibold">Photo</label>
+          <div class="text-base font-semibold">Photo</div>
           <div class="w-full">
             <label
               for="photo-upload"

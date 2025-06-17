@@ -1,7 +1,12 @@
 # apps/common/models.py
+import os
+import uuid
 from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
+from .validators import validate_file_size, validate_svg_file
 
 
 class Category(models.Model):
@@ -29,11 +34,24 @@ class Category(models.Model):
         super().save(*args, **kwargs)
 
 
+def facility_icon_path_processor(instance, filename):
+    ext = os.path.splitext(filename)[1].lower()  # Pastikan ekstensi tetap ada
+    new_filename = f'{uuid.uuid4()}{ext}'  # Menggunakan UUID + ekstensi asli
+    return f'facility_icons/{new_filename}'
+
+
 class Facility(models.Model):
     name = models.CharField(_("Facility Name"), max_length=100, unique=True,
                             help_text=_("Name of the facility (e.g., Parking, Toilet, Wi-Fi)."))
-    icon_url = models.CharField(_("Icon URL or Class"), max_length=255,
-                                help_text=_("URL to an icon image or a CSS class for an icon font."))
+    icon = models.FileField(
+        _("SVG Icon File"),
+        upload_to=facility_icon_path_processor,
+        validators=[
+            FileExtensionValidator(allowed_extensions=['svg']),
+            validate_file_size,
+            validate_svg_file
+        ],
+        help_text=_("Upload an .svg icon file for the facility."))
     slug = models.SlugField(_("Slug"), max_length=120, unique=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_(
         # null & blank True jika ditambahkan belakangan
@@ -53,7 +71,22 @@ class Facility(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
+         # Jika ini adalah update dan field icon berubah, hapus file lama
+        if self.pk:  # Jika objek sudah ada di DB (update)
+            try:
+                old_instance = Facility.objects.get(pk=self.pk)
+                if old_instance.icon and old_instance.icon != self.icon:
+                    old_instance.icon.delete(
+                        save=False)  # Hapus file fisik lama
+            except Facility.DoesNotExist:
+                pass  # Objek baru, tidak ada file lama
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # Hapus file fisik dari storage saat objek Facility dihapus (best practice)
+        if self.icon:
+            self.icon.delete(save=False)
+        super().delete(*args, **kwargs)
 
 
 class Address(models.Model):

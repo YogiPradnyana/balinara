@@ -22,21 +22,10 @@ export const useFacilityStore = defineStore('facility', {
     isLoadingFacilities: (state) => state.isLoading,
     facilityError: (state) => state.error,
     getFacilityById: (state) => (id) => state.facilities.find((fac) => fac.id === id),
+    getFacilityBySlug: (state) => (slug) => state.facilities.find((fac) => fac.slug === slug),
   },
 
   actions: {
-    // _updateFacilityInState(updatedFacility) {
-    //   const index = this.facilities.findIndex((fac) => fac.id === updatedFacility.id)
-    //   if (index !== -1) {
-    //     this.facilities[index] = updatedFacility
-    //   } else {
-    //     // Jika tidak ditemukan (misal setelah create lalu langsung edit tanpa fetch ulang),
-    //     // tambahkan ke daftar jika belum ada (meskipun create seharusnya sudah menambahkannya)
-    //     // atau panggil fetchFacilities lagi. Untuk update, biasanya sudah ada.
-    //     this.facilities.push(updatedFacility) // Atau handle berbeda
-    //   }
-    // },
-
     async fetchFacilities(params = {}) {
       this.isLoading = true
       this.error = null
@@ -60,16 +49,16 @@ export const useFacilityStore = defineStore('facility', {
       }
     },
 
-    async fetchFacility(idOrSlug) {
+    async fetchFacility(slug) {
       // Untuk mengambil satu kategori
       this.isLoading = true
       this.error = null
       this.currentFacility = null
       try {
-        const response = await apiClient.get(`${FACILITIES_API_PATH}${idOrSlug}/`)
+        const response = await apiClient.get(`${FACILITIES_API_PATH}${slug}/`)
         this.currentFacility = response.data
       } catch (err) {
-        console.error(`Error fetching facility ${idOrSlug}:`, err)
+        console.error(`Error fetching facility ${slug}:`, err)
         this.error =
           err.response?.data?.detail ||
           err.response?.data ||
@@ -81,6 +70,8 @@ export const useFacilityStore = defineStore('facility', {
     },
 
     async createFacility(facilityData) {
+      // console.log(facilityData)
+
       // { name, icon_url? }
       this.isLoading = true
       this.error = null
@@ -98,30 +89,30 @@ export const useFacilityStore = defineStore('facility', {
       }
     },
 
-    async updateFacility(idOrSlug, facilityData) {
+    async updateFacility(slug, facilityData) {
       // { name, icon_url? }
       this.isLoading = true
       this.error = null
       try {
         // Gunakan PUT atau PATCH. PUT biasanya mengganti seluruh resource.
         // PATCH hanya field yang dikirim. Serializer Anda harus mendukungnya.
-        const response = await apiClient.put(`${FACILITIES_API_PATH}${idOrSlug}/`, facilityData)
+        const response = await apiClient.put(`${FACILITIES_API_PATH}${slug}/`, facilityData)
         await this.fetchFacilities()
         return response.data
       } catch (err) {
         this.error = err.response?.data || err.message || 'Failed to update facility.'
-        console.error(`Error updating facility ${idOrSlug}:`, err)
+        console.error(`Error updating facility ${slug}:`, err)
         throw this.error
       } finally {
         this.isLoading = false
       }
     },
 
-    async deleteFacility(idOrSlug) {
+    async deleteFacility(slug) {
       this.isLoading = true
       this.error = null
       try {
-        await apiClient.delete(`${FACILITIES_API_PATH}${idOrSlug}/`)
+        await apiClient.delete(`${FACILITIES_API_PATH}${slug}/`)
         await this.fetchFacilities()
       } catch (err) {
         this.error = err.response?.data?.detail || err.message || 'Failed to delete facility.'

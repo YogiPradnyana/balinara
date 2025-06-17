@@ -16,50 +16,130 @@ const facilityStore = useFacilityStore()
 const emit = defineEmits(['close', 'save'])
 
 const form = ref({
-  id: null,
   name: '',
-  icon_url: '',
-  slug: '',
 })
+
+const iconFile = ref(null) // Untuk objek File
+const iconPreview = ref(null) // Untuk URL preview
 
 const formErrors = ref({})
 
-const isEditMode = computed(() => !!form.value.id)
+const isEditMode = computed(() => !!(props.facilityData && props.facilityData.slug))
 
 watchEffect(() => {
-  if (props.facilityData) {
-    form.value = { ...props.facilityData }
+  if (props.facilityData && props.facilityData.slug) {
+    form.value = {
+      name: props.facilityData.name || '',
+    }
+    iconPreview.value = props.facilityData.icon_url || null
+    iconFile.value = null //
   } else {
-    form.value = { id: null, name: '', icon_url: '', slug: '' }
+    form.value = { name: '' }
+    iconPreview.value = null
+    iconFile.value = null
   }
+
   formErrors.value = {}
-  facilityStore.clearError()
+  // facilityStore.clearError()
 })
+
+const handleIconUpload = (event) => {
+  const file = event.target.files[0]
+  formErrors.value.icon = undefined // Hapus error field ikon sebelumnya
+
+  if (file) {
+    if (!file.name.toLowerCase().endsWith('.svg')) {
+      formErrors.value.icon = ['Only .svg files are allowed.']
+      iconFile.value = null
+      event.target.value = null // Reset input file
+      return
+    }
+    if (file.size > 0.5 * 1024 * 1024) {
+      // 500KB
+      formErrors.value.icon = ['Icon image size cannot exceed 500KB.']
+      iconFile.value = null
+      event.target.value = null
+      return
+    }
+    iconFile.value = file
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      iconPreview.value = e.target.result
+    }
+    reader.readAsDataURL(file)
+    // removeCurrentImage.value = false; // Jika ada file baru, jangan hapus gambar
+  } else {
+    // Jika pengguna membatalkan pemilihan file
+    iconFile.value = null
+    // Kembalikan preview ke gambar yang ada (jika edit) atau null (jika create)
+    if (isEditMode.value) {
+      iconPreview.value = props.facilityData?.icon_url || null
+    } else {
+      iconPreview.value = null
+    }
+  }
+}
 
 const submitForm = async () => {
   formErrors.value = {}
-  facilityStore.clearError()
+  // facilityStore.clearError()
   try {
-    const payload = {
-      name: form.value.name,
+    // Validasi frontend dasar
+    if (!form.value.name.trim()) {
+      formErrors.value.name = ['Facility name is required.']
+      return
     }
-    if (form.value.icon_url) {
-      payload.icon_url = form.value.icon_url
+    if (!isEditMode.value && !iconFile.value) {
+      // Ikon wajib saat create
+      formErrors.value.icon = ['SVG Icon file is required.']
+      return
+    }
+    // Validasi tambahan untuk file ikon jika ada file baru dipilih (sudah di handleIconUpload)
+    if (iconFile.value) {
+      if (!iconFile.value.name.toLowerCase().endsWith('.svg')) {
+        formErrors.value.icon = ['Only .svg files are allowed.']
+        return
+      }
+      if (iconFile.value.size > 0.5 * 1024 * 1024) {
+        // 500KB
+        formErrors.value.icon = ['Icon image size cannot exceed 500KB.']
+        return
+      }
     }
 
-    if (form.value.slug) {
-      // Hanya kirim slug jika diisi, biarkan backend generate jika tidak
-      payload.slug = form.value.slug
+    // Selalu gunakan FormData karena ada potensi upload file ikon
+    const formDataPayload = new FormData()
+    formDataPayload.append('name', form.value.name)
+
+    // ICON IMAGE:
+    // Hanya append 'icon' jika ada file BARU yang dipilih.
+    // Jika mode edit dan tidak ada file baru dipilih, backend akan mempertahankan gambar lama.
+    // Jika mode create, file baru wajib (sudah divalidasi di atas).
+    if (iconFile.value) {
+      formDataPayload.append('icon', iconFile.value, iconFile.value.name)
+    }
+    const dataToEmit = {
+      payload: formDataPayload, // Ini adalah FormData
     }
 
     if (isEditMode.value) {
-      payload.id = form.value.id
+      // Saat edit, kita emit SLUG dari props.facilityData (slug LAMA sebelum potensi perubahan nama)
+      // karena ini yang akan digunakan untuk membangun URL API update.
+      dataToEmit.identifier = props.facilityData.slug
     }
 
-    await emit('save', payload) // Emit event save dengan data form
+    console.log(formDataPayload)
+
+    // Emit event 'save' dengan objek yang berisi 'payload' dan 'identifier' (jika edit)
+    emit('save', dataToEmit) // Emit event save dengan data form
   } catch (error) {
     if (error && typeof error === 'object' && !Array.isArray(error) && !(error instanceof Error)) {
       formErrors.value = error
+    } else {
+      // Untuk error umum lainnya, mungkin set pesan error umum.
+      // Namun, ini lebih baik ditangani oleh parent dengan toast.
+      console.error('Error during form submission process in modal:', error)
+      formErrors.value = { general: [error?.message || 'Submission failed.'] }
     }
   }
 }
@@ -112,27 +192,39 @@ const handleClose = () => {
             </p>
           </div>
           <div class="flex flex-col gap-3">
-            <label for="facility-icon" class="text-base font-semibold">SVG</label>
-            <textarea
+            <label for="facility-icon" class="text-base font-semibold">SVG Icon File</label>
+            <input
+              type="file"
               id="facility-icon"
-              rows="7"
-              required
-              placeholder="SVG Tag"
-              class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-3xl"
-              v-model="form.icon_url"
-              :class="{ 'border-red-500': formErrors.icon_url }"
-            ></textarea>
-            <p v-if="formErrors.icon_url" class="mt-1 text-xs text-red-500">
-              {{ formErrors.icon_url.join(', ') }}
+              @change="handleIconUpload"
+              :required="!isEditMode"
+              accpet=".svg"
+              class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+              :class="{ 'border-red-500': formErrors.icon }"
+            />
+            <div v-if="iconPreview" class="mt-2">
+              <img :src="iconPreview" alt="Icon preview" class="h-16 w-16 object-contain" />
+            </div>
+            <p v-if="formErrors.icon" class="mt-1 text-xs text-red-500">
+              {{ formErrors.icon.join(', ') }}
             </p>
           </div>
         </div>
         <!-- Tampilkan error umum dari store -->
         <p
-          v-if="facilityStore.facilityError && !Object.keys(formErrors).length"
+          v-if="
+            formErrors.general ||
+            (facilityStore &&
+              facilityStore.facilityError &&
+              !Object.keys(formErrors).filter((k) => k !== 'general').length)
+          "
           class="text-sm text-red-500"
         >
-          {{ facilityStore.facilityError.name[0] }}
+          {{
+            (formErrors.general && formErrors.general[0]) ||
+            facilityStore?.facilityError.name[0] ||
+            'An error occurred.'
+          }}
         </p>
         <div class="flex gap-2.5 items-center">
           <button

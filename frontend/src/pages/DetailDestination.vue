@@ -20,6 +20,7 @@ import StarFilled from '@/components/icons/StarFilled.vue'
 import Temple from '@/components/icons/Temple.vue'
 import StarRatingDisplay from '@/components/StarRatingDisplay.vue'
 import ImageModal from '@/components/ImageModal.vue'
+import FacilityIcon from '@/components/icons/facilities/FacilityIcon.vue'
 
 const searchTerm = ref('')
 
@@ -236,6 +237,11 @@ const reviewData = ref([
                 class="bg-[#F2F8F5] text-pr-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
               >
                 <FreeWifi class="size-5 sm:size-6" />Free Wi-Fi
+              </li>
+              <li
+                class="bg-[#F2F8F5] text-pr-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
+              >
+                <FacilityIcon class="size-5 sm:size-6" />Free Wis-Fi
               </li>
               <li
                 class="bg-[#F2F8F5] text-pr-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
