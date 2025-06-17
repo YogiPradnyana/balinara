@@ -14,11 +14,6 @@ import Search from '@/pages/Search.vue'
 import SuggestSpot from '@/pages/SuggestSpot.vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import AppLayout from '@/layouts/AppLayout.vue'
-// ===============================================
-// IMPOR KOMPONEN CHAT GEMINI ANDA
-// Asumsi ChatGemini.vue ada di src/components/
-// ===============================================
-import ChatGemini from '@/components/Chatgemini.vue' // SESUAIKAN PATH INI JIKA BERBEDA!
 import WriteReview from '@/pages/WriteReview.vue'
 import Users from '@/pages/admin/users/Users.vue'
 import UserCreate from '@/pages/admin/users/Create.vue'
@@ -84,11 +79,6 @@ const router = createRouter({
           path: '/search',
           name: 'Search',
           component: Search,
-        },
-        {
-          path: '/chat-gemini', // URL yang akan Anda gunakan
-          name: 'ChatGemini', // Nama rute
-          component: ChatGemini, // Komponen yang akan dirender
         },
         // User Profile
         {

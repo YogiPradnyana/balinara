@@ -276,7 +276,7 @@ const toggleSidebar = () => {
         <div v-if="authStore.isAuthenticated">
           <div
             @click="toggleUserDropdown"
-            class="rounded-full user-dropdown relative size-9 lg:size-11 border-2 border-neu-200 cursor-pointer"
+            class="rounded-full user-dropdown relative size-9 lg:size-11 border border-neu-200 cursor-pointer"
           >
             <img
               v-if="authStore.currentUser?.image"
@@ -289,7 +289,7 @@ const toggleSidebar = () => {
               v-else
               :src="defaultAvatar"
               alt="Default Profile"
-              class="size-full rounded-full border-2 border-neu-200 object-cover"
+              class="size-full rounded-full border border-neu-200 object-cover"
             />
             <!-- User Dropdown -->
             <div

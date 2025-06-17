@@ -4,6 +4,11 @@ import { useChatStore } from '@/stores/chatStore'
 import Nara from './icons/Nara.vue'
 import ChatBuble from './icons/ChatBuble.vue'
 import FilledSend from './icons/FilledSend.vue'
+import {
+  showNotification,
+  showConfirmationToast,
+  dismissCurrentConfirmationToast,
+} from '@/services/notificationService'
 
 const chatStore = useChatStore()
 
@@ -13,12 +18,7 @@ const messagesContainer = ref(null)
 const userInputField = ref(null)
 
 const showCalloutMessage = ref(false)
-const calloutTexts = [
-  'Ada yang bisa dibantu?',
-  'Tanya aku apa saja!',
-  'Butuh bantuan navigasi?',
-  'Halo Traveler!👋',
-]
+const calloutTexts = ['How can I help?', 'Ask me anything!', 'Hello Traveler!👋']
 const currentCalloutText = ref('')
 let calloutInterval = null
 let calloutDisplayTimeout = null
@@ -55,7 +55,7 @@ const scrollToBottom = async () => {
 // Mengirim pesan menggunakan action di store
 const handleSendMessage = async () => {
   if (!userInput.value.trim()) {
-    error.value = 'Pesan tidak boleh kosong.' // Set error lokal atau di store
+    error.value = 'Message cannot be empty' // Set error lokal atau di store
     return
   }
   const messageToSend = userInput.value
@@ -76,14 +76,14 @@ const handleSendMessage = async () => {
 const handleClearHistory = async () => {
   if (
     !confirm(
-      'Apakah Anda yakin ingin menghapus seluruh riwayat obrolan? Tindakan ini tidak dapat dibatalkan.',
+      'Are you sure you want to delete the entire chat history? This action cannot be undone.',
     )
   ) {
     return
   }
   try {
     await chatStore.clearChatHistory()
-    alert('Riwayat obrolan berhasil dihapus.')
+    showNotification('success', 'Chat history deleted successfully')
     // Reset suggested replies (jika dikelola di sini)
     // suggestedReplies.value = [ /* ... */ ];
   } catch (err) {
