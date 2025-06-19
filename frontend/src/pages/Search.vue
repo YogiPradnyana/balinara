@@ -112,7 +112,7 @@ const goToPage = (page) => {
 }
 
 const viewDestinationDetail = (slug) => {
-  router.push({ name: 'DetailDestinations', params: { slug: slug } })
+  router.push({ name: 'DetailDestination', params: { slug: slug } })
 }
 
 // Handler untuk filter

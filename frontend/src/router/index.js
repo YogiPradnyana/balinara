@@ -56,7 +56,7 @@ const router = createRouter({
         },
         {
           path: '/destinations/:slug',
-          name: 'DetailDestinations',
+          name: 'DetailDestination',
           component: DetailDestination,
           props: true,
         },

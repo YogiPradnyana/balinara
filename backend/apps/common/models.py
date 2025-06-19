@@ -92,10 +92,11 @@ class Facility(models.Model):
 class Address(models.Model):
     street = models.CharField(_("Street Address"), max_length=255,
                               help_text=_("Full street address, including house number if applicable."))
-    sub_district = models.CharField(_("Sub-District / Village"), max_length=100, blank=True, null=True,
+    sub_district = models.CharField(_("Sub-District / Village"), max_length=100,
                                     help_text=_("e.g., Kelurahan, Desa."))
     # ERD Anda tidak memiliki 'district' (kecamatan), tapi saya tambahkan sebagai contoh jika diperlukan
-    # district = models.CharField(_("District"), max_length=100, blank=True, null=True, help_text=_("e.g., Kecamatan."))
+    district = models.CharField(_("District"), max_length=100,
+                                help_text=_("e.g., Kecamatan."))
     regency = models.CharField(_("Regency / City"), max_length=100,
                                help_text=_("e.g., Kabupaten Badung, Kota Denpasar."))
     # ERD Anda tidak memiliki 'province' dan 'country', tapi ini field yang umum.
@@ -114,7 +115,7 @@ class Address(models.Model):
         # unique_together = [['street', 'regency', 'latitude', 'longitude']]
 
     def __str__(self):
-        parts = [self.street, self.sub_district, self.regency]
+        parts = [self.street, self.sub_district, self.district, self.regency]
         return ", ".join(filter(None, parts)) or "Unnamed Address"
 
 

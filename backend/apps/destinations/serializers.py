@@ -86,11 +86,10 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
     # --- WRITE-ONLY fields (untuk POST/PUT/PATCH request) ---
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(), source='category', write_only=True,
-        required=False, allow_null=True
     )
     # Untuk Address dan Contact, kita akan terima data nested dan proses di create/update
     address_data = AddressSerializer(
-        write_only=True, required=False, allow_null=True)
+        write_only=True, required=True)
     contact_data = ContactSerializer(
         write_only=True, required=False, allow_null=True)
 
