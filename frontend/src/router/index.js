@@ -55,7 +55,7 @@ const router = createRouter({
           component: DestinationsLanding,
         },
         {
-          path: '/destinations/:id',
+          path: '/destinations/:slug',
           name: 'DetailDestinations',
           component: DetailDestination,
           props: true,

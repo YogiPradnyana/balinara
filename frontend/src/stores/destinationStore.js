@@ -71,12 +71,143 @@ export const useDestinationStore = defineStore('destination', {
       }
     },
 
-    // --- AKAN KITA IMPLEMENTASIKAN NANTI ---
-    // async createDestination(destinationData) { /* ... */ },
-    // async updateDestination(slug, destinationData) { /* ... */ },
-    // async deleteDestination(slug) { /* ... */ },
-    // async uploadDestinationImage(slug, imageData) { /* ... */ },
-    // async deleteDestinationImage(slug, imageId) { /* ... */ },
+    async createDestination(destinationData) {
+      this.isLoadingDetail = true
+      this.error = null
+
+      try {
+        const response = await apiClient.post(DESTINATIONS_API_PATH, destinationData)
+
+        await this.fetchDestinations()
+
+        return response.data
+      } catch (err) {
+        this.error = err.response?.data || { general: 'Gagal membuat destinasi.' }
+        console.error('Create Destination Error:', this.error)
+        throw err
+      } finally {
+        this.isLoadingDetail = false
+      }
+    },
+
+    async updateDestination(slug, destinationData) {
+      this.isLoadingDetail = true
+      this.error = null
+
+      try {
+        // Gunakan PATCH untuk mengirim hanya data yang berubah
+        const response = await apiClient.patch(`${DESTINATIONS_API_PATH}${slug}/`, destinationData)
+
+        // Update data di state jika sedang dilihat
+        this.currentDestination = response.data
+
+        // Muat ulang daftar untuk konsistensi
+        await this.fetchDestinations()
+
+        return response.data
+      } catch (err) {
+        this.error = err.response?.data || { general: 'Gagal mengupdate destinasi.' }
+        console.error('Update Destination Error:', this.error)
+        throw err
+      } finally {
+        this.isLoadingDetail = false
+      }
+    },
+
+    async deleteDestination(slug) {
+      // Gunakan isLoadingDetail karena kita beroperasi pada satu item
+      this.isLoadingDetail = true
+      this.error = null
+
+      try {
+        // Kirim request DELETE ke backend
+        await apiClient.delete(`${DESTINATIONS_API_PATH}${slug}/`)
+
+        // PENTING: Setelah berhasil menghapus, panggil ulang fetchDestinations
+        // agar data di halaman daftar destinasi menjadi ter-update.
+        await this.fetchDestinations({ page: this.pagination.currentPage })
+
+        // Jika Anda sedang berada di halaman detail yang dihapus,
+        // Anda bisa membersihkan state-nya
+        if (this.currentDestination && this.currentDestination.slug === slug) {
+          this.currentDestination = null
+        }
+      } catch (err) {
+        this.error = err.response?.data?.detail || 'Gagal menghapus destinasi.'
+        console.error(this.error)
+      } finally {
+        this.isLoadingDetail = false
+      }
+    },
+
+    async uploadDestinationImage(slug, imageData) {
+      // imageData adalah sebuah objek, contoh:
+      // { image: FileObject, alt_text: 'teks alt', is_primary: true }
+
+      this.isLoadingDetail = true
+      this.error = null
+
+      // Kita tidak bisa kirim file dengan JSON. Kita harus pakai "amplop" khusus
+      // yang namanya FormData.
+      const formData = new FormData()
+
+      // Masukkan file dan data lainnya ke dalam "amplop" FormData
+      formData.append('image', imageData.image) // Ini adalah File object dari input <input type="file">
+
+      if (imageData.alt_text) {
+        formData.append('alt_text', imageData.alt_text)
+      }
+      if (imageData.is_primary) {
+        formData.append('is_primary', imageData.is_primary)
+      }
+
+      try {
+        // Kirim request POST ke custom action yang sudah Anda buat di Django
+        const response = await apiClient.post(
+          `${DESTINATIONS_API_PATH}${slug}/images/upload/`,
+          formData,
+          {
+            // PENTING: Beri tahu server bahwa kita mengirim FormData
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          },
+        )
+
+        // Setelah berhasil upload, cara terbaik adalah memuat ulang data destinasi
+        // agar array 'images' di dalamnya ter-update dengan gambar baru.
+        await this.fetchDestinationBySlug(slug)
+
+        return response.data
+      } catch (err) {
+        this.error = err.response?.data || { general: 'Gagal mengupload gambar.' }
+        console.error('Upload Image Error:', this.error)
+        throw err
+      } finally {
+        this.isLoadingDetail = false
+      }
+    },
+
+    async deleteDestinationImage(slug, imageId) {
+      this.isLoadingDetail = true
+      this.error = null
+
+      try {
+        // Kirim request DELETE ke URL custom action untuk menghapus gambar.
+        // Perhatikan bagaimana kita menyusun URL-nya sesuai dengan yang ada di views.py Anda.
+        await apiClient.delete(`${DESTINATIONS_API_PATH}${slug}/images/${imageId}/delete/`)
+
+        // Sama seperti upload, setelah berhasil hapus, muat ulang data destinasi
+        // agar gambar yang dihapus hilang dari tampilan.
+        await this.fetchDestinationBySlug(slug)
+      } catch (err) {
+        this.error = err.response?.data?.detail || 'Gagal menghapus gambar.'
+        console.error('Delete Image Error:', this.error)
+        throw err
+      } finally {
+        this.isLoadingDetail = false
+      }
+    },
 
     setCurrentPage(page) {
       if (

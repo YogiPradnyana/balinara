@@ -1,21 +1,29 @@
-# apps/destinations/filters.py
 import django_filters
-# Impor model yang relevan untuk filter
-from apps.common.models import Category, Facility
 from .models import Destination
 
 
+class CommaSeparatedCharFilter(django_filters.BaseInFilter, django_filters.CharFilter):
+    pass
+
+
 class DestinationFilter(django_filters.FilterSet):
-    # Contoh filter:
+
+    # Untuk filter kategori berdasarkan slug. Sekarang bisa menerima ?category_slug=pura,pantai
+    category_slug = CommaSeparatedCharFilter(
+        field_name='category__slug', lookup_expr='in')
+
+    # Untuk filter kabupaten. Sekarang bisa menerima ?regency=badung,gianyar
+    regency = CommaSeparatedCharFilter(
+        field_name='address__regency', lookup_expr='in')
+
     # Filter berdasarkan nama kategori (case-insensitive contains)
     category_name = django_filters.CharFilter(
         field_name='category__name', lookup_expr='icontains')
-    # Filter berdasarkan slug kategori (exact match)
-    category_slug = django_filters.CharFilter(
-        field_name='category__slug', lookup_expr='exact')
+
     # Filter berdasarkan nama fasilitas (case-insensitive contains)
     facility_name = django_filters.CharFilter(
         field_name='facilities__name', lookup_expr='icontains')
+
     # Filter berdasarkan ID fasilitas
     facility_id = django_filters.NumberFilter(
         field_name='facilities__id', lookup_expr='exact')
@@ -32,14 +40,9 @@ class DestinationFilter(django_filters.FilterSet):
 
     class Meta:
         model = Destination
-        # Daftar field yang ingin Anda filter secara sederhana (exact match defaultnya)
-        # atau Anda bisa mendefinisikan setiap filter secara eksplisit seperti di atas
-        # untuk kontrol lookup_expr yang lebih baik.
         fields = {
             'name': ['icontains'],  # Contoh: ?name__icontains=Kuta
             'is_published': ['exact'],  # ?is_published=true
             # 'category': ['exact'], # Ini akan filter berdasarkan ID kategori
             # 'facilities': ['exact'], # Ini akan filter berdasarkan ID fasilitas
         }
-        # Jika Anda sudah mendefinisikan filter secara eksplisit (seperti category_slug),
-        # Anda tidak perlu menambahkannya lagi di Meta.fields kecuali ingin perilaku default tambahan.

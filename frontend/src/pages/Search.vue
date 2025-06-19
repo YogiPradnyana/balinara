@@ -65,13 +65,13 @@ const fetchDestinationsWithParams = () => {
     // Backend DRF DjangoFilterBackend dengan filter 'category__slug' dan lookup 'in' bisa menerima ?category__slug__in=slug1,slug2
     // Atau jika backend Anda menerima multiple params: ?category__slug=slug1&category__slug=slug2
     // Untuk contoh ini, kita kirim comma-separated string. Sesuaikan dengan backend Anda.
-    paramsToSend.category__slug = queryParams.value.category.join(',') // Asumsi backend bisa handle comma-separated slugs untuk category
+    paramsToSend.category_slug = queryParams.value.category.join(',') // Asumsi backend bisa handle comma-separated slugs untuk category
   }
   if (queryParams.value.regency.length > 0) {
-    paramsToSend.address__regency = queryParams.value.regency.join(',') // Asumsi filter backend: address__regency__in (atau icontains jika teks)
+    paramsToSend.address_regency = queryParams.value.regency.join(',') // Asumsi filter backend: address__regency__in (atau icontains jika teks)
   }
   if (queryParams.value.rating > 0) {
-    paramsToSend.average_rating__gte = queryParams.value.rating // Cari destinasi dengan rating >= nilai yang dipilih
+    paramsToSend.min_rating = queryParams.value.rating
   }
 
   // Update URL browser dengan query params saat ini
@@ -112,7 +112,7 @@ const goToPage = (page) => {
 }
 
 const viewDestinationDetail = (slug) => {
-  router.push({ name: 'DestinationDetail', params: { slug: slug } })
+  router.push({ name: 'DetailDestinations', params: { slug: slug } })
 }
 
 // Handler untuk filter
@@ -377,7 +377,7 @@ const keyword = computed({
               <button
                 type="button"
                 @click.stop="viewDestinationDetail(destination.slug)"
-                class="px-6 py-2 mt-3 sm:mt-4 lg:mt-6 flex gap-2 w-fit items-center justify-center text-xs md:text-sm font-medium bg-pr-500 rounded-full text-neu-50"
+                class="px-6 py-2 mt-3 sm:mt-4 lg:mt-6 flex gap-2 w-fit cursor-pointer items-center justify-center text-xs md:text-sm font-medium bg-pr-500 rounded-full text-neu-50"
               >
                 View More
               </button>
