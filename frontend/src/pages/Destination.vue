@@ -76,7 +76,7 @@ const regenciesData = {
   },
 }
 
-// --- State untuk interaktivitas ---
+//  State untuk interaktivitas 
 const clickedRegencyId = ref('')
 const tooltipText = ref('')
 const tooltipVisible = ref(false)
@@ -86,13 +86,13 @@ const tooltipY = ref(0)
 const isLoadingLocation = ref(true) // State untuk menampilkan loading
 const errorMessage = ref('') // Untuk menampilkan pesan error
 
-// --- Computed property untuk menampilkan data aktif ---
+//  Computed property untuk menampilkan data aktif 
 const activeRegency = computed(() => {
   // Jika tidak ada yang diklik, tampilkan data default (Badung)
   return regenciesData[clickedRegencyId.value] || ''
 })
 
-// --- Event Handlers ---
+//  Event Handlers 
 function handleRegencyHover(regency) {
   // 'regency' adalah object { id: 'badung', name: 'Badung' } dari event
   tooltipText.value = regency.name

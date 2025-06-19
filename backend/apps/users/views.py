@@ -5,12 +5,16 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
-
+from .serializers import UserCreateSerializer
+from rest_framework.permissions import AllowAny
 from .models import User
+from django.contrib.auth import get_user_model # <-- Tambahkan ini
 from .serializers import (
     UserRegistrationSerializer, UserLoginSerializer, UserDetailSerializer,
     UserProfileUpdateSerializer, ChangePasswordSerializer,
 )
+
+User = get_user_model()
 
 
 class UserRegistrationView(generics.CreateAPIView):
@@ -117,3 +121,9 @@ class UserListViewForAdmin(generics.ListAPIView):
     queryset = User.objects.all().order_by('email')
     serializer_class = UserDetailSerializer
     permission_classes = [permissions.IsAdminUser]
+
+
+class UserCreateAPIView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserCreateSerializer
+    permission_classes = [AllowAny] 

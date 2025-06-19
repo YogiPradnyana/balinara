@@ -169,7 +169,7 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = authStore.isAuthenticated
   const isStaff = authStore.currentUser?.is_staff === true
 
-  // --- KASUS 1: RUTE MEMERLUKAN ADMIN ---
+  //  KASUS 1: RUTE MEMERLUKAN ADMIN 
   // Ini adalah kondisi paling spesifik, jadi kita tangani lebih dulu.
   if (needsAdmin) {
     if (isAuthenticated && isStaff) {
@@ -191,7 +191,7 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  // --- KASUS 2: RUTE HANYA MEMERLUKAN AUTENTIKASI (bukan admin) ---
+  //  KASUS 2: RUTE HANYA MEMERLUKAN AUTENTIKASI (bukan admin) 
   // Blok ini hanya akan berjalan jika `needsAdmin` adalah false.
   if (needsAuth) {
     if (isAuthenticated) {
@@ -210,7 +210,7 @@ router.beforeEach((to, from, next) => {
     return
   }
 
-  // --- KASUS 3: RUTE PUBLIK ---
+  //  KASUS 3: RUTE PUBLIK 
   // Jika kode sampai di sini, berarti rute tidak memerlukan autentikasi sama sekali.
   console.log(`ALLOWED: Accessing public route '${to.name}'.`)
   next()
