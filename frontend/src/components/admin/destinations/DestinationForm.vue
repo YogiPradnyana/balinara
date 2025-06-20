@@ -19,6 +19,10 @@ const props = defineProps({
     default: false,
   },
   errors: { type: Object, default: null },
+  isReadOnly: {
+    type: Boolean,
+    default: false,
+  },
 })
 const emit = defineEmits(['submit'])
 
@@ -70,7 +74,6 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
   // Membersihkan nilai dari titik atau koma jika ada (untuk perhitungan)
   const cleanMin = newMin.replace(/\D/g, '')
   const cleanMax = newMax.replace(/\D/g, '')
-  console.log(cleanMax)
 
   if (cleanMin && cleanMax) {
     // Jika keduanya diisi, format menjadi "Rp X - Rp Y"
@@ -120,9 +123,10 @@ function handleSubmit() {
             v-model="formData.name"
             type="text"
             id="name"
+            :disabled="isReadOnly"
             placeholder="e.g., Hidden Gem Beach Club"
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
-            :class="{ 'border-red-500': errors?.name }"
+            :class="{ 'border-red-500': errors?.name, 'bg-[#F2F2F2]': isReadOnly }"
           />
           <p v-if="errors?.name" class="mt-1 text-xs text-red-500">
             {{ errors.name[0] }}
@@ -134,8 +138,9 @@ function handleSubmit() {
             <select
               id="category"
               v-model="formData.category_id"
+              :disabled="isReadOnly"
               class="w-full px-3 py-3 text-sm text-neu-900 border border-neu-200 rounded-full appearance-none"
-              :class="{ 'border-red-500': errors?.category_id }"
+              :class="{ 'border-red-500': errors?.category_id, 'bg-[#F2F2F2]': isReadOnly }"
             >
               <option :value="null" disabled selected hidden>
                 Select a category — Beach, Temple, Mountain, etc.
@@ -158,9 +163,10 @@ function handleSubmit() {
             v-model="formData.description"
             id="descriptions"
             rows="7"
+            :disabled="isReadOnly"
             placeholder="Tell us what makes this place special..."
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-3xl"
-            :class="{ 'border-red-500': errors?.description }"
+            :class="{ 'border-red-500': errors?.description, 'bg-[#F2F2F2]': isReadOnly }"
           ></textarea>
           <p v-if="errors?.description" class="mt-1 text-xs text-red-500">
             {{ errors?.description[0] }}
@@ -179,6 +185,7 @@ function handleSubmit() {
                 :value="fac.id"
                 v-model="formData.facility_ids"
                 class="h-4 w-4 rounded border-gray-300"
+                :disabled="isReadOnly"
               />
               <span class="ml-2 text-sm text-neu-900">{{ fac.name }}</span>
             </label>
@@ -191,15 +198,19 @@ function handleSubmit() {
             <input
               type="text"
               v-model="minPrice"
+              :disabled="isReadOnly"
               placeholder="e.g., Rp 50.000 or 'Free'"
               class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
+              :class="{ 'bg-[#F2F2F2]': isReadOnly }"
             />
             <Subtract class="min-w-2" />
             <input
               type="text"
               v-model="maxPrice"
+              :disabled="isReadOnly"
               placeholder="e.g., Rp 100.000"
               class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
+              :class="{ 'bg-[#F2F2F2]': isReadOnly }"
             />
           </div>
         </div>
@@ -213,9 +224,10 @@ function handleSubmit() {
           <input
             v-model="formData.contact_data.phone"
             type="text"
+            :disabled="isReadOnly"
             placeholder="e.g., +62 812 3456 7890"
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
-            :class="{ 'border-red-500': errors?.contact?.phone }"
+            :class="{ 'border-red-500': errors?.contact?.phone, 'bg-[#F2F2F2]': isReadOnly }"
           />
           <p v-if="errors?.contact?.phone" class="mt-1 text-xs text-red-500">
             {{ errors?.contact?.phone[0] }}
@@ -224,9 +236,10 @@ function handleSubmit() {
           <input
             v-model="formData.contact_data.mail"
             type="text"
+            :disabled="isReadOnly"
             placeholder="e.g., info@spot.com"
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
-            :class="{ 'border-red-500': errors?.contact?.mail }"
+            :class="{ 'border-red-500': errors?.contact?.mail, 'bg-[#F2F2F2]': isReadOnly }"
           />
           <p v-if="errors?.contact?.mail" class="mt-1 text-xs text-red-500">
             {{ errors?.contact?.mail[0] }}
@@ -265,9 +278,10 @@ function handleSubmit() {
             id="street"
             v-model="formData.address_data.street"
             type="text"
+            :disabled="isReadOnly"
             placeholder="e.g., Jalan Pantai Kuta"
             class="px-3 py-3 text-sm border border-gray-300 rounded-full"
-            :class="{ 'border-red-500': errors?.address_data?.street }"
+            :class="{ 'border-red-500': errors?.address_data?.street, 'bg-[#F2F2F2]': isReadOnly }"
           />
           <p v-if="errors?.address_data?.street" class="mt-1 text-xs text-red-500">
             {{ errors?.address_data?.street[0] }}
@@ -281,9 +295,13 @@ function handleSubmit() {
             id="sub_district"
             v-model="formData.address_data.sub_district"
             type="text"
+            :disabled="isReadOnly"
             placeholder="e.g., Legian"
             class="px-3 py-3 text-sm border border-gray-300 rounded-full"
-            :class="{ 'border-red-500': errors?.address_data?.sub_district }"
+            :class="{
+              'border-red-500': errors?.address_data?.sub_district,
+              'bg-[#F2F2F2]': isReadOnly,
+            }"
           />
           <p v-if="errors?.address_data?.sub_district" class="mt-1 text-xs text-red-500">
             {{ errors?.address_data?.sub_district[0] }}
@@ -296,9 +314,13 @@ function handleSubmit() {
             id="district"
             v-model="formData.address_data.district"
             type="text"
+            :disabled="isReadOnly"
             placeholder="e.g., Kuta"
             class="px-3 py-3 text-sm border border-gray-300 rounded-full"
-            :class="{ 'border-red-500': errors?.address_data?.district }"
+            :class="{
+              'border-red-500': errors?.address_data?.district,
+              'bg-[#F2F2F2]': isReadOnly,
+            }"
           />
           <p v-if="errors?.address_data?.district" class="mt-1 text-xs text-red-500">
             {{ errors?.address_data?.district[0] }}
@@ -312,9 +334,10 @@ function handleSubmit() {
             v-model="formData.address_data.regency"
             id="regency"
             type="text"
+            :disabled="isReadOnly"
             placeholder="e.g., Badung"
             class="px-3 py-3 text-sm border border-gray-300 rounded-full"
-            :class="{ 'border-red-500': errors?.address_data?.regency }"
+            :class="{ 'border-red-500': errors?.address_data?.regency, 'bg-[#F2F2F2]': isReadOnly }"
           />
           <p v-if="errors?.address_data?.regency" class="mt-1 text-xs text-red-500">
             {{ errors?.address_data?.regency[0] }}
@@ -334,8 +357,10 @@ function handleSubmit() {
                 v-model="formData.address_data.latitude"
                 id="latitude"
                 type="text"
+                :disabled="isReadOnly"
                 placeholder="e.g., -8.709201"
                 class="px-3 py-3 text-sm border w-full placeholder:text-neu-500 border-neu-200 rounded-full"
+                :class="{ 'bg-[#F2F2F2]': isReadOnly }"
               />
             </div>
             <div class="flex flex-col gap-3 w-full">
@@ -344,8 +369,10 @@ function handleSubmit() {
                 v-model="formData.address_data.longitude"
                 id="longitude"
                 type="text"
+                :disabled="isReadOnly"
                 placeholder="e.g., 115.168263"
                 class="px-3 py-3 text-sm border w-full placeholder:text-neu-500 border-neu-200 rounded-full"
+                :class="{ 'bg-[#F2F2F2]': isReadOnly }"
               />
             </div>
           </div>
@@ -357,6 +384,7 @@ function handleSubmit() {
       <button
         type="submit"
         :disabled="isLoading"
+        :class="{ hidden: isReadOnly }"
         class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-pr-600 justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
       >
         {{ isLoading ? 'Saving...' : isEditMode ? 'Save' : 'Create' }}
@@ -366,7 +394,7 @@ function handleSubmit() {
         type="button"
         class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-[#F0F0F0] justify-center text-sm md:text-base font-medium leading-6 bg-sur-50 rounded-full border border-neu-900"
       >
-        Cancel
+        {{ isReadOnly ? 'Back' : 'Cancel' }}
       </RouterLink>
     </div>
   </form>

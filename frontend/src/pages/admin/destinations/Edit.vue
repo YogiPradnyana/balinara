@@ -22,6 +22,7 @@ onMounted(() => {
   store.fetchDestinationBySlug(slug)
 })
 
+const isLoading = computed(() => store.isLoadingDetail)
 const destinationToEdit = computed(() => store.currentDestination)
 
 async function handleUpdateDestination(formData) {
@@ -37,7 +38,8 @@ async function handleUpdateDestination(formData) {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div v-if="isLoading" class="p-8 text-center text-gray-500">Loading Destination...</div>
+  <div v-else-if="destinationToEdit" class="space-y-6">
     <div class="flex justify-between gap-3 flex-wrap">
       <h1 class="text-3xl font-se font-semibold">Edit Destination</h1>
       <div class="flex gap-2 items-center text-sm font-medium">
