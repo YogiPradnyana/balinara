@@ -4,6 +4,7 @@ import { useRouter, RouterLink } from 'vue-router'
 import { ref } from 'vue'
 import { useDestinationStore } from '@/stores/destinationStore'
 import DestinationForm from '@/components/admin/destinations/DestinationForm.vue'
+import { showNotification } from '@/services/notificationService'
 
 const destinationStore = useDestinationStore()
 const router = useRouter()
@@ -12,14 +13,13 @@ const formErrors = ref(null)
 async function handleCreateDestination(formData) {
   formErrors.value = null
   try {
-    const newDestination = await destinationStore.createDestination(formData)
-    // Jika berhasil, redirect ke halaman detail destinasi yang baru dibuat
-    router.push({ name: 'DetailDestination', params: { slug: newDestination.slug } })
+    await destinationStore.createDestination(formData)
+    showNotification('success', 'Destination added successfully')
+    router.push({ name: 'AdminDestinations' })
   } catch (error) {
     // Tampilkan notifikasi error
     formErrors.value = error.response?.data
     console.error('Full error response:', formErrors.value)
-    alert('Failed to create destination. Please check the form.')
   }
 }
 </script>

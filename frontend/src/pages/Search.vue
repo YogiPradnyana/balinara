@@ -29,6 +29,17 @@ const queryParams = ref({
   ordering: route.query.ordering || '-average_rating,name', // Default ordering
 })
 
+function formatAddress(address) {
+  console.log(address)
+
+  if (!address) {
+    return 'N/A'
+  }
+  // Menggabungkan bagian alamat menjadi satu string yang rapi
+  const parts = [address.district, address.regency]
+  return parts.filter((part) => part).join(', ') // filter(part => part) untuk menghapus bagian yang kosong
+}
+
 const ITEMS_PER_PAGE = 10 // Sesuaikan dengan backend
 
 // Computed properties dari store
@@ -357,7 +368,7 @@ const keyword = computed({
                   </h3>
                   <div class="gap-1 md:mt-1 font-medium text-xs md:text-sm items-center flex">
                     <Location class="size-4 md:size-4.5" /><span class="line-clamp-1">{{
-                      destination.address_brief
+                      formatAddress(destination.address)
                     }}</span>
                   </div>
                 </div>

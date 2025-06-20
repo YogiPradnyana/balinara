@@ -1,14 +1,10 @@
 <script setup>
-import Exit from '@/components/icons/Exit.vue'
 import Subtract from '@/components/icons/Subtract.vue'
 import ArrowDown from '@/components/icons/ArrowDown.vue'
-import { ref, watchEffect } from 'vue'
-// Impor store untuk mengambil data kategori & fasilitas
+import { ref, watchEffect, watch } from 'vue'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useFacilityStore } from '@/stores/facilityStore'
-import Photo from '@/components/icons/Photo.vue'
 
-// 1. Mendefinisikan "perintah" dari luar (props) & "teriakan" ke luar (emits)
 const props = defineProps({
   initialData: {
     type: Object,
@@ -26,7 +22,6 @@ const props = defineProps({
 })
 const emit = defineEmits(['submit'])
 
-// 2. Membuat "wadah" untuk semua data yang diisi pengguna
 const formData = ref({
   name: '',
   description: '',
@@ -48,11 +43,12 @@ const formData = ref({
   },
 })
 
-// 3. Ambil data dari Pinia Store untuk mengisi pilihan dropdown/checkbox
+const minPrice = ref('')
+const maxPrice = ref('')
+
 const categoryStore = useCategoryStore()
 const facilityStore = useFacilityStore()
 
-// Pastikan data ini sudah di-fetch. Jika belum, panggil action-nya.
 if (categoryStore.allCategories.length === 0) categoryStore.fetchCategories()
 if (facilityStore.allFacilities.length === 0) facilityStore.fetchFacilities()
 
@@ -70,9 +66,44 @@ watchEffect(() => {
   }
 })
 
-// 5. Fungsi yang berjalan saat tombol "Create/Update" ditekan
+watch([minPrice, maxPrice], ([newMin, newMax]) => {
+  // Membersihkan nilai dari titik atau koma jika ada (untuk perhitungan)
+  const cleanMin = newMin.replace(/\D/g, '')
+  const cleanMax = newMax.replace(/\D/g, '')
+  console.log(cleanMax)
+
+  if (cleanMin && cleanMax) {
+    // Jika keduanya diisi, format menjadi "Rp X - Rp Y"
+    formData.value.ticket_price_range = `Rp ${cleanMin} - Rp ${cleanMax}`
+  } else if (cleanMin) {
+    // Jika hanya min yang diisi
+    formData.value.ticket_price_range = `Mulai dari Rp ${cleanMin}`
+  } else if (cleanMax) {
+    // Jika hanya max yang diisi
+    formData.value.ticket_price_range = `Hingga Rp ${cleanMax}`
+  } else {
+    // Jika keduanya kosong
+    formData.value.ticket_price_range = ''
+  }
+})
+
+watchEffect(() => {
+  if (props.isEditMode && props.initialData && props.initialData.id) {
+    formData.value.ticket_price_range = props.initialData.ticket_price_range || ''
+
+    const priceString = props.initialData.ticket_price_range || ''
+    if (priceString.includes(' - ')) {
+      const parts = priceString.split(' - ')
+      minPrice.value = parts[0] || ''
+      maxPrice.value = parts[1] || ''
+    } else {
+      minPrice.value = priceString
+      maxPrice.value = ''
+    }
+  }
+})
+
 function handleSubmit() {
-  // "Berteriak" ke komponen parent sambil membawa semua data dari form
   emit('submit', formData.value)
 }
 </script>
@@ -155,24 +186,51 @@ function handleSubmit() {
         </div>
 
         <div class="flex flex-col gap-3">
+          <label class="text-base md:text-lg font-semibold">Entrance Ticket</label>
+          <div class="flex gap-2.5 items-center w-full">
+            <input
+              type="text"
+              v-model="minPrice"
+              placeholder="e.g., Rp 50.000 or 'Free'"
+              class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
+            />
+            <Subtract class="min-w-2" />
+            <input
+              type="text"
+              v-model="maxPrice"
+              placeholder="e.g., Rp 100.000"
+              class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
+            />
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3">
           <div class="space-x-2">
             <h3 class="text-base font-semibold">Contact</h3>
             <p class="text-sm font-medium text-neu-500">Opsional</p>
           </div>
           <label class="text-sm font-semibold">Phone Number</label>
           <input
-            v-model="formData.contact_data.mail"
+            v-model="formData.contact_data.phone"
             type="text"
             placeholder="e.g., +62 812 3456 7890"
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+            :class="{ 'border-red-500': errors?.contact?.phone }"
           />
+          <p v-if="errors?.contact?.phone" class="mt-1 text-xs text-red-500">
+            {{ errors?.contact?.phone[0] }}
+          </p>
           <label class="text-sm font-semibold mt-1">Mail</label>
           <input
-            v-model="formData.contact_data.phone"
+            v-model="formData.contact_data.mail"
             type="text"
             placeholder="e.g., info@spot.com"
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+            :class="{ 'border-red-500': errors?.contact?.mail }"
           />
+          <p v-if="errors?.contact?.mail" class="mt-1 text-xs text-red-500">
+            {{ errors?.contact?.mail[0] }}
+          </p>
         </div>
 
         <div class="flex flex-col gap-3">

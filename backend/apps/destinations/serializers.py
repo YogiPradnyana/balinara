@@ -46,16 +46,17 @@ class DestinationImageSerializer(serializers.ModelSerializer):
 class DestinationListSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     primary_image_url = serializers.SerializerMethodField()
-    address_brief = serializers.SerializerMethodField()
+    address = AddressSerializer(read_only=True)
+    contact = ContactSerializer(read_only=True)
 
     class Meta:
         model = Destination
         fields = [
             'id', 'name', 'slug', 'average_rating', 'total_reviews',
-            'category', 'primary_image_url', 'address_brief', 'is_published'
+            'category', 'primary_image_url', 'address', 'contact', 'is_published'
         ]
         read_only_fields = ('id', 'slug', 'average_rating',
-                            'total_reviews', 'primary_image_url', 'address_brief')
+                            'total_reviews', 'primary_image_url', 'address')
 
     def get_primary_image_url(self, obj):
         # ... (logika sama seperti sebelumnya) ...
@@ -65,11 +66,6 @@ class DestinationListSerializer(serializers.ModelSerializer):
             primary_image = obj.images.order_by('uploaded_at').first()
         if primary_image and primary_image.image and hasattr(primary_image.image, 'url'):
             return request.build_absolute_uri(primary_image.image.url) if request else primary_image.image.url
-        return None
-
-    def get_address_brief(self, obj):
-        if obj.address:
-            return f"{obj.address.regency}"
         return None
 
 

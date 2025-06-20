@@ -116,8 +116,8 @@ const router = createRouter({
           children: [
             { path: '', name: 'AdminDestinations', component: DestinationLists },
             { path: 'create', name: 'AdminDestinationCreate', component: DestinationCreate },
-            { path: 'edit/:id', name: 'AdminDestinationEdit', component: DestinationEdit },
-            { path: 'detail/:id', name: 'AdminDestinationDetail', component: DestinationDetail },
+            { path: 'edit/:slug', name: 'AdminDestinationEdit', component: DestinationEdit },
+            { path: 'detail/:slug', name: 'AdminDestinationDetail', component: DestinationDetail },
           ],
         },
         {

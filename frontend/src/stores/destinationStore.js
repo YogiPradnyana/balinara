@@ -44,7 +44,6 @@ export const useDestinationStore = defineStore('destination', {
           this.pagination.next = response.data.next
           this.pagination.previous = response.data.previous
           // Update currentPage berdasarkan params atau dari respons jika ada
-          console.log(this.destinations)
 
           if (queryParams.page) this.pagination.currentPage = queryParams.page
         } else {
@@ -64,6 +63,7 @@ export const useDestinationStore = defineStore('destination', {
       try {
         const response = await apiClient.get(`${DESTINATIONS_API_PATH}${slug}/`)
         this.currentDestination = response.data
+        console.log(response.data)
       } catch (err) {
         /* ... handle error ... */
       } finally {
@@ -96,6 +96,7 @@ export const useDestinationStore = defineStore('destination', {
 
       try {
         // Gunakan PATCH untuk mengirim hanya data yang berubah
+
         const response = await apiClient.patch(`${DESTINATIONS_API_PATH}${slug}/`, destinationData)
 
         // Update data di state jika sedang dilihat

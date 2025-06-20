@@ -27,7 +27,7 @@ def destination_image_path_processor(instance, filename):
 
 
 class Destination(models.Model):
-    name = models.CharField(_("Destination Name"), max_length=255,
+    name = models.CharField(_("Destination Name"), max_length=255, unique=True,
                             help_text=_("The official name of the destination."))
     slug = models.SlugField(_("Slug"), max_length=270, unique=True, blank=True,
                             help_text=_("A URL-friendly version of the name. Leave blank to auto-generate."))

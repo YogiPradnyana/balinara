@@ -33,9 +33,18 @@ onMounted(() => {
   }
 })
 
-const goBack = () => {
-  router.back() // Fungsi untuk kembali ke halaman sebelumnya
-}
+const hasTicketInfo = computed(() => {
+  return !!destination.value?.ticket_price_range
+})
+
+const hasContactInfo = computed(() => {
+  const contact = destination.value?.contact
+  return contact && (!!contact.phone || !!contact.mail)
+})
+
+const showInfoBox = computed(() => {
+  return hasTicketInfo.value || hasContactInfo.value
+})
 
 const googleMapsEmbedUrl = computed(() => {
   if (destination.value && destination.value.address) {
@@ -279,13 +288,14 @@ const reviewData = ref([
         </div>
 
         <div
+          v-if="showInfoBox"
           class="p-6 border-neu-200 text-sm sm:text-base max-w-120 xl:w-full h-fit border rounded-3xl"
         >
-          <div v-if="destination.ticket_price_range" class="gap-3 flex flex-col">
+          <div v-if="hasTicketInfo" class="gap-3 flex flex-col">
             <p class="font-medium text-base">Entrance Ticket</p>
             <p class="ml-6">{{ destination.ticket_price_range }}</p>
           </div>
-          <div v-if="destination.contact" class="gap-3 flex flex-col mt-6">
+          <div v-if="hasContactInfo" class="gap-3 flex flex-col" :class="{ 'mt-6': hasTicketInfo }">
             <p class="font-medium text-base">Contact Person</p>
             <div class="ml-6 flex flex-col gap-3">
               <p v-if="destination.contact.phone" class="flex items-center gap-2">
