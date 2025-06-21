@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted, watch, computed } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, watch, computed, h } from 'vue'
 import { useChatStore } from '@/stores/chatStore'
 import Nara from './icons/Nara.vue'
 import ChatBuble from './icons/ChatBuble.vue'
@@ -9,6 +9,7 @@ import {
   showConfirmationToast,
   dismissCurrentConfirmationToast,
 } from '@/services/notificationService'
+import ConfirmationToast from '@/components/ConfirmationToast.vue'
 
 const chatStore = useChatStore()
 
@@ -24,17 +25,46 @@ let calloutInterval = null
 let calloutDisplayTimeout = null
 
 // Menggunakan computed properties untuk mengakses state dari store
-const messages = computed(() => chatStore.getMessages)
-const isSending = computed(() => chatStore.isChatSending)
-const isLoadingHistory = computed(() => chatStore.isHistoryLoading)
-const isClearing = computed(() => chatStore.isHistoryClearing)
-const error = computed({
-  // Getter dan setter untuk error agar bisa di-clear dari komponen
-  get: () => chatStore.chatError,
-  set: (value) => {
-    chatStore.error = value
-  },
-})
+const messages = computed(() => chatStore.messages)
+const isSending = computed(() => chatStore.isSendingMessage)
+const isLoadingHistory = computed(() => chatStore.isLoadingHistory)
+const error = computed(() => chatStore.error)
+
+const handleSendMessage = async () => {
+  if (!userInput.value.trim()) return
+
+  const messageText = userInput.value
+  userInput.value = '' // Kosongkan input segera
+
+  // Cukup panggil action store. Store yang akan menangani semuanya.
+  try {
+    await chatStore.sendMessage(messageText)
+  } catch (err) {
+    // Error sudah ditangani di store, di sini hanya untuk log jika perlu
+    console.error('Component caught an error from sendMessage action:', err)
+  }
+}
+
+const sendSuggestedReply = (reply) => {
+  chatStore.sendMessage(reply) // Langsung panggil action store
+}
+
+const handleClearHistory = () => {
+  // Gunakan toast konfirmasi canggih Anda
+  const onConfirm = () => {
+    chatStore.clearSession()
+    showNotification('success', 'Chat session has been reset.')
+    dismissCurrentConfirmationToast()
+  }
+
+  showConfirmationToast(
+    h(ConfirmationToast, {
+      message: 'Are you sure you want to clear this chat session?',
+      onConfirm,
+      onCancel: dismissCurrentConfirmationToast,
+    }),
+  )
+}
 
 // Fungsi untuk memformat pesan (misal: markdown sederhana)
 const formatMessage = (text) => {
@@ -43,53 +73,6 @@ const formatMessage = (text) => {
   formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
   formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
   return formattedText
-}
-
-const scrollToBottom = async () => {
-  await nextTick()
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-  }
-}
-
-// Mengirim pesan menggunakan action di store
-const handleSendMessage = async () => {
-  if (!userInput.value.trim()) {
-    error.value = 'Message cannot be empty' // Set error lokal atau di store
-    return
-  }
-  const messageToSend = userInput.value
-  userInput.value = '' // Kosongkan input segera
-
-  try {
-    await chatStore.sendMessage(messageToSend)
-    // Reset suggested replies setelah mendapatkan respons baru (jika dikelola di sini)
-    // suggestedReplies.value = [ /* ... */ ];
-  } catch (err) {
-    // Error sudah di-handle dan di-set di store, akan otomatis update computed 'error'
-    // Anda bisa menambahkan notifikasi tambahan di sini jika mau
-    console.error('Component error after sendMessage action:', err)
-  }
-}
-
-// Menghapus riwayat pesan menggunakan action di store
-const handleClearHistory = async () => {
-  if (
-    !confirm(
-      'Are you sure you want to delete the entire chat history? This action cannot be undone.',
-    )
-  ) {
-    return
-  }
-  try {
-    await chatStore.clearChatHistory()
-    showNotification('success', 'Chat history deleted successfully')
-    // Reset suggested replies (jika dikelola di sini)
-    // suggestedReplies.value = [ /* ... */ ];
-  } catch (err) {
-    // Error sudah di-handle dan di-set di store
-    // alert(error.value || 'Gagal menghapus riwayat.'); // Tampilkan error dari store
-  }
 }
 
 const displayNextCallout = () => {
@@ -106,32 +89,15 @@ const displayNextCallout = () => {
   }, 4000)
 }
 
-const focusUserInput = () => {
-  if (userInputField.value) {
-    userInputField.value.focus()
-    // console.log('Attempting to focus input:', userInputField.value); // Untuk debugging
-  } else {
-    // console.log('userInputField is null, cannot focus.'); // Untuk debugging
+const scrollToBottom = async () => {
+  await nextTick()
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
 }
 
 const toggleChat = () => {
   isOpen.value = !isOpen.value
-  if (isOpen.value) {
-    showCalloutMessage.value = false
-    clearTimeout(calloutDisplayTimeout)
-    clearInterval(calloutInterval)
-    scrollToBottom()
-    // Panggil fetchMessages dari store jika messages kosong dan tidak sedang loading
-    if (chatStore.messages.length === 0 && !chatStore.isLoadingHistory) {
-      chatStore.fetchMessages()
-    }
-  } else {
-    setTimeout(() => {
-      displayNextCallout()
-      calloutInterval = setInterval(displayNextCallout, 10000)
-    }, 1000)
-  }
 }
 
 const suggestedReplies = ref([
@@ -141,12 +107,14 @@ const suggestedReplies = ref([
   'Adventure activities',
 ])
 
-const sendSuggestedReply = (reply) => {
-  userInput.value = reply
-  handleSendMessage()
-}
-
 onMounted(() => {
+  chatStore.startSession()
+
+  // Panggil fetchHistory jika ada session dan pesan masih kosong
+  if (chatStore.sessionId) {
+    chatStore.fetchHistory()
+  }
+
   setTimeout(() => {
     displayNextCallout()
     calloutInterval = setInterval(displayNextCallout, 10000)
@@ -154,8 +122,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  clearInterval(calloutInterval)
-  clearTimeout(calloutDisplayTimeout)
+  clearInterval(calloutInterval.value)
 })
 
 watch(
@@ -166,25 +133,35 @@ watch(
   { deep: true },
 )
 
+// Watcher untuk auto-focus (sudah bagus)
+watch(
+  isOpen,
+  (newValue) => {
+    clearInterval(calloutInterval)
+    clearTimeout(calloutDisplayTimeout)
+    if (newValue) {
+      showCalloutMessage.value = false
+      // nextTick() di sini juga baik untuk memastikan elemen ada
+      nextTick(() => {
+        scrollToBottom()
+        focusUserInput()
+      })
+    } else {
+      setTimeout(() => {
+        displayNextCallout()
+        calloutInterval = setInterval(displayNextCallout, 10000)
+      }, 1000)
+    }
+  },
+  { flush: 'post' },
+)
+
 const autoResizeTextarea = () => {
   if (userInputField.value) {
     userInputField.value.style.height = 'auto' // Reset tinggi untuk perhitungan yang benar
     userInputField.value.style.height = `${userInputField.value.scrollHeight}px`
   }
 }
-
-watch(
-  isOpen,
-  (newValue) => {
-    if (newValue) {
-      // nextTick() di sini juga baik untuk memastikan elemen ada
-      nextTick(() => {
-        focusUserInput()
-      })
-    }
-  },
-  { flush: 'post' },
-)
 </script>
 
 <style scoped>
