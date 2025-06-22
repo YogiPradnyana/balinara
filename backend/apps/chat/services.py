@@ -8,6 +8,7 @@ from django.db.models import Q
 from apps.destinations.models import Destination
 from apps.destinations.filters import DestinationFilter
 from .models import Message, ChatSession
+from django.db.models.query import QuerySet
 
 # Konfigurasi Gemini API Anda
 try:
@@ -69,41 +70,64 @@ def extract_entities(user_message: str) -> dict:
 # --- FUNGSI BARU (Si Peneliti) ---
 
 
-def get_rag_context_from_db(entities: dict) -> str:
-    """Mencari data di database berdasarkan entitas dan membuat 'contekan'."""
+def get_rag_context_from_db(entities: dict, user_message: str) -> QuerySet:
+    """
+    Mencari destinasi di DB dengan logika gabungan yang lebih tangguh.
+    """
+    # Selalu mulai dengan queryset dasar yang sudah di-filter is_published
+    base_queryset = Destination.objects.filter(is_published=True)
 
-    # Selalu mulai dengan filter untuk hanya menampilkan destinasi yang sudah di-publish
-    query_filters = Q(is_published=True)
-
-    # Membangun query secara dinamis
+    # Prioritas 1: Mencari berdasarkan filter spesifik (kategori & lokasi)
+    specific_filters = Q()
     if 'category_slug' in entities:
-        query_filters &= Q(category__slug__icontains=entities['category_slug'])
+        specific_filters &= Q(
+            category__slug__icontains=entities['category_slug'])
     if 'regency' in entities:
-        query_filters &= Q(address__regency__icontains=entities['regency'])
-    # if 'attribute' in entities:
-    #     # Jika ada atribut, kita cari di deskripsi destinasi
-    #     query_filters &= Q(description__icontains=entities['attribute'])
+        specific_filters &= Q(address__regency__icontains=entities['regency'])
 
-    # Lakukan pencarian ke database
-    results = Destination.objects.filter(query_filters).distinct()
+    # Jika ada filter spesifik, kita jalankan query ini dulu
+    if specific_filters:
+        print(
+            f"--- DEBUG: Menjalankan pencarian SPESIFIK dengan filter: {specific_filters} ---")
+        results = base_queryset.filter(specific_filters).distinct()
 
-    if not results.exists():
-        return (
-            "DATABASE_RESULT: NOT_FOUND. "
-            "Ajak pengguna untuk menambahkan destinasi atau review baru di website Balinara."
+        # Jika ada atribut tambahan, saring lagi hasilnya
+        if 'attribute' in entities:
+            print(
+                f"--- DEBUG: Menyaring hasil dengan atribut: {entities['attribute']} ---")
+            results = results.filter(
+                Q(name__icontains=entities['attribute']) |
+                Q(description__icontains=entities['attribute'])
+            )
+
+        # Jika setelah semua filter ada hasil, kembalikan
+        if results.exists():
+            print(
+                f"--- DEBUG: Pencarian spesifik menemukan {results.count()} hasil. ---")
+            return results.order_by('-average_rating')
+
+    # Prioritas 2 (FALLBACK): Jika pencarian spesifik tidak menemukan apa-apa,
+    # atau jika dari awal tidak ada filter spesifik, lakukan pencarian umum.
+    print("--- DEBUG: Menjalankan pencarian UMUM sebagai fallback. ---")
+
+    # Gunakan seluruh pesan pengguna untuk pencarian yang lebih luas
+    general_filters = (
+        Q(name__icontains=user_message) |
+        Q(description__icontains=user_message) |
+        Q(category__name__icontains=user_message)
+    )
+    # Coba juga cari hanya atributnya saja jika ada
+    if 'attribute' in entities:
+        general_filters |= (
+            Q(name__icontains=entities['attribute']) |
+            Q(description__icontains=entities['attribute'])
         )
 
-    # Jika ditemukan, buat rangkuman sebagai "contekan"
-    context = "Berikut adalah data relevan yang ditemukan dari database Balinara:\n"
-    for dest in results[:3]:  # Batasi 3 hasil teratas
-        context += (
-            f"- Nama: {dest.name}, Lokasi: {dest.address.regency if dest.address else 'N/A'}, "
-            f"Kategori: {dest.category.name if dest.category else 'N/A'}, "
-            f"Rating: {dest.average_rating}. "
-            f"Harga tiket: {dest.ticket_price_range}. "
-            f"Deskripsi: {dest.description[:100]}...\n"
-        )
-    return context
+    results = base_queryset.filter(general_filters).distinct()
+    print(f"--- DEBUG: Pencarian umum menemukan {results.count()} hasil. ---")
+
+    return results.order_by('-average_rating')
+
 
 # --- FUNGSI UTAMA (Sang Manajer) ---
 
@@ -118,22 +142,69 @@ def process_chatbot_message(user_message: str, session_id: str, user) -> str:
         session.user = user
         session.save()
 
-    entities = extract_entities(user_message)
-    print(f"--- DEBUG: Entitas yang diekstrak -> {entities} ---")
+    normalized_message = user_message.lower().strip()
+    small_talk_responses = {
+        "halo": "Halo! Selamat datang di Balinara. Ada yang bisa saya bantu?",
+        "hai": "Hai! Ada yang bisa dibantu untuk rencana liburan di Bali?",
+        "terima kasih": "Sama-sama! Senang bisa membantu.",
+        "makasih": "Dengan senang hati!",
+        "kamu siapa?": "Saya Nara, pemandu wisata virtual dari Balinara!"
+    }
+    if normalized_message in small_talk_responses:
+        # Kita tetap simpan ke riwayat, tapi balasannya instan
+        session, _ = ChatSession.objects.get_or_create(id=session_id)
+        Message.objects.create(
+            session=session, sender='user', text=user_message)
+        bot_reply = small_talk_responses[normalized_message]
+        Message.objects.create(session=session, sender='model', text=bot_reply)
+        return bot_reply
 
+    entities = extract_entities(user_message)
     is_new_search_query = 'category_slug' in entities or 'regency' in entities or len(
         user_message.split()) > 4
 
-    rag_context = ""  # Mulai dengan konteks kosong
+    rag_context = ""
     if is_new_search_query:
-        print("--- DEBUG: Terdeteksi sebagai PENCARIAN BARU. Menjalankan RAG ke DB. ---")
-        rag_context = get_rag_context_from_db(entities)
-    else:
-        print("--- DEBUG: Terdeteksi sebagai PERTANYAAN LANJUTAN. Melewatkan RAG. ---")
-        # Beri tahu Gemini untuk fokus pada riwayat chat
-        rag_context = "Ini adalah pertanyaan lanjutan. Jawab berdasarkan riwayat percakapan sebelumnya."
+        results = get_rag_context_from_db(entities, user_message)
+        print(results)
+        if results.exists():
+            rag_context = "Berikut data relevan dari database Balinara:\n"
+            context_to_save = []
+            for dest in results[:3]:
+                rag_context += (
+                    f"- Nama: {dest.name}, "
+                    f"Lokasi: {dest.address.regency if dest.address else 'N/A'}, "
+                    f"Kategori: {dest.category.name if dest.category else 'N/A'}, "
+                    f"Rating: {dest.average_rating}, "
+                    f"Harga Tiket: {dest.ticket_price_range or '-'}.\n"
+                    # f"Deskripsi: {dest.description[:100]}...\n" # Deskripsi bisa ditambahkan jika perlu
+                )
 
-    print(f"--- DEBUG: Konteks RAG yang dibuat -> {rag_context[:200]}... ---")
+                # 2. Buat juga 'context_to_save' yang kaya untuk ingatan follow-up
+                context_to_save.append({
+                    'name': dest.name,
+                    'average_rating': float(dest.average_rating),
+                    'ticket_price_range': dest.ticket_price_range,
+                    # Simpan deskripsi untuk nanti
+                    'description_snippet': dest.description[:100]
+                })
+
+            session.active_context = {'destinations': context_to_save}
+            session.save()
+        else:
+            rag_context = "DATABASE_RESULT: NOT_FOUND, lalu Ajak pengguna untuk menambahkan destinasi atau review baru di website Balinara."
+
+            session.active_context = {}
+            session.save()
+    else:
+        active_context_data = session.active_context or {}
+        destinations_in_context = active_context_data.get('destinations', [])
+        if destinations_in_context:
+            rag_context = "Ini pertanyaan lanjutan. Konteks saat ini adalah tentang destinasi:\n"
+            for dest in destinations_in_context:
+                rag_context += f"- Nama: {dest['name']}, Rating: {dest['average_rating']}, Tiket: {dest['ticket_price_range']}\n"
+        else:
+            rag_context = "Ini pertanyaan lanjutan tanpa konteks aktif."
 
     history_db = Message.objects.filter(
         session=session).order_by('-timestamp')[:6]

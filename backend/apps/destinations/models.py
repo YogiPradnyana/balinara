@@ -43,13 +43,11 @@ class Destination(models.Model):
     total_reviews = models.PositiveIntegerField(_("Total Reviews"), default=0)
 
     # Relasi ke model di aplikasi 'common'
-    category = models.ForeignKey(
+    categories = models.ManyToManyField(
         Category,
         related_name='destinations',  # Cara mengakses destinasi dari objek Category
-        on_delete=models.SET_NULL,   # Jika kategori dihapus, set field ini ke NULL
-        null=True,
         blank=True,
-        verbose_name=_("Category")
+        verbose_name=_("Categories")
     )
     address = models.OneToOneField(  # Satu destinasi memiliki satu alamat utama
         Address,

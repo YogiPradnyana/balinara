@@ -31,7 +31,7 @@ const formData = ref({
   description: '',
   ticket_price_range: '',
   is_published: false,
-  category_id: null,
+  category_ids: [],
   facility_ids: [],
   address_data: {
     street: '',
@@ -63,7 +63,7 @@ watchEffect(() => {
     formData.value.description = props.initialData.description || ''
     formData.value.ticket_price_range = props.initialData.ticket_price_range || ''
     formData.value.is_published = props.initialData.is_published || false
-    formData.value.category_id = props.initialData.category?.id || null
+    formData.value.category_ids = props.initialData.categories?.map((c) => c.id) || []
     formData.value.facility_ids = props.initialData.facilities?.map((f) => f.id) || []
     formData.value.address_data = { ...props.initialData.address }
     formData.value.contact_data = { ...props.initialData.contact }
@@ -134,27 +134,21 @@ function handleSubmit() {
         </div>
         <div class="flex flex-col gap-3">
           <label for="category" class="text-base font-semibold">Category</label>
-          <div class="relative w-full">
-            <select
-              id="category"
-              v-model="formData.category_id"
-              :disabled="isReadOnly"
-              class="w-full px-3 py-3 text-sm text-neu-900 border border-neu-200 rounded-full appearance-none"
-              :class="{ 'border-red-500': errors?.category_id, 'bg-[#F2F2F2]': isReadOnly }"
+          <div class="flex flex-wrap gap-x-6 gap-y-3">
+            <label
+              v-for="cat in categoryStore.allCategories"
+              :key="cat.id"
+              class="flex items-center cursor-pointer"
             >
-              <option :value="null" disabled selected hidden>
-                Select a category — Beach, Temple, Mountain, etc.
-              </option>
-              <option v-for="cat in categoryStore.allCategories" :key="cat.id" :value="cat.id">
-                {{ cat.name }}
-              </option>
-            </select>
-            <p v-if="errors?.category_id" class="mt-1 text-xs text-red-500">
-              {{ errors?.category_id[0] }}
-            </p>
-            <ArrowDown
-              class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400"
-            />
+              <input
+                type="checkbox"
+                :value="cat.id"
+                v-model="formData.category_ids"
+                :disabled="isReadOnly"
+                class="h-4 w-4 rounded border-gray-300"
+              />
+              <span class="ml-2 text-sm text-gray-700">{{ cat.name }}</span>
+            </label>
           </div>
         </div>
         <div class="flex flex-col gap-3">

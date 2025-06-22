@@ -72,7 +72,7 @@ class DestinationListSerializer(serializers.ModelSerializer):
 # --- Serializer untuk Detail, Create, dan Update Destinasi ---
 class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
     # --- READ-ONLY fields (untuk GET response) ---
-    category = CategorySerializer(read_only=True)
+    categories = CategorySerializer(many=True, read_only=True)
     address = AddressSerializer(read_only=True)
     contact = ContactSerializer(read_only=True)
     facilities = FacilitySerializer(many=True, read_only=True)
@@ -80,9 +80,14 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
         many=True, read_only=True)  # Gambar dikelola via action
 
     # --- WRITE-ONLY fields (untuk POST/PUT/PATCH request) ---
-    category_id = serializers.PrimaryKeyRelatedField(
-        queryset=Category.objects.all(), source='category', write_only=True,
+    category_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(),
+        source='categories',  # Hubungkan ke field 'categories' di model
+        write_only=True,
+        many=True,            # Izinkan banyak ID
+        required=False        # Buat opsional
     )
+
     # Untuk Address dan Contact, kita akan terima data nested dan proses di create/update
     address_data = AddressSerializer(
         write_only=True, required=True)
@@ -100,16 +105,16 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'description', 'ticket_price_range',
             'average_rating', 'total_reviews', 'is_published',
             # Read-only representasi
-            'category', 'address', 'contact', 'facilities', 'images',
+            'categories', 'address', 'contact', 'facilities', 'images',
             # Write-only/input fields
-            'category_id', 'address_data', 'contact_data', 'facility_ids',
+            'category_ids', 'address_data', 'contact_data', 'facility_ids',
             'created_at', 'updated_at'
         ]
         read_only_fields = (
             'id', 'slug', 'average_rating', 'total_reviews', 'created_at', 'updated_at',
             'images',  # images dikelola oleh action terpisah
             # Field di bawah ini adalah representasi objek, bukan input langsung untuk create/update utama
-            'category', 'address', 'contact', 'facilities'
+            'categories', 'address', 'contact', 'facilities'
         )
         # Slug akan dibuat otomatis oleh model.
 
