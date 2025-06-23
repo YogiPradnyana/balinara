@@ -21,8 +21,8 @@ const userInputField = ref(null)
 const showCalloutMessage = ref(false)
 const calloutTexts = ['How can I help?', 'Ask me anything!', 'Hello Traveler!👋']
 const currentCalloutText = ref('')
-let calloutInterval = null
-let calloutDisplayTimeout = null
+const calloutInterval = ref(null)
+const calloutDisplayTimeout = ref(null)
 
 // Menggunakan computed properties untuk mengakses state dari store
 const messages = computed(() => chatStore.messages)
@@ -36,9 +36,16 @@ const handleSendMessage = async () => {
   const messageText = userInput.value
   userInput.value = '' // Kosongkan input segera
 
+  await nextTick()
+  if (userInputField.value) {
+    userInputField.value.style.height = 'auto'
+  }
+
   // Cukup panggil action store. Store yang akan menangani semuanya.
   try {
     await chatStore.sendMessage(messageText)
+    focusUserInput()
+    // focusUserInput()
   } catch (err) {
     // Error sudah ditangani di store, di sini hanya untuk log jika perlu
     console.error('Component caught an error from sendMessage action:', err)
@@ -55,6 +62,7 @@ const handleClearHistory = () => {
     chatStore.clearSession()
     showNotification('success', 'Chat session has been reset.')
     dismissCurrentConfirmationToast()
+    focusUserInput()
   }
 
   showConfirmationToast(
@@ -83,10 +91,18 @@ const displayNextCallout = () => {
   const randomIndex = Math.floor(Math.random() * calloutTexts.length)
   currentCalloutText.value = calloutTexts[randomIndex]
   showCalloutMessage.value = true
-  clearTimeout(calloutDisplayTimeout)
-  calloutDisplayTimeout = setTimeout(() => {
+  if (calloutDisplayTimeout.value) clearTimeout(calloutDisplayTimeout.value)
+  calloutDisplayTimeout.value = setTimeout(() => {
     showCalloutMessage.value = false
   }, 4000)
+}
+
+const focusUserInput = () => {
+  if (userInputField.value) {
+    userInputField.value.focus()
+  } else {
+    console.log('userInputField is null, cannot focus.')
+  }
 }
 
 const scrollToBottom = async () => {
@@ -111,18 +127,19 @@ onMounted(() => {
   chatStore.startSession()
 
   // Panggil fetchHistory jika ada session dan pesan masih kosong
-  if (chatStore.sessionId) {
+  if (chatStore.sessionId && chatStore.messages.length === 0) {
     chatStore.fetchHistory()
   }
 
   setTimeout(() => {
     displayNextCallout()
-    calloutInterval = setInterval(displayNextCallout, 10000)
+    calloutInterval.value = setInterval(displayNextCallout, 10000)
   }, 2000)
 })
 
 onUnmounted(() => {
-  clearInterval(calloutInterval.value)
+  if (calloutInterval.value) clearInterval(calloutInterval.value)
+  if (calloutDisplayTimeout.value) clearTimeout(calloutDisplayTimeout.value)
 })
 
 watch(
@@ -137,8 +154,8 @@ watch(
 watch(
   isOpen,
   (newValue) => {
-    clearInterval(calloutInterval)
-    clearTimeout(calloutDisplayTimeout)
+    if (calloutInterval.value) clearInterval(calloutInterval.value)
+    if (calloutDisplayTimeout.value) clearTimeout(calloutDisplayTimeout.value)
     if (newValue) {
       showCalloutMessage.value = false
       // nextTick() di sini juga baik untuk memastikan elemen ada
@@ -149,7 +166,7 @@ watch(
     } else {
       setTimeout(() => {
         displayNextCallout()
-        calloutInterval = setInterval(displayNextCallout, 10000)
+        calloutInterval.value = setInterval(displayNextCallout, 10000)
       }, 1000)
     }
   },
@@ -394,11 +411,10 @@ const autoResizeTextarea = () => {
               v-model="userInput"
               @input="autoResizeTextarea"
               @keydown.enter.exact.prevent="handleSendMessage"
-              @keydown.enter.shift.exact="allowNewLine"
               placeholder="Start a conversation..."
               class="flex-grow p-2.5 rounded-lg focus:ring-1 focus:ring-neu-200 focus:border-transparent outline-none text-sm resize-none overflow-hidden"
               rows="1"
-              :disabled="isChatSending || isHistoryLoading || isHistoryClearing"
+              :disabled="isSending || isLoadingHistory"
               aria-label="Chat input"
             ></textarea>
 
@@ -406,17 +422,17 @@ const autoResizeTextarea = () => {
               type="submit"
               class="bg-pr-500 hover:bg-pr-600 cursor-pointer flex items-center justify-center text-white size-10 rounded-lg"
               aria-label="Send Message"
-              :disabled="isSending || !userInput.trim() || isLoadingHistory || isClearing"
+              :disabled="isSending || !userInput.trim() || isLoadingHistory"
             >
               <FilledSend class="size-5" />
             </button>
           </form>
           <button
             @click="handleClearHistory"
-            :disabled="isClearing || messages.length === 0"
+            v-if="messages.length > 0"
             class="w-full mt-2.5 py-1.5 text-xs text-center text-gray-500 hover:text-red-600 disabled:text-gray-300 transition-colors"
           >
-            {{ isClearing ? 'Clearing history...' : 'Clear Chat History' }}
+            Clear Chat History
           </button>
           <div
             v-if="error && !isSending && !isLoadingHistory"

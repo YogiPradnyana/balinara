@@ -26,9 +26,9 @@ from apps.common.serializers import CategorySerializer, FacilitySerializer
 
 class DestinationViewSet(viewsets.ModelViewSet):
     queryset = Destination.objects.all().select_related(  # Ambil semua untuk admin, filter is_published di get_queryset
-        'category', 'address', 'contact'
+        'address', 'contact'
         # Tambahkan reviews jika sudah ada modelnya
-    ).prefetch_related('facilities', 'images',  # 'reviews'
+    ).prefetch_related('facilities', 'images', 'categories'  # 'reviews'
                        )
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
@@ -36,7 +36,7 @@ class DestinationViewSet(viewsets.ModelViewSet):
     # Atau filterset_fields jika belum ada DestinationFilter
     filterset_class = DestinationFilter
     search_fields = [
-        'name', 'description', 'category__name',
+        'name', 'description', 'categories__name',
         'address__regency', 'facilities__name'
     ]
     ordering_fields = ['name', 'average_rating', 'created_at']

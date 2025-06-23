@@ -108,6 +108,25 @@ class Address(models.Model):
     longitude = models.DecimalField(
         _("Longitude"), max_digits=10, decimal_places=7, null=True, blank=True)
 
+    def get_full_address(self):
+        """
+        Membuat string alamat lengkap yang rapi,
+        mengabaikan bagian yang kosong.
+        """
+        parts = [
+            self.street,
+            self.sub_district,
+            self.district,
+            self.regency,
+            self.latitude,
+            self.longitude
+        ]
+        string_parts = [
+            str(part) for part in parts if part is not None and str(part).strip()]
+        # Menyaring semua nilai None atau string kosong dari daftar
+        # lalu menggabungkannya dengan koma dan spasi.
+        return ", ".join(filter(None, string_parts))
+
     class Meta:
         verbose_name = _("Address")
         verbose_name_plural = _("Addresses")

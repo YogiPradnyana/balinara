@@ -234,19 +234,13 @@ const reviewData = ref([
     <!-- Info Section -->
     <section class="mb-8 mt-13">
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 sm:gap-16">
-        <div class="xl:col-span-2">
+        <div class="xl:col-span-2" :class="{ 'xl:col-span-3': !showInfoBox }">
           <div>
             <div class="flex items-start gap-2 sm:items-center justify-between">
               <h1 class="text-3xl md:text-4xl lg:text-[42px] font-se font-semibold leading-12">
                 {{ destination.name }}
               </h1>
               <div class="flex gap-1.5 sm:gap-2.5">
-                <div
-                  class="bg-[#F1F8F9] text-sm sm:text-base px-4 gap-2 py-2 rounded-full font-medium items-center text-se-500 flex"
-                >
-                  <Temple class="size-5 sm:size-6 hidden sm:block" />
-                  Temple
-                </div>
                 <div
                   class="px-2 sm:px-4 border-neu-200 text-sm sm:text-base border-[1.6px] gap-2 py-2 rounded-full font-medium items-center flex"
                 >
@@ -266,6 +260,23 @@ const reviewData = ref([
             <p class="mt-4 sm:mt-6 text-neu-600 text-sm sm:text-base">
               {{ destination.description }}
             </p>
+          </div>
+          <!-- Categories -->
+          <div class="mt-6 sm:mt-8">
+            <h2 class="text-lg sm:text-xl font-semibold mb-4">Categories</h2>
+            <ul
+              v-if="destination.categories && destination.categories.length > 0"
+              class="flex flex-wrap text-sm sm:text-base gap-3 sm:gap-4"
+            >
+              <li
+                v-for="category in destination.categories"
+                :key="category.id"
+                class="bg-[#F1F8F9] text-se-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
+              >
+                {{ category.name }}
+              </li>
+            </ul>
+            <p v-else>No facility information available.</p>
           </div>
           <!-- Facilities -->
           <div class="mt-6 sm:mt-8">
