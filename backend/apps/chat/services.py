@@ -66,9 +66,7 @@ try:
     genai.configure(api_key=settings.GEMINI_API_KEY)
     gemini_model = genai.GenerativeModel(
         'gemini-1.5-flash-latest',
-        safety_settings=safety_settings,
-        # [REVISI] Definisikan system instruction sekali saja
-        system_instruction=FINAL_RESPONSE_SYSTEM_INSTRUCTION
+        safety_settings=safety_settings
     )
 except Exception as e:
     logger.error(f"Error configuring Gemini API: {e}")
@@ -148,6 +146,99 @@ def get_rag_context_from_db(entities: dict, user_message: str, target_name: str 
     return results.order_by('-average_rating')
 
 
+def classify_user_intent(user_message: str) -> str:
+    """Menggunakan LLM untuk mengklasifikasikan maksud utama pengguna."""
+    if not gemini_model:
+        return "SEARCH_QUERY"  # Default jika API error
+
+    intent_prompt = f"""
+        You are a high-speed intent classifier for a Bali tourism chatbot.
+        Your only job is to classify the user's message into one of two categories:
+        1. `SEARCH_QUERY`: If the message is about finding destinations, locations, prices, details, or recommendations related to tourism in Bali.
+        2. `OFF_TOPIC`: If the message is a general knowledge question, a statement, or anything unrelated to Bali tourism.
+
+        Respond with ONLY the category name.
+
+        EXAMPLES:
+        User Message: "rekomendasi pura di gianyar" -> Response: SEARCH_QUERY
+        User Message: "berapa harga tiket ke uluwatu?" -> Response: SEARCH_QUERY
+        User Message: "kenapa langit biru?" -> Response: OFF_TOPIC
+        User Message: "ibu kota indonesia adalah" -> Response: OFF_TOPIC
+        User Message: "thank you" -> Response: OFF_TOPIC
+        
+        ---
+        Classify the following user message:
+        User Message: "{user_message}"
+        Response:
+    """
+    try:
+        # Gunakan model yang sama, panggilannya akan sangat cepat untuk tugas ini
+        classifier_model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        response = classifier_model.generate_content(intent_prompt)
+        intent = response.text.strip()
+        logger.debug(f"Intent for '{user_message}' classified as: {intent}")
+        if intent in ["SEARCH_QUERY", "OFF_TOPIC"]:
+            return intent
+        return "SEARCH_QUERY"  # Default jika respons tidak terduga
+    except Exception:
+        return "SEARCH_QUERY"  # Default jika ada error
+
+
+def resolve_reference_with_gemini(history: list, user_message: str) -> str:
+    """
+    Menggunakan LLM untuk menyelesaikan referensi ambigu (seperti 'yang itu', 'yang pertama')
+    menjadi nama entitas yang spesifik berdasarkan riwayat percakapan.
+    """
+    if not gemini_model:
+        return "UNKNOWN"
+
+    # Prompt yang sangat fokus pada satu tugas
+    resolution_prompt = """
+        You are a reference resolution model. Your task is to identify the specific destination name the user is referring to in their last message, based on the conversation history.
+        - Analyze the history to understand the order of mentioned destinations.
+        - Analyze the user's message for pronouns or references like 'the first one', 'that one', 'the temple', etc.
+        - Respond ONLY with the full, exact name of the destination.
+        - If you cannot determine the specific destination, respond with the single word: UNKNOWN.
+
+        EXAMPLE 1:
+        History: `[{'role': 'user', 'parts': ['pura di badung']}, {'role': 'model', 'parts': ['...Pura Luhur Uluwatu...']}, {'role': 'user', 'parts': ['pantai?']}, {'role': 'model', 'parts': ['...Pantai Kuta...']}]`
+        User Message: "tell me about the first one"
+        Response: Pura Luhur Uluwatu
+
+        EXAMPLE 2:
+        History: `[{'role': 'user', 'parts': ['pura di badung']}, {'role': 'model', 'parts': ['...Pura Luhur Uluwatu...']}]`
+        User Message: "how much is the ticket?"
+        Response: Pura Luhur Uluwatu
+
+        EXAMPLE 3:
+        History: `[{'role': 'user', 'parts': ['pura di badung']}, {'role': 'model', 'parts': ['...Pura Luhur Uluwatu...']}]`
+        User Message: "thank you"
+        Response: UNKNOWN
+        
+        ---
+        """
+    resolution_prompt += "CONVERSATION HISTORY:\n"
+    resolution_prompt += str(history) + "\n\n"
+    resolution_prompt += "USER MESSAGE:\n"
+    resolution_prompt += f'"{user_message}"\n\n'
+    resolution_prompt += "RESPONSE:\n"
+
+    try:
+        # Gunakan model yang sama, tapi tanpa history/system instruction yang mengganggu
+        resolver_model = genai.GenerativeModel('gemini-1.5-flash-latest')
+        response = resolver_model.generate_content(resolution_prompt)
+        resolved_name = response.text.strip()
+
+        logger.debug(
+            f"Reference resolution for '{user_message}' returned: '{resolved_name}'")
+
+        if resolved_name == "UNKNOWN":
+            return None
+        return resolved_name
+    except Exception as e:
+        logger.error(f"Reference resolution failed: {e}")
+        return None
+
 # --- FUNGSI UTAMA (Sang Manajer) ---
 
 
@@ -169,126 +260,129 @@ def process_chatbot_message(user_message: str, session_id: str, user) -> str:
         Message.objects.create(session=session, sender='model', text=bot_reply)
         return bot_reply
 
-    # Proses utama
-    entities = extract_entities(user_message)
-    active_context = session.active_context or {}
-    has_active_context = 'destinations' in active_context and active_context['destinations']
-
-    # [BARU] Cek apakah pengguna secara eksplisit meminta pencarian baru
-    is_explicit_new_search = 'category_slug' in entities or 'regency' in entities
-
-    rag_context = ""
-
-    # [REVISI] Struktur if/else dibalik (Inversi Logika)
-    if has_active_context and not is_explicit_new_search:
-        # --- BLOK 1: INI ADALAH PERTANYAAN LANJUTAN ---
-        logger.debug(
-            f"Menangani '{user_message}' sebagai PERTANYAAN LANJUTAN.")
-
-        mentioned_name = entities.get('attribute') or entities.get(
-            'destination_name')  # Asumsi NLU bisa ekstrak 'destination_name'
-
-        # Jika tidak ada nama spesifik disebut, gunakan konteks yang ada
-        if not mentioned_name:
-            rag_context = "Ini adalah pertanyaan lanjutan. Konteks dari percakapan sebelumnya adalah tentang destinasi berikut:\n"
-            destinations_in_context = active_context.get('destinations', [])
-
-            # Buat konteks yang kaya agar Gemini bisa menjawab pertanyaan perbandingan
-            for dest in destinations_in_context:
-                rag_context += (
-                    f"- Nama: {dest.get('name', 'N/A')}, "
-                    f"Lokasi: {dest.get('full_address', 'N/A')}, "
-                    f"Rating: {dest.get('average_rating', 'N/A')}, "
-                    f"Harga Tiket: {dest.get('ticket_price_range', 'N/A')}, "
-                    f"Deskripsi Singkat: {dest.get('description_snippet', 'N/A')}...\n"
-                )
-        else:
-            logger.debug(
-                f"Pengguna menyebut nama spesifik: {mentioned_name}. Melakukan pencarian targeted.")
-            # Panggil fungsi dengan target_name
-            results = get_rag_context_from_db(
-                {}, "", target_name=mentioned_name)
-
-            if results.exists():
-                # Jika ditemukan, perlakukan sebagai "pencarian baru" yang sukses
-                # dan perbarui konteks aktif.
-                logger.debug(
-                    f"Pencarian targeted untuk '{mentioned_name}' berhasil.")
-                # (Kita bisa duplikasi sedikit kode dari blok 'else' untuk memformat hasil)
-                rag_context = "Tentu, ini informasi lebih detail tentang yang kamu tanyakan:\n"
-                context_to_save = []  # Siapkan untuk memperbarui konteks
-                for dest in results[:1]:  # Ambil satu yang paling relevan
-                    category_names = ", ".join(
-                        [cat.name for cat in dest.categories.all()]) or "N/A"
-                    full_address = dest.address.get_full_address() if dest.address else 'N/A'
-                    rag_context += (
-                        f"- Nama: {dest.name}, "
-                        f"Lokasi: {full_address}, "
-                        f"Kategori: {category_names}, "
-                        f"Rating: {dest.average_rating}, "
-                        f"Harga Tiket: {dest.ticket_price_range or '-'}.\n"
-                        f"Deskripsi: {dest.description}\n"
-                    )
-                    context_to_save.append({
-                        'name': dest.name,
-                        'average_rating': float(dest.average_rating),
-                        'ticket_price_range': dest.ticket_price_range,
-                        'description_snippet': dest.description[:100],
-                        'location': full_address
-                    })
-                session.active_context = {'destinations': context_to_save}
-                session.save()
-            else:
-                # Jika pencarian targeted gagal, baru kita katakan tidak ada.
-                logger.debug(
-                    f"Pencarian targeted untuk '{mentioned_name}' gagal.")
-                rag_context = f"DATABASE_RESULT: NOT_FOUND for {mentioned_name}, lalu jelaskan bahwa informasi spesifik tentang itu tidak ditemukan di database Balinara."
-
-    else:
-        # --- BLOK 2: INI ADALAH PENCARIAN BARU ---
-        logger.debug(f"Menangani '{user_message}' sebagai PENCARIAN BARU.")
-
-        results = get_rag_context_from_db(entities, user_message)
-        if results.exists():
-            rag_context = "Berikut data relevan dari database Balinara:\n"
-            context_to_save = []
-            for dest in results[:3]:
-                category_names = ", ".join(
-                    [cat.name for cat in dest.categories.all()]) or "N/A"
-                full_address = dest.address.get_full_address() if dest.address else 'N/A'
-                rag_context += (
-                    f"- Nama: {dest.name}, "
-                    f"Lokasi: {full_address}, "
-                    f"Kategori: {category_names}, "
-                    f"Rating: {dest.average_rating}, "
-                    f"Harga Tiket: {dest.ticket_price_range or '-'}.\n"
-                    f"Deskripsi: {dest.description[:100]}...\n"
-                )
-                context_to_save.append({
-                    'name': dest.name,
-                    'average_rating': float(dest.average_rating),
-                    'ticket_price_range': dest.ticket_price_range,
-                    'description_snippet': dest.description[:100],
-                    'location': full_address
-                })
-            # Simpan konteks baru ke sesi
-            session.active_context = {'destinations': context_to_save}
-        else:
-            rag_context = "DATABASE_RESULT: NOT_FOUND, lalu Ajak pengguna untuk menambahkan destinasi atau review baru di website Balinara."
-            # Kosongkan konteks jika tidak ada hasil
-            session.active_context = {}
-        session.save()
-
     # Dapatkan riwayat chat untuk dikirim ke Gemini
     history_db = Message.objects.filter(
         session=session).order_by('-timestamp')[:6]
     formatted_history = [{'role': 'model' if msg.sender != 'user' else 'user', 'parts': [
         msg.text]} for msg in reversed(history_db)]
 
+    rag_context = ""
+
+    intent = classify_user_intent(user_message)
+
+    if intent == 'OFF_TOPIC':
+        logger.debug("Handling as OFF_TOPIC question.")
+        rag_context = (
+            "USER_IS_OFF_TOPIC. Your task is to politely decline the user's question because it is outside your expertise of Bali tourism. "
+            "After declining, you MUST pivot the conversation back by suggesting specific topics you CAN help with. "
+            "The ONLY allowed topics for suggestion are: 'pantai' (beaches), 'pura' (temples), 'air terjun' (waterfalls), and 'pengalaman budaya' (cultural experiences). "
+            "Explicitly DO NOT suggest restaurants, hotels, shopping, or transportation."
+        )
+    else:
+        # Proses utama
+        entities = extract_entities(user_message)
+        print(entities)
+        active_context = session.active_context or {}
+        has_active_context = 'destinations' in active_context and active_context[
+            'destinations']
+
+        is_explicit_new_search = 'category_slug' in entities or 'regency' in entities
+
+        is_very_general_query = not entities and 'bali' in user_message.lower()
+
+        # [REVISI] Struktur if/else dibalik (Inversi Logika)
+        if has_active_context and not is_explicit_new_search:
+            # --- BLOK 1: INI ADALAH PERTANYAAN LANJUTAN ---
+            logger.debug(
+                f"Menangani '{user_message}' sebagai PERTANYAAN LANJUTAN.")
+
+            mentioned_name = resolve_reference_with_gemini(
+                formatted_history, user_message)
+
+            # Jika tidak ada nama spesifik disebut, gunakan konteks yang ada
+            if not mentioned_name:
+                logger.debug(
+                    "Referensi tidak terdeteksi, menggunakan konteks aktif terakhir.")
+                rag_context = "Ini adalah pertanyaan lanjutan tentang konteks terakhir:\n"
+
+                destinations_in_context = active_context.get(
+                    'destinations', [])
+
+                # Buat konteks yang kaya agar Gemini bisa menjawab pertanyaan perbandingan
+                for dest in destinations_in_context:
+                    rag_context += (
+                        f"- Nama: {dest.get('name', 'N/A')}, "
+                        f"Lokasi: {dest.get('full_address', 'N/A')}, "
+                        f"Rating: {dest.get('average_rating', 'N/A')}, "
+                        f"Harga Tiket: {dest.get('ticket_price_range', 'N/A')}, "
+                        f"Deskripsi Singkat: {dest.get('description_snippet', 'N/A')}...\n"
+                    )
+            else:
+                logger.debug(
+                    f"Pengguna menyebut nama spesifik: {mentioned_name}. Melakukan pencarian targeted.")
+                # Panggil fungsi dengan target_name
+                results = get_rag_context_from_db(
+                    {}, "", target_name=mentioned_name)
+
+                if results.exists():
+                    logger.debug(
+                        f"Pencarian targeted untuk '{mentioned_name}' berhasil.")
+                    rag_context, context_to_save = _format_results_and_build_context(
+                        results,
+                        headline="Tentu, ini informasi lebih detail tentang yang kamu tanyakan:\n",
+                        limit=1  # Cukup ambil satu hasil yang paling relevan
+                    )
+                    session.active_context = {'destinations': context_to_save}
+                    session.save()
+                else:
+                    # Jika pencarian targeted gagal, baru kita katakan tidak ada.
+                    logger.debug(
+                        f"Pencarian targeted untuk '{mentioned_name}' gagal.")
+                    rag_context = f"DATABASE_RESULT: NOT_FOUND for {mentioned_name}, lalu jelaskan bahwa informasi spesifik tentang itu tidak ditemukan di database Balinara."
+        elif is_very_general_query:
+            # --- [BLOK BARU] BLOK 2: MENANGANI PERMINTAAN UMUM "TOP HITS" ---
+            logger.debug(
+                f"Menangani '{user_message}' sebagai PERMINTAAN UMUM.")
+
+            # Lakukan query sederhana untuk mendapatkan 3 destinasi dengan rating tertinggi
+            results = Destination.objects.filter(
+                is_published=True).order_by('-average_rating')[:3]
+
+            if results.exists():
+                rag_context, context_to_save = _format_results_and_build_context(
+                    results,
+                    headline="Tentu! Bali punya banyak sekali tempat indah. Berikut adalah beberapa rekomendasi terpopuler:\n"
+                )
+                session.active_context = {'destinations': context_to_save}
+                session.save()
+            else:
+                # Fallback jika ternyata database benar-benar kosong
+                rag_context = "DATABASE_RESULT: NOT_FOUND, lalu jelaskan bahwa belum ada destinasi di database."
+                session.active_context = {}
+                session.save()
+        else:
+            logger.debug(f"Menangani '{user_message}' sebagai PENCARIAN BARU.")
+
+            results = get_rag_context_from_db(entities, user_message)
+            if results.exists():
+                rag_context, context_to_save = _format_results_and_build_context(
+                    results,
+                    headline="Berikut data relevan dari database Balinara:\n"
+                )
+                session.active_context = {'destinations': context_to_save}
+                session.save()
+            else:
+                rag_context = "DATABASE_RESULT: NOT_FOUND, lalu Ajak pengguna untuk menambahkan destinasi atau review baru di website Balinara."
+
     # [REVISI] Gunakan satu instance model saja, mulai chat baru dengan history
     chat_session = gemini_model.start_chat(history=formatted_history)
 
     prompt_with_context = f"""
+SYSTEM_INSTRUCTION:
+---
+{FINAL_RESPONSE_SYSTEM_INSTRUCTION}
+---
+
 CONTEXT FROM BALINARA DATABASE:
 ---
 {rag_context}
@@ -310,3 +404,39 @@ Based on the context and our previous conversation, please provide a helpful ans
     Message.objects.create(
         session=session, sender='model', text=bot_response_text)
     return bot_response_text
+
+
+def _format_results_and_build_context(results: QuerySet, headline: str, limit: int = 3) -> tuple[str, list]:
+    """
+    Fungsi helper untuk memformat QuerySet menjadi RAG context dan context untuk disimpan di sesi.
+    Ini untuk menghindari duplikasi kode.
+    """
+    rag_context = headline
+    context_to_save = []
+
+    for dest in results[:limit]:
+        category_names = ", ".join(
+            [cat.name for cat in dest.categories.all()]) or "N/A"
+        full_address = dest.address.get_full_address() if dest.address else 'N/A'
+
+        rag_context += (
+            f"- **{dest.name}**\n"
+            f"  Lokasi: {full_address}\n"
+            f"  Kategori: {category_names}\n"
+            f"  Rating: {dest.average_rating}\n"
+            f"  Harga Tiket: {dest.ticket_price_range or '-'}\n"
+            f"  Deskripsi: {dest.description[:120]}...\n\n"
+        )
+
+        latitude = dest.address.latitude if dest.address else None
+        longitude = dest.address.longitude if dest.address else None
+        context_to_save.append({
+            'name': dest.name,
+            'average_rating': float(dest.average_rating),
+            'ticket_price_range': dest.ticket_price_range,
+            'description_snippet': dest.description[:100],
+            'full_address': full_address,
+            'latitude': str(latitude) if latitude else None,
+            'longitude': str(longitude) if longitude else None,
+        })
+    return rag_context, context_to_save

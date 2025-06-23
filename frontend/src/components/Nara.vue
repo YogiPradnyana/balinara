@@ -44,6 +44,7 @@ const handleSendMessage = async () => {
   // Cukup panggil action store. Store yang akan menangani semuanya.
   try {
     await chatStore.sendMessage(messageText)
+    focusUserInput()
     // focusUserInput()
   } catch (err) {
     // Error sudah ditangani di store, di sini hanya untuk log jika perlu
@@ -61,6 +62,7 @@ const handleClearHistory = () => {
     chatStore.clearSession()
     showNotification('success', 'Chat session has been reset.')
     dismissCurrentConfirmationToast()
+    focusUserInput()
   }
 
   showConfirmationToast(

@@ -234,7 +234,7 @@ const reviewData = ref([
     <!-- Info Section -->
     <section class="mb-8 mt-13">
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 sm:gap-16">
-        <div class="xl:col-span-2">
+        <div class="xl:col-span-2" :class="{ 'xl:col-span-3': !showInfoBox }">
           <div>
             <div class="flex items-start gap-2 sm:items-center justify-between">
               <h1 class="text-3xl md:text-4xl lg:text-[42px] font-se font-semibold leading-12">
