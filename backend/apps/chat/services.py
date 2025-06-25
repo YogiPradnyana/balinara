@@ -406,10 +406,12 @@ Based on the context and our previous conversation, please provide a helpful ans
         bot_response_text = "Maaf, saya sedikit bingung. Bisa coba tanyakan dengan cara lain?"
 
     # Simpan pesan ke database
-    Message.objects.create(session=session, sender='user', text=user_message)
-    Message.objects.create(
-        session=session, sender='model', text=bot_response_text)
-    return bot_response_text
+    user_message_obj = Message.objects.create(
+        session=session,
+        sender='user',
+        text=user_message
+    )
+    return bot_response_text, user_message_obj
 
 
 def _format_results_and_build_context(results: QuerySet, headline: str, limit: int = 3) -> tuple[str, list]:
@@ -502,33 +504,91 @@ def process_image_query(image_file, user_message: str, session_id: str, user) ->
             # Kita gunakan lagi fungsi get_rag_context_from_db yang sudah pintar!
             results = get_rag_context_from_db(
                 {}, "", target_name=destination_name)
-
+            final_generation_prompt = ""
             if results.exists():
-                # --- Langkah 5: Format Respons Jika Ditemukan ---
-                headline = f"Saya cukup yakin gambar ini adalah **{results.first().name}**! Berikut beberapa detailnya:\n"
-                rag_context, context_to_save = _format_results_and_build_context(
-                    results, headline=headline, limit=1)
+                logger.debug(
+                    f"'{destination_name}' ditemukan di DB. Membuat prompt akhir untuk generasi naratif.")
 
-                bot_reply = rag_context
+                dest = results.first()
+                # Kumpulkan semua data yang kita miliki
+                full_address = dest.address.get_full_address() if dest.address else 'N/A'
+                category_names = ", ".join(
+                    [cat.name for cat in dest.categories.all()]) or "N/A"
+
+                # Buat "briefing" yang detail untuk Nara (Gemini)
+                final_generation_prompt = f"""
+                Anda adalah Nara, pemandu wisata Bali yang sangat ramah dan membantu.
+                Anda baru saja menganalisis gambar dari pengguna dan berhasil mengidentifikasinya.
+
+                INFORMASI YANG DIKETAHUI:
+                - Nama Tempat Teridentifikasi: {dest.name}
+                - Data dari Database Balinara:
+                    - Lokasi: {full_address}
+                    - Kategori: {category_names}
+                    - Rating: {dest.average_rating}
+                    - Harga Tiket: {dest.ticket_price_range or 'Tidak ada data'}
+                    - Deskripsi: {dest.description}
+                
+                PERTANYAAN SPESIFIK DARI PENGGUNA: "{user_message}"
+
+                TUGAS ANDA:
+                1.  Jawab PERTANYAAN SPESIFIK PENGGUNA secara langsung dan akurat.
+                2.  Gunakan "DATA DARI DATABASE" sebagai sumber informasi utama Anda untuk menjawab.
+                3.  Jika data dari database tidak cukup (misalnya untuk pertanyaan waktu tempuh, kondisi lalu lintas, atau pertanyaan yang sangat detail), gunakan pengetahuan umum Anda sebagai seorang ahli pariwisata Bali untuk melengkapi jawaban.
+                4.  Jika pengguna tidak memberikan pertanyaan spesifik (jika "PERTANYAAN SPESIFIK DARI PENGGUNA" kosong atau hanya sapaan seperti "ini di mana?"), maka berikan deskripsi umum yang menarik tentang tempat tersebut, tambahkan tips lokal, dan akhiri dengan pertanyaan.
+                5.  Selalu jawab dalam Bahasa Indonesia yang alami dan ramah.
+                """
+                # Siapkan konteks untuk disimpan di sesi jika pengguna bertanya lebih lanjut
+                context_to_save = [{'name': dest.name, 'full_address': full_address, 'average_rating': float(
+                    dest.average_rating), 'ticket_price_range': dest.ticket_price_range, 'description_snippet': dest.description[:100]}]
                 session.active_context = {'destinations': context_to_save}
                 session.save()
+
             else:
-                # Dikenali oleh Gemini, tapi tidak ada di database kita
-                bot_reply = f"Menarik! Sepertinya saya mengenali ini sebagai {destination_name}, tapi sayangnya detailnya belum ada di database Balinara. Mungkin ini destinasi baru yang bisa kamu tambahkan?"
+                logger.debug(
+                    f"'{destination_name}' tidak ditemukan di DB. Membuat prompt untuk deskripsi umum.")
+
+                final_generation_prompt = f"""
+            Anda adalah Nara, seorang pemandu wisata ahli yang sangat membantu di Bali.
+
+            KONTEKS:
+            - Pengguna bertanya tentang sebuah lokasi yang telah Anda identifikasi sebagai: "{destination_name}".
+            - PENTING: Data detail untuk tempat ini TIDAK ADA di database internal Anda.
+
+            PERTANYAAN SPESIFIK DARI PENGGUNA:
+            "{user_message}"
+
+            TUGAS ANDA:
+            1.  Jawab PERTANYAAN SPESIFIK PENGGUNA secara langsung menggunakan **pengetahuan umum Anda** tentang Bali.
+            2.  Karena Anda tidak memiliki data dari database, beritau bahwa di database data tersebut tidak ada dan sebutkan secara halus bahwa informasi Anda bersifat umum.
+            3.  Jika pengguna tidak memberikan pertanyaan spesifik (jika "PERTANYAAN SPESIFIK DARI PENGGUNA" kosong), maka berikan deskripsi umum yang menarik tentang "{destination_name}" dan akhiri dengan AJAK pengguna untuk menambahkan destinasi di website Balinara.
+            4.  Selalu jawab dalam Bahasa Indonesia yang alami dan ramah.
+            """
+                session.active_context = {}
+                session.save()
+
+            logger.debug(
+                "Meminta Gemini untuk membuat respons akhir yang naratif...")
+            final_response = gemini_model.generate_content(
+                final_generation_prompt)
+            bot_reply = final_response.text
         else:
             # --- Langkah 6: Respons Jika Tidak Dikenali ---
             bot_reply = "Hmm, saya sudah coba menganalisis gambarnya tapi sepertinya saya belum mengenali tempat ini sebagai destinasi wisata di Bali. Mungkin Anda bisa coba gambar lain yang lebih jelas?"
 
     except Exception as e:
-        logger.error(f"Error processing image query: {e}")
+        logger.error(f"Error processing image query: {e}", exc_info=True)
         bot_reply = "Maaf, terjadi sedikit masalah saat saya mencoba menganalisis gambar Anda. Silakan coba lagi."
 
     # --- Langkah 7: Simpan Percakapan ---
     # Kita representasikan pesan pengguna sebagai teks untuk disimpan di riwayat
-    user_message_for_db = f"[Gambar Diupload] {user_message}".strip()
+    user_message_for_db = f"{user_message}".strip()
     image_file.seek(0)
-    Message.objects.create(session=session, sender='user',
-                           text=user_message_for_db, image=image_file)
-    Message.objects.create(session=session, sender='model', text=bot_reply)
+    user_message_obj = Message.objects.create(
+        session=session,
+        sender='user',
+        text=user_message_for_db,
+        image=image_file
+    )
 
-    return bot_reply
+    return bot_reply, user_message_obj

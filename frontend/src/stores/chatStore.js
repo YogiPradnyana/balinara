@@ -42,6 +42,7 @@ export const useChatStore = defineStore('chat', {
         // Panggil endpoint history yang baru
         const response = await apiClient.get(`/chat/history/${this.sessionId}/`)
         this.messages = Array.isArray(response.data) ? response.data : []
+        console.log(this.messages)
       } catch (err) {
         console.error('Error fetching history:', err)
         this.error = 'Gagal memuat riwayat obrolan.'
@@ -64,14 +65,15 @@ export const useChatStore = defineStore('chat', {
       this.error = null
 
       // Optimistic UI: langsung tampilkan pesan user
+      const tempId = `temp-user-${Date.now()}`
       const userMessage = {
-        id: `temp-user-${Date.now()}`,
+        id: tempId, // Gunakan ID sementara
         sender: 'user',
         text: text,
         timestamp: new Date().toISOString(),
-        // [BARU] Tambahkan representasi gambar untuk ditampilkan di UI jika ada
         image_url: image ? URL.createObjectURL(image) : null,
       }
+
       this.messages.push(userMessage)
 
       try {
@@ -89,13 +91,19 @@ export const useChatStore = defineStore('chat', {
           formData,
         )
 
-        const botMessage = {
-          id: `msg-${Date.now()}`,
-          sender: 'model',
-          text: response.data.reply,
-          timestamp: new Date().toISOString(),
+        const { user_message_final, bot_reply } = response.data
+
+        // [BARU] Cari indeks dari pesan sementara yang kita buat tadi
+        const tempMessageIndex = this.messages.findIndex((m) => m.id === tempId)
+
+        if (tempMessageIndex !== -1) {
+          // [BARU] Ganti pesan sementara dengan data permanen dari server.
+          // Ini akan secara reaktif memperbarui UI dengan URL gambar dari Cloudinary!
+          this.messages[tempMessageIndex] = user_message_final
         }
-        this.messages.push(botMessage)
+
+        // [BARU] Tambahkan balasan bot yang sudah lengkap dari server
+        this.messages.push(bot_reply)
       } catch (err) {
         console.error('Error sending message:', err)
         this.error =

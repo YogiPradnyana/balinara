@@ -209,6 +209,7 @@ const handleFileSelect = (event) => {
 
   selectedImageFile.value = file
   imagePreviewUrl.value = URL.createObjectURL(file)
+  focusUserInput()
 }
 
 const removeSelectedImage = () => {

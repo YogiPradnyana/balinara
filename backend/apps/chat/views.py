@@ -51,53 +51,39 @@ class ChatAPIView(APIView):
                     status=status.HTTP_400_BAD_REQUEST  # Error 400 Bad Request
                 )
 
-        print("--- MEMULAI PROSES DIAGNOSTIK ---")
-
         try:
             bot_reply = ""
+            user_message_obj = None
 
-            print(f"1. Request Content-Type: {request.content_type}")
-
-            # 2. Cek isi dari request.data (untuk data non-file)
-            print(f"2. Isi request.data: {request.data}")
-
-            # 3. Cek isi dari request.FILES (untuk data file)
-            print(f"3. Isi request.FILES: {request.FILES}")
-
-            # 4. Ambil file dan periksa tipenya
-            print(f"4. Tipe objek image_file: {type(image_file)}")
-            # [BARU] Buat percabangan logika
             if image_file:
-                print(
-                    f"5. Ukuran file awal (image_file.size): {image_file.size} bytes")
-                print("6. Mencoba menjalankan image_file.seek(0)...")
                 image_file.seek(0)
-                print("   ... seek(0) berhasil dijalankan.")
-
-                print(
-                    f"7. Ukuran file setelah seek(0): {image_file.size} bytes")
-                print("8. Memanggil process_image_query...")
-                # Jika ada file gambar, panggil service untuk analisis gambar
-                # Kita akan membuat fungsi ini di langkah selanjutnya
-                bot_reply = process_image_query(
+                bot_reply, user_message_obj = process_image_query(
                     image_file=image_file,
                     user_message=user_message,
                     session_id=session_id,
                     user=request.user
                 )
-                print("   ... process_image_query selesai.")
             else:
-                print(
-                    "4a. Tidak ada 'image' di request.FILES. Masuk ke alur teks biasa.")
-                # Jika tidak ada gambar, gunakan alur lama untuk teks
-                bot_reply = process_chatbot_message(
+                bot_reply, user_message_obj = process_chatbot_message(
                     user_message=user_message,
                     session_id=session_id,
                     user=request.user
                 )
 
-            print("--- DIAGNOSTIK SELESAI, MENGIRIM RESPONS SUKSES ---")
-            return Response({'reply': bot_reply}, status=status.HTTP_200_OK)
+            bot_message_obj = Message.objects.create(
+                session=user_message_obj.session,
+                sender='model',
+                text=bot_reply
+            )
+
+            user_message_data = MessageSerializer(user_message_obj).data
+            bot_message_data = MessageSerializer(bot_message_obj).data
+
+            return Response({
+                "user_message_final": user_message_data,
+                "bot_reply": bot_message_data
+            }, status=status.HTTP_200_OK)
+
         except Exception as e:
             # Ini adalah jaring pengaman terakhir jika service gagal total
             print(f"ChatAPIView Error: {e}")
