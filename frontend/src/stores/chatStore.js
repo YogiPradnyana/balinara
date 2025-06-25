@@ -42,6 +42,7 @@ export const useChatStore = defineStore('chat', {
         // Panggil endpoint history yang baru
         const response = await apiClient.get(`/chat/history/${this.sessionId}/`)
         this.messages = Array.isArray(response.data) ? response.data : []
+        console.log(this.messages)
       } catch (err) {
         console.error('Error fetching history:', err)
         this.error = 'Gagal memuat riwayat obrolan.'
@@ -51,43 +52,69 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 3. Action untuk mengirim pesan (sekarang sudah session-aware)
-    async sendMessage(messageText) {
-      if (!messageText.trim() || !this.sessionId) return
+    async sendMessage(payload) {
+      const { text, image } = payload
+
+      if (!this.sessionId) {
+        console.error('Session ID is missing.')
+        this.error = 'Session not started. Please refresh.'
+        return
+      }
 
       this.isSendingMessage = true
       this.error = null
 
       // Optimistic UI: langsung tampilkan pesan user
-      this.messages.push({
+      const tempId = `temp-user-${Date.now()}`
+      const userMessage = {
+        id: tempId, // Gunakan ID sementara
         sender: 'user',
-        text: messageText,
+        text: text,
         timestamp: new Date().toISOString(),
-      })
+        image_url: image ? URL.createObjectURL(image) : null,
+      }
+
+      this.messages.push(userMessage)
 
       try {
-        // Kirim request ke endpoint 'send' dengan menyertakan session_id
-        const response = await apiClient.post('/chat/send/', {
-          message: messageText,
-          session_id: this.sessionId,
-        })
+        const formData = new FormData()
+        formData.append('session_id', this.sessionId)
+        if (text) {
+          formData.append('message', text)
+        }
+        if (image) {
+          formData.append('image', image)
+        }
 
-        // Tambahkan balasan dari bot
-        this.messages.push({
-          sender: 'model',
-          text: response.data.reply,
-          timestamp: new Date().toISOString(),
-        })
+        const response = await apiClient.post(
+          `/chat/send/`, // Atau endpoint baru Anda
+          formData,
+        )
+
+        const { user_message_final, bot_reply } = response.data
+
+        // [BARU] Cari indeks dari pesan sementara yang kita buat tadi
+        const tempMessageIndex = this.messages.findIndex((m) => m.id === tempId)
+
+        if (tempMessageIndex !== -1) {
+          // [BARU] Ganti pesan sementara dengan data permanen dari server.
+          // Ini akan secara reaktif memperbarui UI dengan URL gambar dari Cloudinary!
+          this.messages[tempMessageIndex] = user_message_final
+        }
+
+        // [BARU] Tambahkan balasan bot yang sudah lengkap dari server
+        this.messages.push(bot_reply)
       } catch (err) {
         console.error('Error sending message:', err)
         this.error =
           err.response?.data?.error || 'Gagal mengirim pesan atau mendapatkan respons dari Bot.'
         // Tambahkan pesan error ke chat untuk feedback langsung
         this.messages.push({
+          id: `err-${Date.now()}`,
           sender: 'model',
-          text: `Maaf, terjadi kesalahan: ${this.error}`,
-          timestamp: new Date().toISOString(),
+          text: this.error,
+          is_error: true,
         })
-        throw new Error(this.error)
       } finally {
         this.isSendingMessage = false
       }
