@@ -144,14 +144,13 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
         # facilities dan category sudah di-handle oleh source di PrimaryKeyRelatedField
         # dan akan di-set saat super().create() atau setelahnya.
 
+        categories_qs = validated_data.pop('categories', [])
+        facilities_qs = validated_data.pop('facilities', [])
+
         address_instance = self._handle_nested_one_to_one_write(
             None, address_data, Address)
         contact_instance = self._handle_nested_one_to_one_write(
             None, contact_data, Contact)
-
-        # Ambil facility_ids yang sudah divalidasi (menjadi instance Facility)
-        # 'facilities' adalah hasil dari source='facilities'
-        facilities_qs = validated_data.pop('facilities', [])
 
         destination = Destination.objects.create(
             address=address_instance,
@@ -159,7 +158,9 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
             # validated_data sudah termasuk category (hasil dari category_id)
             **validated_data
         )
-        if facilities_qs:  # Set relasi M2M setelah destination dibuat
+        if categories_qs:
+            destination.categories.set(categories_qs)
+        if facilities_qs:
             destination.facilities.set(facilities_qs)
         return destination
 

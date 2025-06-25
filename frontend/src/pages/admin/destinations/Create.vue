@@ -13,9 +13,9 @@ const formErrors = ref(null)
 async function handleCreateDestination(formData) {
   formErrors.value = null
   try {
-    await destinationStore.createDestination(formData)
+    const newDestination = await destinationStore.createDestination(formData)
     showNotification('success', 'Destination added successfully')
-    router.push({ name: 'AdminDestinations' })
+    router.push({ name: 'AdminDestinationEdit', params: { slug: newDestination.slug } })
   } catch (error) {
     // Tampilkan notifikasi error
     formErrors.value = error.response?.data

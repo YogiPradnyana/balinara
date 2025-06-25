@@ -79,31 +79,51 @@ class DestinationViewSet(viewsets.ModelViewSet):
             parser_classes=[MultiPartParser, FormParser], url_path='images/upload')
     def upload_image(self, request, slug=None):
         destination = self.get_object()
-        # Kirim destination ke context jika perlu
-        serializer_context = {'request': request, 'destination': destination}
+        images = request.FILES.getlist('images')
 
-        # Kita bisa menerima satu atau banyak file gambar di sini
-        # Jika hanya satu: request.FILES.get('image')
-        # Jika banyak: request.FILES.getlist('images') -> frontend harus kirim dengan nama 'images'
-        # Untuk contoh, kita asumsikan satu gambar per request ke action ini
-        # Frontend akan mengirim FormData dengan field 'image', 'alt_text' (opsional), 'is_primary' (opsional)
+        if not images:
+            return Response({'detail': 'No image files were provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        image_data = request.data.copy()  # Salin request data
-        # Tambahkan pk destinasi secara manual jika serializer butuh
-        image_data['destination'] = destination.pk
-        # atau biarkan serializer.save(destination=destination)
+        uploaded_images_data = []
+        errors = []
 
-        image_serializer = DestinationImageSerializer(
-            data=image_data, context=serializer_context)
+        # Ambil data teks non-file sekali saja (jika ada)
+        alt_text_base = request.data.get(
+            'alt_text', f"Image for {destination.name}")
 
-        if image_serializer.is_valid():
-            if 'image' not in request.FILES:  # Pastikan file benar-benar ada di FILES
-                return Response({'image': ['No image file provided.']}, status=status.HTTP_400_BAD_REQUEST)
+        for image_file in images:
+            # --- INI LOGIKA BARU YANG PENTING ---
+            # Buat paket data LENGKAP untuk setiap gambar
+            data_for_serializer = {
+                'alt_text': alt_text_base,
+                'image': image_file  # <-- Masukkan objek file ke dalam data
+            }
 
-            # Explicitly set destination
-            image_serializer.save(destination=destination)
-            return Response(image_serializer.data, status=status.HTTP_201_CREATED)
-        return Response(image_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer = DestinationImageSerializer(
+                data=data_for_serializer, context={'request': request})
+
+            # Sekarang is_valid() akan berhasil karena 'image' sudah ada di dalam data
+            if serializer.is_valid():
+                try:
+                    # 'image' sudah ada di validated_data, kita hanya perlu tambahkan 'destination'
+                    serializer.save(destination=destination)
+                    uploaded_images_data.append(serializer.data)
+                except Exception as e:
+                    errors.append({image_file.name: str(e)})
+            else:
+                errors.append({image_file.name: serializer.errors})
+
+        if errors:
+            return Response({
+                'status': 'Completed with errors',
+                'errors': errors,
+                'successful_uploads': uploaded_images_data
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            'status': 'All images uploaded successfully',
+            'uploaded_images': uploaded_images_data
+        }, status=status.HTTP_201_CREATED)
 
     # Action untuk list gambar suatu destinasi (sebenarnya sudah ada di 'images' pada DestinationDetailCRUDSerializer)
     # Tapi ini bisa berguna jika ingin endpoint khusus gambar

@@ -141,49 +141,27 @@ export const useDestinationStore = defineStore('destination', {
       }
     },
 
-    async uploadDestinationImage(slug, imageData) {
-      // imageData adalah sebuah objek, contoh:
-      // { image: FileObject, alt_text: 'teks alt', is_primary: true }
-
+    async uploadDestinationImage(slug, formData) {
       this.isLoadingDetail = true
       this.error = null
 
-      // Kita tidak bisa kirim file dengan JSON. Kita harus pakai "amplop" khusus
-      // yang namanya FormData.
-      const formData = new FormData()
-
-      // Masukkan file dan data lainnya ke dalam "amplop" FormData
-      formData.append('image', imageData.image) // Ini adalah File object dari input <input type="file">
-
-      if (imageData.alt_text) {
-        formData.append('alt_text', imageData.alt_text)
-      }
-      if (imageData.is_primary) {
-        formData.append('is_primary', imageData.is_primary)
-      }
-
       try {
-        // Kirim request POST ke custom action yang sudah Anda buat di Django
-        const response = await apiClient.post(
-          `${DESTINATIONS_API_PATH}${slug}/images/upload/`,
-          formData,
-          {
-            // PENTING: Beri tahu server bahwa kita mengirim FormData
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
+        const response = await apiClient.post(`/destinations/${slug}/images/upload/`, formData, {
+          headers: {
+            'Content-Type': undefined,
           },
-        )
+        })
 
-        // Setelah berhasil upload, cara terbaik adalah memuat ulang data destinasi
-        // agar array 'images' di dalamnya ter-update dengan gambar baru.
-        await this.fetchDestinationBySlug(slug)
+        this.fetchDestinationBySlug(slug)
 
         return response.data
       } catch (err) {
-        this.error = err.response?.data || { general: 'Gagal mengupload gambar.' }
-        console.error('Upload Image Error:', this.error)
-        throw err
+        console.error('Upload Image Error in Store:', err.response?.data)
+        this.error =
+          err.response?.data?.detail ||
+          err.response?.data?.errors?.join(', ') ||
+          'An error occurred during image upload.'
+        throw this.error
       } finally {
         this.isLoadingDetail = false
       }
