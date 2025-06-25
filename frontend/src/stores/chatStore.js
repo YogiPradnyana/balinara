@@ -51,43 +51,62 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 3. Action untuk mengirim pesan (sekarang sudah session-aware)
-    async sendMessage(messageText) {
-      if (!messageText.trim() || !this.sessionId) return
+    async sendMessage(payload) {
+      const { text, image } = payload
+
+      if (!this.sessionId) {
+        console.error('Session ID is missing.')
+        this.error = 'Session not started. Please refresh.'
+        return
+      }
 
       this.isSendingMessage = true
       this.error = null
 
       // Optimistic UI: langsung tampilkan pesan user
-      this.messages.push({
+      const userMessage = {
+        id: `temp-user-${Date.now()}`,
         sender: 'user',
-        text: messageText,
+        text: text,
         timestamp: new Date().toISOString(),
-      })
+        // [BARU] Tambahkan representasi gambar untuk ditampilkan di UI jika ada
+        image_url: image ? URL.createObjectURL(image) : null,
+      }
+      this.messages.push(userMessage)
 
       try {
-        // Kirim request ke endpoint 'send' dengan menyertakan session_id
-        const response = await apiClient.post('/chat/send/', {
-          message: messageText,
-          session_id: this.sessionId,
-        })
+        const formData = new FormData()
+        formData.append('session_id', this.sessionId)
+        if (text) {
+          formData.append('message', text)
+        }
+        if (image) {
+          formData.append('image', image)
+        }
 
-        // Tambahkan balasan dari bot
-        this.messages.push({
+        const response = await apiClient.post(
+          `/chat/send/`, // Atau endpoint baru Anda
+          formData,
+        )
+
+        const botMessage = {
+          id: `msg-${Date.now()}`,
           sender: 'model',
           text: response.data.reply,
           timestamp: new Date().toISOString(),
-        })
+        }
+        this.messages.push(botMessage)
       } catch (err) {
         console.error('Error sending message:', err)
         this.error =
           err.response?.data?.error || 'Gagal mengirim pesan atau mendapatkan respons dari Bot.'
         // Tambahkan pesan error ke chat untuk feedback langsung
         this.messages.push({
+          id: `err-${Date.now()}`,
           sender: 'model',
-          text: `Maaf, terjadi kesalahan: ${this.error}`,
-          timestamp: new Date().toISOString(),
+          text: this.error,
+          is_error: true,
         })
-        throw new Error(this.error)
       } finally {
         this.isSendingMessage = false
       }

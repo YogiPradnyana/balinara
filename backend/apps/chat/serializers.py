@@ -10,8 +10,21 @@ class MessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = Message
         # Tentukan field yang ingin diekspos
-        fields = ['id', 'session_id', 'sender', 'text', 'timestamp']
+        fields = ['id', 'session_id', 'sender', 'text', 'timestamp', 'image']
         # Atau 'fields = '__all__' untuk mengekspos semua field
+
+    def get_image(self, obj):
+        """
+        Method ini akan dipanggil secara otomatis untuk setiap objek Message.
+        Tugasnya adalah untuk menghasilkan nilai untuk field 'image'.
+        """
+        # Cek jika field 'image' pada objek Message (obj) memiliki file
+        if obj.image and hasattr(obj.image, 'url'):
+            # Minta URL publiknya dari Cloudinary. Atribut .url inilah kuncinya.
+            return obj.image.url
+
+        # Jika tidak ada gambar, kembalikan null
+        return None
 
 
 class ChatSessionSerializer(serializers.ModelSerializer):

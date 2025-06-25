@@ -3,6 +3,8 @@
 import google.generativeai as genai
 import json
 import logging
+import io
+from PIL import Image
 from django.conf import settings
 from django.db.models import Q
 
@@ -10,6 +12,7 @@ from apps.destinations.models import Destination
 from apps.destinations.filters import DestinationFilter
 from .models import Message, ChatSession
 from django.db.models.query import QuerySet
+
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +46,10 @@ FINAL_RESPONSE_SYSTEM_INSTRUCTION = (
     "You are Nara, an expert tour guide for Balinara. Your personality is friendly, helpful, and like a local friend from Bali. "
     "Your primary goal is to answer user questions based on the CONTEXT provided from the Balinara database. This is your source of truth. "
     "When the context provides data, summarize it in a natural, conversational paragraph. Do not just list the data. "
-    "If the context says 'DATABASE_RESULT: NOT_FOUND', you MUST politely inform the user that you couldn't find a matching destination and then warmly invite them to contribute to Balinara by adding a new destination or review on the website. "
+    "If the context says 'DATABASE_RESULT: NOT_FOUND', your first step is to politely state that you don't have a specific partner recommendation from Balinara. "
+    "HOWEVER, after stating that, you MUST then use your own general knowledge about Bali to provide a helpful, alternative recommendation. "
+    "Try to list at least 3-5 specific places, if you know them from your training data. "
+    "Frame this as a general suggestion to help the user, not a formal Balinara endorsement. Be confident in your general knowledge."
     "Always refuse to answer questions unrelated to Bali tourism."
 )
 
@@ -440,3 +446,89 @@ def _format_results_and_build_context(results: QuerySet, headline: str, limit: i
             'longitude': str(longitude) if longitude else None,
         })
     return rag_context, context_to_save
+
+
+def process_image_query(image_file, user_message: str, session_id: str, user) -> str:
+    """
+    Memproses permintaan yang berisi gambar, menganalisisnya dengan Gemini,
+    dan mencari hasilnya di database lokal.
+    """
+    logger.debug(f"Memulai analisis gambar untuk sesi {session_id}")
+    if not gemini_model:
+        return "Maaf, layanan analisis gambar sedang tidak tersedia."
+
+    session, _ = ChatSession.objects.get_or_create(id=session_id)
+
+    try:
+        try:
+            image_bytes = image_file.read()
+            original_image = Image.open(io.BytesIO(image_bytes))
+        except Exception as img_e:
+            logger.error(f"Gagal memproses gambar: {img_e}")
+            return "Maaf, terjadi masalah saat memproses gambar Anda. Pastikan format file didukung."
+
+        MAX_SIZE = (1024, 1024)
+        original_image.thumbnail(MAX_SIZE, Image.Resampling.LANCZOS)
+        compressed_buffer = io.BytesIO()
+        original_image.save(compressed_buffer, format='WEBP', quality=85)
+        compressed_buffer.seek(0)
+        img_for_gemini = Image.open(compressed_buffer)
+        logger.debug(
+            "Gambar berhasil dikompres ke format WEBP dan di-resize.")
+        # --- Langkah 2: Buat Prompt Multimodal ---
+        prompt_text = (
+            "Analyze this image. Your task is to identify if it's a known tourist destination in Bali, Indonesia. "
+            "Focus on landmarks, architectural styles, natural features (beaches, waterfalls), or specific signage. "
+            "If you can identify a specific destination, respond with ONLY the exact name of that destination (e.g., 'Pura Tanah Lot', 'Tegalalang Rice Terrace')."
+            "If you cannot confidently identify a specific Bali destination, respond with the single word: UNKNOWN."
+        )
+
+        # Jika pengguna mengirim teks bersama gambar, tambahkan sebagai petunjuk
+        if user_message:
+            prompt_text += f"\n\nAdditional context from user: '{user_message}'"
+
+        # Gabungkan instruksi teks dan objek gambar menjadi satu prompt
+        prompt_parts = [prompt_text, img_for_gemini]
+
+        # --- Langkah 3: Panggil Gemini API ---
+        logger.debug("Mengirim gambar ke Gemini untuk analisis...")
+        response = gemini_model.generate_content(prompt_parts)
+        destination_name = response.text.strip()
+        logger.debug(f"Gemini mengidentifikasi sebagai: '{destination_name}'")
+
+        bot_reply = ""
+        if destination_name and destination_name != "UNKNOWN":
+            # --- Langkah 4: Cari Hasil Analisis di Database Lokal ---
+            # Kita gunakan lagi fungsi get_rag_context_from_db yang sudah pintar!
+            results = get_rag_context_from_db(
+                {}, "", target_name=destination_name)
+
+            if results.exists():
+                # --- Langkah 5: Format Respons Jika Ditemukan ---
+                headline = f"Saya cukup yakin gambar ini adalah **{results.first().name}**! Berikut beberapa detailnya:\n"
+                rag_context, context_to_save = _format_results_and_build_context(
+                    results, headline=headline, limit=1)
+
+                bot_reply = rag_context
+                session.active_context = {'destinations': context_to_save}
+                session.save()
+            else:
+                # Dikenali oleh Gemini, tapi tidak ada di database kita
+                bot_reply = f"Menarik! Sepertinya saya mengenali ini sebagai {destination_name}, tapi sayangnya detailnya belum ada di database Balinara. Mungkin ini destinasi baru yang bisa kamu tambahkan?"
+        else:
+            # --- Langkah 6: Respons Jika Tidak Dikenali ---
+            bot_reply = "Hmm, saya sudah coba menganalisis gambarnya tapi sepertinya saya belum mengenali tempat ini sebagai destinasi wisata di Bali. Mungkin Anda bisa coba gambar lain yang lebih jelas?"
+
+    except Exception as e:
+        logger.error(f"Error processing image query: {e}")
+        bot_reply = "Maaf, terjadi sedikit masalah saat saya mencoba menganalisis gambar Anda. Silakan coba lagi."
+
+    # --- Langkah 7: Simpan Percakapan ---
+    # Kita representasikan pesan pengguna sebagai teks untuk disimpan di riwayat
+    user_message_for_db = f"[Gambar Diupload] {user_message}".strip()
+    image_file.seek(0)
+    Message.objects.create(session=session, sender='user',
+                           text=user_message_for_db, image=image_file)
+    Message.objects.create(session=session, sender='model', text=bot_reply)
+
+    return bot_reply
