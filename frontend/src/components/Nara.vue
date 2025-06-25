@@ -13,6 +13,9 @@ import ConfirmationToast from '@/components/ConfirmationToast.vue'
 
 const chatStore = useChatStore()
 
+const selectedImageFile = ref(null)
+const imagePreviewUrl = ref(null)
+const fileInput = ref(null)
 const userInput = ref('')
 const isOpen = ref(false)
 const messagesContainer = ref(null)
@@ -31,10 +34,15 @@ const isLoadingHistory = computed(() => chatStore.isLoadingHistory)
 const error = computed(() => chatStore.error)
 
 const handleSendMessage = async () => {
-  if (!userInput.value.trim()) return
+  if (!userInput.value.trim() && !selectedImageFile.value) return
 
-  const messageText = userInput.value
-  userInput.value = '' // Kosongkan input segera
+  const payload = {
+    text: userInput.value,
+    image: selectedImageFile.value,
+  }
+
+  userInput.value = '' // Kosongkan input segerac
+  removeSelectedImage()
 
   await nextTick()
   if (userInputField.value) {
@@ -43,7 +51,7 @@ const handleSendMessage = async () => {
 
   // Cukup panggil action store. Store yang akan menangani semuanya.
   try {
-    await chatStore.sendMessage(messageText)
+    await chatStore.sendMessage(payload)
     focusUserInput()
     // focusUserInput()
   } catch (err) {
@@ -177,6 +185,39 @@ const autoResizeTextarea = () => {
   if (userInputField.value) {
     userInputField.value.style.height = 'auto' // Reset tinggi untuk perhitungan yang benar
     userInputField.value.style.height = `${userInputField.value.scrollHeight}px`
+  }
+}
+
+const triggerFileInput = () => {
+  fileInput.value.click()
+}
+
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  // Validasi sederhana (opsional tapi sangat disarankan)
+  if (!file.type.startsWith('image/')) {
+    showNotification('error', 'Please select an image file.')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    // 5MB limit
+    showNotification('error', 'Image size cannot exceed 5MB.')
+    return
+  }
+
+  selectedImageFile.value = file
+  imagePreviewUrl.value = URL.createObjectURL(file)
+  focusUserInput()
+}
+
+const removeSelectedImage = () => {
+  selectedImageFile.value = null
+  imagePreviewUrl.value = null
+  // Penting untuk mereset value dari input file agar bisa memilih file yang sama lagi
+  if (fileInput.value) {
+    fileInput.value.value = ''
   }
 }
 </script>
@@ -349,7 +390,17 @@ const autoResizeTextarea = () => {
                   'bg-neu-100 rounded-tr-none': message.sender === 'user',
                 }"
               >
-                <p v-html="formatMessage(message.text)"></p>
+                <div>
+                  <img
+                    v-if="message.image"
+                    :src="message.image"
+                    alt="Uploaded image in chat"
+                    class="rounded-lg mb-2 max-w-full h-auto cursor-pointer"
+                    @click="openImageInNewTab(message.image)"
+                  />
+
+                  <p v-if="message.text" v-html="formatMessage(message.text)"></p>
+                </div>
                 <small
                   v-if="message.timestamp"
                   class="block text-right mt-1 text-[10px]"
@@ -405,14 +456,72 @@ const autoResizeTextarea = () => {
             </button>
           </div>
 
+          <div v-if="imagePreviewUrl" class="relative w-32 h-32 mb-2">
+            <img
+              :src="imagePreviewUrl"
+              class="w-full h-full object-cover rounded-lg"
+              alt="Image preview"
+            />
+            <button
+              @click="removeSelectedImage"
+              class="absolute -top-2 -right-2 bg-gray-700 text-white rounded-full p-1 leading-none"
+              aria-label="Remove image"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
           <form @submit.prevent="handleSendMessage" class="flex items-center space-x-2">
+            <button
+              type="button"
+              @click="triggerFileInput"
+              class="flex-shrink-0 text-neu-500 rounded-lg hover:text-pr-500 size-8 flex items-center justify-center"
+              aria-label="Attach Image"
+            >
+              <svg
+                version="1.1"
+                class="size-6"
+                fill="currentColor"
+                id="Uploaded to svgrepo.com"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
+                viewBox="0 0 32 32"
+                xml:space="preserve"
+              >
+                <path
+                  d="M27.41,5.586c-1.021-1.021-2.363-1.532-3.705-1.532S21.021,4.564,20,5.586L8.153,17.431
+	c-1.216,1.216-1.216,3.196,0.002,4.414c1.217,1.217,3.195,1.217,4.412,0l8.26-8.26l-1.414-1.414l-8.26,8.26
+	c-0.437,0.436-1.146,0.437-1.586-0.002c-0.437-0.437-0.437-1.147,0-1.584L21.414,7C22.678,5.738,24.732,5.737,26,7.004
+	c1.263,1.263,1.263,3.319,0,4.582L14.151,23.433c-2.091,2.089-5.491,2.089-7.586-0.006c-2.09-2.09-2.09-5.49,0-7.58L16.828,5.586
+	l-1.414-1.414L5.151,14.433c-2.87,2.87-2.87,7.539,0.006,10.414c2.869,2.87,7.539,2.87,10.408,0L27.414,13
+	C29.457,10.957,29.457,7.633,27.41,5.586z"
+                />
+              </svg>
+            </button>
+
+            <input
+              type="file"
+              ref="fileInput"
+              @change="handleFileSelect"
+              class="hidden"
+              accept="image/png, image/jpeg, image/webp"
+            />
             <textarea
               ref="userInputField"
               v-model="userInput"
               @input="autoResizeTextarea"
               @keydown.enter.exact.prevent="handleSendMessage"
               placeholder="Start a conversation..."
-              class="flex-grow p-2.5 rounded-lg focus:ring-1 focus:ring-neu-200 focus:border-transparent outline-none text-sm resize-none overflow-hidden"
+              class="flex-grow p-2.5 rounded-lg focus:ring-1 focus:ring-inset focus:ring-neu-200 focus:border-transparent outline-none text-sm resize-none overflow-hidden"
               rows="1"
               :disabled="isSending || isLoadingHistory"
               aria-label="Chat input"
