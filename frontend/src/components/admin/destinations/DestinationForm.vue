@@ -1,7 +1,7 @@
 <script setup>
 import Subtract from '@/components/icons/Subtract.vue'
 import ArrowDown from '@/components/icons/ArrowDown.vue'
-import { ref, watchEffect, watch } from 'vue'
+import { ref, watchEffect, watch, computed } from 'vue'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useFacilityStore } from '@/stores/facilityStore'
 import { useDestinationStore } from '@/stores/destinationStore'
@@ -51,7 +51,15 @@ const formData = ref({
   },
 })
 
-const galleryImages = ref([])
+const galleryImages = computed(() => {
+  if (props.isEditMode) {
+    console.log('Data gambar dari store:', store.currentDestination?.images)
+    return store.currentDestination?.images || []
+  }
+  return tempImagesForCreate.value
+})
+
+const tempImagesForCreate = ref([])
 const isUploading = ref(false)
 
 const minPrice = ref('')
@@ -77,9 +85,6 @@ watch(
       formData.value.contact_data = { ...(newData.contact || formData.value.contact_data) }
       formData.value.category_ids = (newData.categories || []).map((c) => c.id)
       formData.value.facility_ids = (newData.facilities || []).map((f) => f.id)
-
-      // Isi galeri dengan gambar yang sudah ada
-      galleryImages.value = [...(newData.images || [])]
     }
   },
   { immediate: true, deep: true },
@@ -129,9 +134,18 @@ async function handleImageDelete(image) {
       showNotification('error', 'Failed to delete image.')
     }
   } else {
-    // MODE CREATE: Hapus dari daftar temporary di frontend
-    galleryImages.value = galleryImages.value.filter((img) => img.id !== image.id)
-    // Optional: panggil API untuk hapus file di backend temporarydy
+    tempImagesForCreate.value = tempImagesForCreate.value.filter((img) => img.id !== image.id)
+  }
+}
+
+async function handleSetPrimary(image) {
+  // Tombol ini hanya berfungsi di mode edit
+  if (!props.isEditMode || image.is_primary) return
+
+  try {
+    await store.setPrimaryImage(props.initialData.slug, image.id)
+  } catch (error) {
+    /* error sudah dihandle di store */
   }
 }
 
@@ -140,7 +154,7 @@ function submitForm() {
 
   // Saat mode create, tambahkan ID gambar temporary ke payload
   if (!props.isEditMode) {
-    payload.image_ids = galleryImages.value.map((img) => img.id)
+    payload.image_ids = tempImagesForCreate.value.map((img) => img.id)
     if (payload.image_ids.length < 3) {
       showNotification('error', 'Please upload at least 3 images.')
       return
@@ -351,19 +365,37 @@ watchEffect(() => {
                 v-for="image in galleryImages"
                 :key="image.id"
                 class="relative group aspect-square"
+                :class="{ 'ring-4 ring-offset-2 ring-pr-500 rounded-md': image.is_primary }"
               >
                 <img
                   :src="image.image_url"
                   :alt="image.alt_text || `image-${image.id}`"
                   class="w-full h-full object-cover rounded-md shadow-md"
                 />
+
                 <div
-                  class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-60 transition-all flex items-center justify-center"
+                  v-if="image.is_primary"
+                  class="absolute top-2 right-2 bg-pr-600 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg"
                 >
+                  Primary
+                </div>
+
+                <div
+                  class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-300 flex flex-col items-center justify-center gap-2 p-2 rounded-md"
+                >
+                  <button
+                    v-if="isEditMode && !image.is_primary"
+                    @click="handleSetPrimary(image)"
+                    type="button"
+                    class="opacity-0 group-hover:opacity-100 transition-opacity w-full text-center px-3 py-1 bg-blue-600 text-white text-xs rounded-full"
+                  >
+                    Set as Primary
+                  </button>
+
                   <button
                     @click="handleImageDelete(image)"
                     type="button"
-                    class="opacity-0 group-hover:opacity-100 px-3 py-1 bg-red-600 text-white text-xs rounded-full transition-opacity"
+                    class="opacity-0 group-hover:opacity-100 transition-opacity w-full text-center px-3 py-1 bg-red-600 text-white text-xs rounded-full"
                   >
                     Delete
                   </button>

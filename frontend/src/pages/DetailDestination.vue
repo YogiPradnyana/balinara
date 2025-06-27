@@ -148,11 +148,11 @@ const reviewData = ref([
 }
 </style>
 <template>
+  <!-- <ImageModal /> -->
   <div v-if="isLoading" class="text-center py-40">Loading...</div>
   <div v-else-if="error" class="text-center py-40 text-red-500">
     Error loading destination: {{ error.message }}
   </div>
-  <!-- <ImageModal /> -->
   <!-- Main Content -->
   <div v-else-if="destination" class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <!-- Breadcrumb -->

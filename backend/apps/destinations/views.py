@@ -75,6 +75,33 @@ class DestinationViewSet(viewsets.ModelViewSet):
         # serializer.save(last_updated_by=self.request.user)
         serializer.save()
 
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser],
+            url_path='images/(?P<image_pk>[0-9]+)/set-primary')
+    def set_primary_image(self, request, slug=None, image_pk=None):
+        """
+        Action untuk menetapkan sebuah gambar sebagai primary.
+        """
+        destination = self.get_object()  # Memastikan destinasi ada
+        try:
+            # Cari gambar yang dimaksud dan pastikan gambar itu milik destinasi ini
+            image_to_set = DestinationImage.objects.get(
+                id=image_pk, destination=destination)
+
+            # Set sebagai primary dan simpan.
+            # Logika di model DestinationImage.save() akan otomatis menangani
+            # unset primary pada gambar lainnya.
+            image_to_set.is_primary = True
+            image_to_set.save()
+
+            # Kembalikan data destinasi yang sudah terupdate agar frontend bisa sinkronisasi
+            serializer = self.get_serializer(destination)
+            return Response(serializer.data)
+
+        except DestinationImage.DoesNotExist:
+            return Response({'error': 'Image not found for this destination.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     # Action untuk upload gambar
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser],
             parser_classes=[MultiPartParser, FormParser], url_path='images/upload')

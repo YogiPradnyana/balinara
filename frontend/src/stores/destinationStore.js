@@ -1,6 +1,7 @@
 // src/stores/destinationStore.js
 import { defineStore } from 'pinia'
 import apiClient from '@/api/axiosInstance' // Menggunakan apiClient
+import { showNotification } from '@/services/notificationService'
 
 const DESTINATIONS_API_PATH = '/destinations/' // Path relatif dari baseURL apiClient
 
@@ -176,13 +177,10 @@ export const useDestinationStore = defineStore('destination', {
         })
 
         const newImages = response.data.uploaded_images
-
-        // 1. Pastikan respons berisi data yang kita harapkan
-        if (newImages && this.currentDestination && this.currentDestination.images) {
-          // 2. Tambahkan gambar-gambar baru ke array yang sudah ada (Mutasi Lokal)
+        if (newImages && this.currentDestination?.images) {
+          // Langsung tambahkan ke state pusat
           this.currentDestination.images.push(...newImages)
         }
-
         return response.data
       } catch (err) {
         console.error('Upload Image Error in Store:', err.response?.data)
@@ -202,17 +200,42 @@ export const useDestinationStore = defineStore('destination', {
         // Perhatikan bagaimana kita menyusun URL-nya sesuai dengan yang ada di views.py Anda.
         await apiClient.delete(`${DESTINATIONS_API_PATH}${slug}/images/${imageId}/delete/`)
 
-        // Sama seperti upload, setelah berhasil hapus, muat ulang data destinasi
-        // agar gambar yang dihapus hilang dari tampilan.
-        if (this.currentDestination && this.currentDestination.images) {
-          // 2. Buat array baru tanpa gambar yang dihapus (Mutasi Lokal)
-          this.currentDestination.images = this.currentDestination.images.filter(
-            (image) => image.id !== imageId,
-          )
+        if (this.currentDestination?.images) {
+          // Langsung hapus dari state pusat
+          const index = this.currentDestination.images.findIndex((img) => img.id === imageId)
+          if (index > -1) {
+            this.currentDestination.images.splice(index, 1)
+          }
         }
       } catch (err) {
         this.error = err.response?.data?.detail || 'Gagal menghapus gambar.'
         console.error('Delete Image Error:', this.error)
+        throw err
+      }
+    },
+
+    async setPrimaryImage(slug, imageId) {
+      this.error = null
+      try {
+        // Panggil endpoint baru dengan method POST
+        const response = await apiClient.post(
+          `${DESTINATIONS_API_PATH}${slug}/images/${imageId}/set-primary/`,
+        )
+
+        const updatedImages = response.data.images
+
+        if (this.currentDestination && updatedImages) {
+          this.currentDestination.images = updatedImages
+        }
+
+        showNotification('success', 'Primary image has been updated.')
+
+        // KEMBALIKAN DATA GAMBAR YANG SUDAH UPDATE
+        return updatedImages
+      } catch (err) {
+        this.error = err.response?.data?.detail || 'Failed to set primary image.'
+        showNotification('error', this.error)
+        console.error('Set Primary Image Error:', this.error)
         throw err
       }
     },
