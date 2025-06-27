@@ -151,3 +151,27 @@ class DestinationImage(models.Model):
             # save=False agar tidak mencoba save model lagi
             self.image.delete(save=False)
         super().delete(*args, **kwargs)
+
+
+def temporary_image_path_processor(instance, filename):
+    """Fungsi path untuk gambar sementara."""
+    ext = filename.split('.')[-1].lower()
+    # Simpan dalam satu folder temporary dengan nama file unik
+    new_filename = f'{uuid.uuid4()}.{ext}'
+    return f'destination_images/temp/{new_filename}'
+
+
+class TemporaryImage(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    image = models.ImageField(
+        _("Temporary Image File"), upload_to=temporary_image_path_processor)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.id)
+
+    def delete(self, *args, **kwargs):
+        # Pastikan file fisik juga dihapus saat record dihapus
+        if self.image:
+            self.image.delete(save=False)
+        super().delete(*args, **kwargs)

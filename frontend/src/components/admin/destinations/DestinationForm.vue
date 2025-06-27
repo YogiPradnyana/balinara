@@ -4,6 +4,8 @@ import ArrowDown from '@/components/icons/ArrowDown.vue'
 import { ref, watchEffect, watch } from 'vue'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useFacilityStore } from '@/stores/facilityStore'
+import { useDestinationStore } from '@/stores/destinationStore'
+import { showNotification } from '@/services/notificationService'
 
 const props = defineProps({
   initialData: {
@@ -26,6 +28,8 @@ const props = defineProps({
 })
 const emit = defineEmits(['submit'])
 
+const store = useDestinationStore()
+
 const formData = ref({
   name: '',
   description: '',
@@ -47,6 +51,9 @@ const formData = ref({
   },
 })
 
+const galleryImages = ref([])
+const isUploading = ref(false)
+
 const minPrice = ref('')
 const maxPrice = ref('')
 
@@ -57,18 +64,91 @@ if (categoryStore.allCategories.length === 0) categoryStore.fetchCategories()
 if (facilityStore.allFacilities.length === 0) facilityStore.fetchFacilities()
 
 // 4. "Pengawas" yang akan mengisi form jika ini adalah mode Edit
-watchEffect(() => {
-  if (props.isEditMode && props.initialData && props.initialData.id) {
-    formData.value.name = props.initialData.name || ''
-    formData.value.description = props.initialData.description || ''
-    formData.value.ticket_price_range = props.initialData.ticket_price_range || ''
-    formData.value.is_published = props.initialData.is_published || false
-    formData.value.category_ids = props.initialData.categories?.map((c) => c.id) || []
-    formData.value.facility_ids = props.initialData.facilities?.map((f) => f.id) || []
-    formData.value.address_data = { ...props.initialData.address }
-    formData.value.contact_data = { ...props.initialData.contact }
+watch(
+  () => props.initialData,
+  (newData) => {
+    if (props.isEditMode && newData) {
+      // Isi form dengan data yang ada
+      formData.value.name = newData.name || ''
+      formData.value.description = newData.description || ''
+      formData.value.ticket_price_range = newData.ticket_price_range || ''
+      formData.value.is_published = newData.is_published || false
+      formData.value.address_data = { ...(newData.address || formData.value.address_data) }
+      formData.value.contact_data = { ...(newData.contact || formData.value.contact_data) }
+      formData.value.category_ids = (newData.categories || []).map((c) => c.id)
+      formData.value.facility_ids = (newData.facilities || []).map((f) => f.id)
+
+      // Isi galeri dengan gambar yang sudah ada
+      galleryImages.value = [...(newData.images || [])]
+    }
+  },
+  { immediate: true, deep: true },
+)
+
+async function handleFileChange(event) {
+  const files = Array.from(event.target.files)
+  if (files.length === 0) return
+
+  isUploading.value = true
+
+  if (props.isEditMode) {
+    // MODE EDIT: Langsung upload ke destinasi yang sudah ada
+    const formData = new FormData()
+    for (const file of files) {
+      formData.append('images', file)
+    }
+    try {
+      await store.uploadDestinationImage(props.initialData.slug, formData)
+      // Data galeri akan otomatis ter-update karena store akan fetch ulang
+    } catch (error) {
+      showNotification('error', 'An error occurred during upload.')
+    }
+  } else {
+    // MODE CREATE: Upload ke endpoint temporary
+    for (const file of files) {
+      try {
+        const tempImage = await store.uploadTemporaryImage(file)
+        // Ganti properti 'image' menjadi 'image_url' agar konsisten dengan objek DestinationImage
+        galleryImages.value.push({ id: tempImage.id, image_url: tempImage.image, isTemp: true })
+      } catch (error) {
+        showNotification('error', `Failed to upload ${file.name}.`)
+      }
+    }
   }
-})
+
+  isUploading.value = false
+  event.target.value = '' // Reset input file
+}
+
+async function handleImageDelete(image) {
+  if (props.isEditMode) {
+    // MODE EDIT: Hapus gambar permanen
+    try {
+      await store.deleteDestinationImage(props.initialData.slug, image.id)
+    } catch (error) {
+      showNotification('error', 'Failed to delete image.')
+    }
+  } else {
+    // MODE CREATE: Hapus dari daftar temporary di frontend
+    galleryImages.value = galleryImages.value.filter((img) => img.id !== image.id)
+    // Optional: panggil API untuk hapus file di backend temporarydy
+  }
+}
+
+function submitForm() {
+  let payload = { ...formData.value }
+
+  // Saat mode create, tambahkan ID gambar temporary ke payload
+  if (!props.isEditMode) {
+    payload.image_ids = galleryImages.value.map((img) => img.id)
+    if (payload.image_ids.length < 3) {
+      showNotification('error', 'Please upload at least 3 images.')
+      return
+    }
+  }
+
+  emit('submit', payload)
+}
 
 watch([minPrice, maxPrice], ([newMin, newMax]) => {
   // Membersihkan nilai dari titik atau koma jika ada (untuk perhitungan)
@@ -105,13 +185,9 @@ watchEffect(() => {
     }
   }
 })
-
-function handleSubmit() {
-  emit('submit', formData.value)
-}
 </script>
 <template>
-  <form @submit.prevent="handleSubmit" class="space-y-6">
+  <form @submit.prevent="submitForm" class="space-y-6">
     <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
       <!-- Form Left -->
       <div
@@ -240,11 +316,62 @@ function handleSubmit() {
           </p>
         </div>
 
-        <div class="flex flex-col gap-3">
-          <div class="text-base font-semibold">Photo</div>
-          <p class="text-sm text-neu-500">
-            Manajemen foto (upload/delete) bisa dilakukan setelah destinasi ini dibuat/disimpan.
+        <div class="mt-8 pt-6 border-t">
+          <h3 class="text-lg font-medium leading-6 text-gray-900">Gallery Images</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            {{
+              isEditMode
+                ? 'Manage your destination images.'
+                : 'Upload at least 3 images for the destination.'
+            }}
           </p>
+
+          <div class="mt-4 p-6 border bg-gray-50 rounded-lg">
+            <label for="imageUploadInput" class="block text-base font-semibold text-gray-800"
+              >Upload New Images</label
+            >
+            <input
+              type="file"
+              id="imageUploadInput"
+              @change="handleFileChange"
+              multiple
+              accept="image/*"
+              class="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pr-100 file:text-pr-700 hover:file:bg-pr-200"
+              :disabled="isUploading"
+            />
+            <p v-if="isUploading" class="text-sm text-blue-600 mt-2">Uploading...</p>
+          </div>
+
+          <div v-if="galleryImages.length > 0" class="mt-6">
+            <h4 class="text-base font-semibold mb-4">
+              Current Gallery ({{ galleryImages.length }} images)
+            </h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <div
+                v-for="image in galleryImages"
+                :key="image.id"
+                class="relative group aspect-square"
+              >
+                <img
+                  :src="image.image_url"
+                  :alt="image.alt_text || `image-${image.id}`"
+                  class="w-full h-full object-cover rounded-md shadow-md"
+                />
+                <div
+                  class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-60 transition-all flex items-center justify-center"
+                >
+                  <button
+                    @click="handleImageDelete(image)"
+                    type="button"
+                    class="opacity-0 group-hover:opacity-100 px-3 py-1 bg-red-600 text-white text-xs rounded-full transition-opacity"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p v-else class="text-sm text-gray-500 italic mt-4">No images have been uploaded yet.</p>
         </div>
       </div>
 

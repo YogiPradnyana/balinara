@@ -13,13 +13,13 @@ const formErrors = ref(null)
 async function handleCreateDestination(formData) {
   formErrors.value = null
   try {
-    const newDestination = await destinationStore.createDestination(formData)
+    await destinationStore.createDestination(formData)
     showNotification('success', 'Destination added successfully')
-    router.push({ name: 'AdminDestinationEdit', params: { slug: newDestination.slug } })
+    router.push({ name: 'AdminDestinations' })
   } catch (error) {
-    // Tampilkan notifikasi error
-    formErrors.value = error.response?.data
-    console.error('Full error response:', formErrors.value)
+    formErrors.value = error
+    showNotification('error', 'Failed to create destination. Please check the form for errors.')
+    console.error('Full error response:', error)
   }
 }
 </script>

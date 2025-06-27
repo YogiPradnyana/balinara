@@ -10,11 +10,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from .filters import DestinationFilter
 
-from .models import Destination, DestinationImage
+from .models import Destination, DestinationImage, TemporaryImage
 from .serializers import (
     DestinationListSerializer,
     DestinationDetailCRUDSerializer,
-    DestinationImageSerializer
+    DestinationImageSerializer,
+    TemporaryImageSerializer
 )
 # Impor jika perlu untuk filter atau validasi
 from apps.common.models import Category, Facility
@@ -153,7 +154,35 @@ class DestinationViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Image not found for this destination.'}, status=status.HTTP_404_NOT_FOUND)
 
 
+class TemporaryImageViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint untuk mengunggah dan menghapus gambar sementara.
+    - POST /api/destinations/temp-images/ : unggah gambar baru
+    - DELETE /api/destinations/temp-images/{id}/ : hapus gambar sementara
+    """
+    queryset = TemporaryImage.objects.all()
+    serializer_class = TemporaryImageSerializer
+    # Hanya admin yang bisa upload
+    permission_classes = [permissions.IsAdminUser]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def create(self, request, *args, **kwargs):
+        # Hanya menangani satu file per request agar lebih sederhana
+        image_file = request.FILES.get('image')
+        if not image_file:
+            return Response({'detail': 'No image file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Pastikan data yang dikirim ke serializer dalam format yang benar
+        data_for_serializer = {'image': image_file}
+        serializer = self.get_serializer(data=data_for_serializer)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
 # === ViewSet untuk Kategori (Read-Only) ===
+
+
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint untuk melihat daftar kategori destinasi.

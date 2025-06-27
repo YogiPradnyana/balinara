@@ -71,12 +71,36 @@ export const useDestinationStore = defineStore('destination', {
       }
     },
 
+    async uploadTemporaryImage(file) {
+      const formData = new FormData()
+      formData.append('image', file)
+
+      try {
+        // Panggil endpoint temp-images yang baru dibuat
+        const response = await apiClient.post(`${DESTINATIONS_API_PATH}temp-images/`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+        return response.data // Mengembalikan data gambar sementara {id, image, ...}
+      } catch (err) {
+        console.error('Temporary Image Upload Error:', err.response?.data)
+        // Lemparkan error agar bisa ditangani di komponen
+        throw err.response?.data || { detail: 'Failed to upload temporary image.' }
+      }
+    },
+
     async createDestination(destinationData) {
       this.isLoadingDetail = true
       this.error = null
 
       try {
-        const response = await apiClient.post(DESTINATIONS_API_PATH, destinationData)
+        const response = await apiClient.post(DESTINATIONS_API_PATH, destinationData, {
+          headers: {
+            // Pastikan header di-set ke JSON, karena kita tidak mengirim file langsung di sini
+            'Content-Type': 'application/json',
+          },
+        })
 
         await this.fetchDestinations()
 
@@ -142,7 +166,6 @@ export const useDestinationStore = defineStore('destination', {
     },
 
     async uploadDestinationImage(slug, formData) {
-      this.isLoadingDetail = true
       this.error = null
 
       try {
@@ -152,7 +175,13 @@ export const useDestinationStore = defineStore('destination', {
           },
         })
 
-        this.fetchDestinationBySlug(slug)
+        const newImages = response.data.uploaded_images
+
+        // 1. Pastikan respons berisi data yang kita harapkan
+        if (newImages && this.currentDestination && this.currentDestination.images) {
+          // 2. Tambahkan gambar-gambar baru ke array yang sudah ada (Mutasi Lokal)
+          this.currentDestination.images.push(...newImages)
+        }
 
         return response.data
       } catch (err) {
@@ -162,13 +191,10 @@ export const useDestinationStore = defineStore('destination', {
           err.response?.data?.errors?.join(', ') ||
           'An error occurred during image upload.'
         throw this.error
-      } finally {
-        this.isLoadingDetail = false
       }
     },
 
     async deleteDestinationImage(slug, imageId) {
-      this.isLoadingDetail = true
       this.error = null
 
       try {
@@ -178,13 +204,16 @@ export const useDestinationStore = defineStore('destination', {
 
         // Sama seperti upload, setelah berhasil hapus, muat ulang data destinasi
         // agar gambar yang dihapus hilang dari tampilan.
-        await this.fetchDestinationBySlug(slug)
+        if (this.currentDestination && this.currentDestination.images) {
+          // 2. Buat array baru tanpa gambar yang dihapus (Mutasi Lokal)
+          this.currentDestination.images = this.currentDestination.images.filter(
+            (image) => image.id !== imageId,
+          )
+        }
       } catch (err) {
         this.error = err.response?.data?.detail || 'Gagal menghapus gambar.'
         console.error('Delete Image Error:', this.error)
         throw err
-      } finally {
-        this.isLoadingDetail = false
       }
     },
 

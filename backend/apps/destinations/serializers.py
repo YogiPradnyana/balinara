@@ -3,7 +3,7 @@ from rest_framework import serializers
 # Untuk atomic transaction saat create/update nested
 from django.db import transaction
 
-from .models import Destination, DestinationImage
+from .models import Destination, DestinationImage, TemporaryImage
 from apps.common.models import Category, Address, Contact, Facility
 from apps.common.serializers import (
     CategorySerializer,
@@ -69,7 +69,15 @@ class DestinationListSerializer(serializers.ModelSerializer):
         return None
 
 
+class TemporaryImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TemporaryImage
+        fields = ['id', 'image', 'uploaded_at']
+        read_only_fields = ('uploaded_at',)
+
 # --- Serializer untuk Detail, Create, dan Update Destinasi ---
+
+
 class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
     # --- READ-ONLY fields (untuk GET response) ---
     categories = CategorySerializer(many=True, read_only=True)
@@ -99,6 +107,12 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
         many=True, required=False
     )
 
+    image_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        write_only=True,
+        required=True  # Buat opsional, atau True jika gambar wajib
+    )
+
     class Meta:
         model = Destination
         fields = [
@@ -107,7 +121,7 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
             # Read-only representasi
             'categories', 'address', 'contact', 'facilities', 'images',
             # Write-only/input fields
-            'category_ids', 'address_data', 'contact_data', 'facility_ids',
+            'category_ids', 'address_data', 'contact_data', 'facility_ids', 'image_ids',
             'created_at', 'updated_at'
         ]
         read_only_fields = (
@@ -139,6 +153,7 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
 
     @transaction.atomic  # Pastikan operasi database bersifat atomic
     def create(self, validated_data):
+        image_ids = validated_data.pop('image_ids', [])
         address_data = validated_data.pop('address_data', None)
         contact_data = validated_data.pop('contact_data', None)
         # facilities dan category sudah di-handle oleh source di PrimaryKeyRelatedField
@@ -162,6 +177,25 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
             destination.categories.set(categories_qs)
         if facilities_qs:
             destination.facilities.set(facilities_qs)
+
+        if image_ids:
+            temp_images = TemporaryImage.objects.filter(id__in=image_ids)
+            for temp_image in temp_images:
+                # Buat DestinationImage baru dari file sementara
+                destination_image = DestinationImage(
+                    destination=destination,
+                    alt_text=f"Image for {destination.name}",
+                )
+                # Pindahkan file dari temp ke lokasi permanen
+                destination_image.image.save(
+                    temp_image.image.name.split(
+                        '/')[-1],  # Ambil nama file asli
+                    temp_image.image.file,  # Ambil objek file
+                    save=True
+                )
+                # Hapus objek TemporaryImage (ini juga akan menghapus file fisiknya karena metode delete kustom)
+                temp_image.delete()
+
         return destination
 
     @transaction.atomic
