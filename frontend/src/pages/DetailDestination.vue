@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue'
+import { ref, watch, computed, onMounted, onActivated } from 'vue'
 import ArrowLeft from '@/components/icons/ArrowLeft.vue'
 import ArrowRight2 from '@/components/icons/ArrowRight2.vue'
 import ArrowUpRight from '@/components/icons/ArrowUpRight.vue'
@@ -9,22 +9,25 @@ import Heart from '@/components/icons/Heart.vue'
 import Location from '@/components/icons/Location.vue'
 import Mail from '@/components/icons/Mail.vue'
 import Search from '@/components/icons/Search.vue'
-import Star from '@/components/icons/Star.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
-import Temple from '@/components/icons/Temple.vue'
 import StarRatingDisplay from '@/components/StarRatingDisplay.vue'
 import ImageModal from '@/components/ImageModal.vue'
 import FacilityIcon from '@/components/icons/facilities/FacilityIcon.vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { useDestinationStore } from '@/stores/destinationStore'
+import WishlistButton from '@/components/WishlistButton.vue'
+import { useWishlistStore } from '@/stores/wishlistStore'
 
 const route = useRoute()
-const router = useRouter()
 const destinationStore = useDestinationStore()
 
 const destination = computed(() => destinationStore.currentDestination)
 const isLoading = computed(() => destinationStore.isLoadingDetail)
 const error = computed(() => destinationStore.error)
+
+onActivated(() => {
+  useWishlistStore().fetchWishlist()
+})
 
 onMounted(() => {
   const slug = route.params.slug
@@ -241,12 +244,7 @@ const reviewData = ref([
                 {{ destination.name }}
               </h1>
               <div class="flex gap-1.5 sm:gap-2.5">
-                <div
-                  class="px-2 sm:px-4 border-neu-200 text-sm sm:text-base border-[1.6px] gap-2 py-2 rounded-full font-medium items-center flex"
-                >
-                  <Heart class="size-5 sm:size-6" />
-                  <span class="hidden sm:block">Save</span>
-                </div>
+                <WishlistButton :destination-id="destination.id" :is-icon="false" />
               </div>
             </div>
 

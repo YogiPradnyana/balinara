@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onActivated } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDestinationStore } from '@/stores/destinationStore'
 import { useCategoryStore } from '@/stores/categoryStore' // Asumsi store kategori ada di common
@@ -7,10 +7,11 @@ import { useCategoryStore } from '@/stores/categoryStore' // Asumsi store katego
 
 // Import ikon Anda
 import Filter from '@/components/icons/Filter.vue'
-import Heart from '@/components/icons/Heart.vue'
 import Location from '@/components/icons/Location.vue'
 import Star from '@/components/icons/Star.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
+import WishlistButton from '@/components/WishlistButton.vue'
+import { useWishlistStore } from '@/stores/wishlistStore'
 
 const route = useRoute()
 const router = useRouter()
@@ -30,8 +31,6 @@ const queryParams = ref({
 })
 
 function formatAddress(address) {
-  console.log(address)
-
   if (!address) {
     return 'N/A'
   }
@@ -96,6 +95,12 @@ onMounted(() => {
 
   if (categoriesForFilter.value.length === 0) categoryStore.fetchCategories()
   // if (facilitiesForFilter.value.length === 0) facilityStore.fetchFacilities();
+})
+
+// 2. Ini berjalan SETIAP KALI halaman ini ditampilkan kembali
+//    (termasuk saat Anda "kembali" dari halaman wishlist)
+onActivated(() => {
+  useWishlistStore().fetchWishlist()
 })
 
 // Watcher untuk perubahan filter/search/ordering untuk memicu fetch ulang
@@ -351,9 +356,7 @@ const keyword = computed({
               <div
                 class="flex flex-col justify-between items-end absolute bottom-0 top-0 left-0 right-0 p-3"
               >
-                <div class="p-2 flex items-center justify-center bg-sur-50 rounded-full w-fit">
-                  <Heart class="size-6 text-neu-900" />
-                </div>
+                <WishlistButton :destination-id="destination.id" :is-icon="true" />
                 <p class="text-[8px] w-full text-start md:text-[10px] text-neu-50">
                   Photo by unsplash
                 </p>

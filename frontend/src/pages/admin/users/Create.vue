@@ -19,23 +19,24 @@ const togglePasswordVisibility = () => {
 
 const createUser = async () => {
   try {
-    const response = await axios.post('http://localhost:8000/api/users/create-admin/', { // Ganti dengan URL API Django Anda yang sebenarnya
+    const response = await axios.post('http://localhost:8000/api/users/create-admin/', {
+      // Ganti dengan URL API Django Anda yang sebenarnya
       username: username.value,
       email: email.value,
       phone_number: phoneNumber.value, // Pastikan ini cocok dengan nama bidang Django Anda
       password: password.value,
-    });
-    console.log('User created successfully:', response.data);
-    alert('Admin user created successfully!');
-    router.push({ name: 'AdminUsers' }); // Arahkan kembali ke halaman manajemen pengguna
+    })
+    console.log('User created successfully:', response.data)
+    alert('Admin user created successfully!')
+    router.push({ name: 'AdminUsers' }) // Arahkan kembali ke halaman manajemen pengguna
   } catch (error) {
-    console.error('Error creating user:', error);
+    console.error('Error creating user:', error)
     if (axios.isAxiosError(error) && error.response) {
       // Tangani kesalahan validasi atau kesalahan lain dari backend
-      console.error('Response data:', error.response.data);
-      alert('Failed to create admin user: ' + JSON.stringify(error.response.data));
+      console.error('Response data:', error.response.data)
+      alert('Failed to create admin user: ' + JSON.stringify(error.response.data))
     } else {
-      alert('An unexpected error occurred.');
+      alert('An unexpected error occurred.')
     }
   }
 }
@@ -98,9 +99,9 @@ const createUser = async () => {
               class="w-full border text-sm ps-3 pe-10 py-3 border-neu-200 rounded-full"
               placeholder="Password"
             />
-            <Show 
-              class="size-5.5 absolute top-1/2 -translate-y-1/2 right-3 cursor-pointer" 
-              @click="togglePasswordVisibility" 
+            <Show
+              class="size-5.5 absolute top-1/2 -translate-y-1/2 right-3 cursor-pointer"
+              @click="togglePasswordVisibility"
             />
           </div>
         </div>
