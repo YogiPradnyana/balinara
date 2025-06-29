@@ -7,6 +7,10 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+import os
+from io import BytesIO
+from PIL import Image
+from django.core.files.base import ContentFile
 
 # Impor model dari aplikasi 'common'
 # Pastikan Django bisa menemukan path ini. Jika 'apps' adalah root source Anda, maka ini benar.
@@ -81,6 +85,12 @@ class Destination(models.Model):
     is_published = models.BooleanField(
         _("Is Published"), default=False,
         help_text=_("Check if the destination is ready to be shown to users."))
+    
+    is_deleted = models.BooleanField(
+        default=False, 
+        db_index=True, 
+        help_text="Mark if this destination is moved to trash (soft delete)."
+    )
 
     class Meta:
         verbose_name = _("Destination")
@@ -136,7 +146,25 @@ class DestinationImage(models.Model):
         return f"Image for {self.destination.name} ({self.alt_text or self.image.name})"
 
     def save(self, *args, **kwargs):
-        # Pastikan hanya ada satu gambar primary per destinasi
+        if self.image and not self.pk:
+            
+            # Buka gambar di memori menggunakan Pillow
+            pil_image = Image.open(self.image)
+
+            # Buat buffer (file sementara) di memori
+            buffer = BytesIO()
+
+            # Simpan gambar ke buffer dalam format WEBP dengan kualitas 85%
+            pil_image.save(buffer, format='WEBP', quality=85)
+
+            # Buat nama file baru dengan ekstensi .webp
+            original_filename = os.path.splitext(self.image.name)[0]
+            new_filename = f"{original_filename}.webp"
+            
+            # Ganti file di instance ini dengan versi WebP dari buffer.
+            # `save=False` penting untuk mencegah save rekursif di sini.
+            self.image.save(new_filename, ContentFile(buffer.getvalue()), save=False)
+
         if self.is_primary:
             # Set semua gambar lain untuk destinasi ini menjadi bukan primary
             DestinationImage.objects.filter(destination=self.destination, is_primary=True)\

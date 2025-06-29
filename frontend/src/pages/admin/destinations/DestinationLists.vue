@@ -14,6 +14,7 @@ import {
   showConfirmationToast,
   dismissCurrentConfirmationToast,
 } from '@/services/notificationService'
+import ToggleSwitch from '@/components/ToggleSwitch.vue'
 
 const queryParams = ref({
   page: 1,
@@ -58,7 +59,7 @@ watch(
 
 // Fungsi Delete tetap di sini karena aksinya ada di halaman ini
 const confirmDelete = (destination) => {
-  const message = `Are you sure you want to delete "${destination.name}"? This cannot be undone.`
+  const message = `Are you sure you want to move "${destination.name}" to the Trash?`
   const onConfirm = async () => {
     try {
       await destinationStore.deleteDestination(destination.slug)
@@ -69,6 +70,22 @@ const confirmDelete = (destination) => {
       fetchDestinationsWithParams()
     } catch (error) {
       showNotification('error', destinationStore.error || 'Failed to delete destination.')
+    }
+    dismissCurrentConfirmationToast()
+  }
+  showConfirmationToast(
+    h(ConfirmationToast, { message, onConfirm, onCancel: dismissCurrentConfirmationToast }),
+  )
+}
+
+async function handleTogglePublish(slug, currentState) {
+  const message = `Are you sure you want to change the status of this destination to "${currentState ? 'Draft' : 'Published'}"?`
+  const onConfirm = async () => {
+    try {
+      await destinationStore.togglePublish(slug)
+      showNotification('success', 'Status changed successfully')
+    } catch (error) {
+      showNotification('error', destinationStore.error || 'Failed to change status')
     }
     dismissCurrentConfirmationToast()
   }
@@ -176,6 +193,7 @@ const goToPrevPage = () => {
                 <tr>
                   <th class="p-4 text-start font-semibold w-12">NO</th>
                   <th class="p-4 text-start font-semibold">NAME</th>
+                  <th class="p-4 text-start font-semibold">STATUS</th>
                   <th colspan="2" class="p-4 text-start font-semibold">ADDRESS</th>
                   <th class="p-4 text-start font-semibold">PHONE NUMBER</th>
                   <th class="p-4 text-start font-semibold">ACTION</th>
@@ -192,6 +210,15 @@ const goToPrevPage = () => {
                   }}
                   <td class="p-4 text-neu-900">{{ calculateItemNumber(index) }}</td>
                   <td class="p-4 text-neu-900 font-semibold">{{ destination.name }}</td>
+                  <td class="p-4 font-medium flex items-center gap-2">
+                    <ToggleSwitch
+                      :is-active="destination.is_published"
+                      @toggle="handleTogglePublish(destination.slug, destination.is_published)"
+                    />
+                    <span :class="destination.is_published ? 'text-green-600' : 'text-neu-500'">
+                      {{ destination.is_published ? 'Published' : 'Draft' }}
+                    </span>
+                  </td>
                   <td colspan="2" class="p-4">{{ formatAddress(destination.address) }}</td>
                   <td class="p-4">{{ destination.contact?.phone }}</td>
                   <td class="p-4 flex gap-3">

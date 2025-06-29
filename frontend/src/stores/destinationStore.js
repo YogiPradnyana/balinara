@@ -240,6 +240,24 @@ export const useDestinationStore = defineStore('destination', {
       }
     },
 
+    async togglePublish(slug) {
+      try {
+        // Panggil endpoint khusus yang sudah kita buat di backend
+        await apiClient.post(`${DESTINATIONS_API_PATH}${slug}/toggle-publish/`)
+
+        // Setelah berhasil, update state lokal agar UI langsung berubah tanpa refresh
+        const index = this.destinations.findIndex((d) => d.slug === slug)
+        if (index !== -1) {
+          // Balikkan nilai is_published di state
+          this.destinations[index].is_published = !this.destinations[index].is_published
+        }
+      } catch (error) {
+        console.error('Error toggling publish status:', error)
+        // Lemparkan error agar komponen bisa menangkapnya dan menampilkan notifikasi
+        throw error
+      }
+    },
+
     setCurrentPage(page) {
       if (
         page > 0 &&

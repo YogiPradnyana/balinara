@@ -52,7 +52,9 @@ class DestinationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        # Jika pengguna bukan staf (admin), hanya tampilkan yang is_published=True
+        
+        queryset = queryset.filter(is_deleted=False)
+
         if not self.request.user.is_staff:
             queryset = queryset.filter(is_published=True)
         return queryset
@@ -74,6 +76,28 @@ class DestinationViewSet(viewsets.ModelViewSet):
         # Logika tambahan saat update, misal set last_updated_by
         # serializer.save(last_updated_by=self.request.user)
         serializer.save()
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save()
+        
+    @action(detail=True, methods=['post'], url_path='toggle-publish')
+    def toggle_publish_status(self, request, slug=None):
+        """
+        Endpoint untuk mengubah status is_published dengan satu kali klik.
+        Contoh request: POST /api/destinations/{slug}/toggle-publish/
+        """
+        try:
+            destination = self.get_object()
+            # Balikkan nilainya: jika True menjadi False, jika False menjadi True
+            destination.is_published = not destination.is_published
+            destination.save(update_fields=['is_published'])
+            
+            # Kembalikan data terbaru
+            serializer = self.get_serializer(destination)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser],
             url_path='images/(?P<image_pk>[0-9]+)/set-primary')

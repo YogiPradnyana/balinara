@@ -7,6 +7,8 @@ import { useFacilityStore } from '@/stores/facilityStore'
 import { useDestinationStore } from '@/stores/destinationStore'
 import { showNotification } from '@/services/notificationService'
 import Photo from '@/components/icons/Photo.vue'
+import Hide from '@/components/icons/Hide.vue'
+import Show from '@/components/icons/Show.vue'
 
 const props = defineProps({
   initialData: {
@@ -30,6 +32,16 @@ const props = defineProps({
 const emit = defineEmits(['submit'])
 
 const store = useDestinationStore()
+
+const minPrice = ref('')
+const maxPrice = ref('')
+
+const categoryStore = useCategoryStore()
+const facilityStore = useFacilityStore()
+
+const tempImagesForCreate = ref([])
+const isUploading = ref(false)
+const isDragging = ref(false)
 
 const formData = ref({
   name: '',
@@ -59,16 +71,6 @@ const galleryImages = computed(() => {
   }
   return tempImagesForCreate.value
 })
-
-const tempImagesForCreate = ref([])
-const isUploading = ref(false)
-const isDragging = ref(false)
-
-const minPrice = ref('')
-const maxPrice = ref('')
-
-const categoryStore = useCategoryStore()
-const facilityStore = useFacilityStore()
 
 if (categoryStore.allCategories.length === 0) categoryStore.fetchCategories()
 if (facilityStore.allFacilities.length === 0) facilityStore.fetchFacilities()
@@ -234,6 +236,42 @@ watchEffect(() => {
             {{ errors.name[0] }}
           </p>
         </div>
+        <label
+          for="is_published"
+          class="rounded-2xl border p-4 cursor-pointer transition-colors duration-200"
+          :class="
+            formData.is_published ? 'border-green-300 bg-green-50' : 'border-neu-200 bg-gray-50'
+          "
+        >
+          <div class="flex items-center">
+            <input
+              v-model="formData.is_published"
+              type="checkbox"
+              id="is_published"
+              class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+            />
+
+            <div class="ml-3 flex flex-col cursor-pointer">
+              <span
+                class="text-sm font-bold"
+                :class="formData.is_published ? 'text-green-700' : 'text-gray-600'"
+              >
+                {{ formData.is_published ? 'Published' : 'Draft (Hidden)' }}
+              </span>
+            </div>
+
+            <div class="ml-auto">
+              <Show v-if="formData.is_published" class="h-6 w-6 text-green-600" />
+              <Hide v-else class="h-6 w-6 text-neu-500" />
+            </div>
+          </div>
+
+          <p class="text-xs text-gray-600 mt-2">
+            If the status is <strong>Published</strong>, the destination will be immediately visible
+            to all users on the website.
+          </p>
+        </label>
+
         <div class="flex flex-col gap-3">
           <label for="category" class="text-base font-semibold">Category</label>
           <div class="flex flex-wrap gap-x-6 gap-y-3">
