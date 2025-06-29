@@ -41,7 +41,7 @@ class DestinationViewSet(viewsets.ModelViewSet):
         'address__regency', 'facilities__name'
     ]
     ordering_fields = ['name', 'average_rating', 'created_at']
-    ordering = ['-average_rating', 'name']
+    ordering = ['-id', 'name']
     lookup_field = 'slug'
 
     def get_serializer_class(self):

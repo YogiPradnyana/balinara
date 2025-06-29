@@ -6,6 +6,7 @@ import { useCategoryStore } from '@/stores/categoryStore'
 import { useFacilityStore } from '@/stores/facilityStore'
 import { useDestinationStore } from '@/stores/destinationStore'
 import { showNotification } from '@/services/notificationService'
+import Photo from '@/components/icons/Photo.vue'
 
 const props = defineProps({
   initialData: {
@@ -61,6 +62,7 @@ const galleryImages = computed(() => {
 
 const tempImagesForCreate = ref([])
 const isUploading = ref(false)
+const isDragging = ref(false)
 
 const minPrice = ref('')
 const maxPrice = ref('')
@@ -90,8 +92,19 @@ watch(
   { immediate: true, deep: true },
 )
 
-async function handleFileChange(event) {
+const handleDrop = (event) => {
+  isDragging.value = false
+  const files = Array.from(event.dataTransfer.files)
+  handleFileChange(files)
+}
+
+const handleFileUpload = (event) => {
   const files = Array.from(event.target.files)
+  handleFileChange(files)
+  event.target.value = '' // Reset input file
+}
+
+async function handleFileChange(files) {
   if (files.length === 0) return
 
   isUploading.value = true
@@ -122,7 +135,6 @@ async function handleFileChange(event) {
   }
 
   isUploading.value = false
-  event.target.value = '' // Reset input file
 }
 
 async function handleImageDelete(image) {
@@ -330,33 +342,60 @@ watchEffect(() => {
           </p>
         </div>
 
-        <div class="mt-8 pt-6 border-t">
-          <h3 class="text-lg font-medium leading-6 text-gray-900">Gallery Images</h3>
-          <p class="mt-1 text-sm text-gray-500">
-            {{
-              isEditMode
-                ? 'Manage your destination images.'
-                : 'Upload at least 3 images for the destination.'
-            }}
-          </p>
-
-          <div class="mt-4 p-6 border bg-gray-50 rounded-lg">
-            <label for="imageUploadInput" class="block text-base font-semibold text-gray-800"
-              >Upload New Images</label
-            >
-            <input
-              type="file"
-              id="imageUploadInput"
-              @change="handleFileChange"
-              multiple
-              accept="image/*"
-              class="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-pr-100 file:text-pr-700 hover:file:bg-pr-200"
-              :disabled="isUploading"
-            />
-            <p v-if="isUploading" class="text-sm text-blue-600 mt-2">Uploading...</p>
+        <div class="flex flex-col gap-3">
+          <div class="space-x-2">
+            <h3 class="text-base font-semibold">Photos</h3>
+            <p class="text-sm font-medium text-neu-500">
+              {{
+                isEditMode
+                  ? 'Manage your destination images.'
+                  : 'Upload at least 3 images for the destination.'
+              }}
+            </p>
           </div>
 
-          <div v-if="galleryImages.length > 0" class="mt-6">
+          <div class="w-full">
+            <label
+              for="imageUploadInput"
+              class="flex flex-col items-center justify-center w-full h-40 border-[1.6px] border-dashed rounded-3xl cursor-pointer hover:bg-gray-200 transition"
+              :class="{
+                'border-blue-500 bg-blue-50': isDragging,
+                'border-pr-500 bg-gray-100 hover:bg-gray-200': !isDragging,
+                'border-red-500 bg-red-50': errors?.image,
+              }"
+              @dragover.prevent="isDragging = true"
+              @dragleave.prevent="isDragging = false"
+              @drop.prevent="handleDrop"
+            >
+              <Photo class="mb-1" :class="[isDragging ? 'text-blue-500' : 'text-pr-500']" />
+
+              <!-- Text -->
+              <p
+                class="font-medium text-sm mb-[2px]"
+                :class="[isDragging ? 'text-blue-500' : 'text-pr-500']"
+              >
+                Click to add photos
+              </p>
+              <p class="text-neu-900 text-sm">or drag & drop</p>
+
+              <!-- Hidden input -->
+              <!-- <input id="photo-upload" type="file" class="hidden" multiple /> -->
+              <input
+                type="file"
+                id="imageUploadInput"
+                @change="handleFileUpload"
+                multiple
+                accept="image/*"
+                class="hidden"
+                :disabled="isUploading"
+              />
+
+              <p v-if="errors?.image" class="mt-1 text-xs text-red-500">
+                {{ errors?.image[0] }}
+              </p>
+            </label>
+          </div>
+          <div v-if="galleryImages.length > 0" class="mt-2">
             <h4 class="text-base font-semibold mb-4">
               Current Gallery ({{ galleryImages.length }} images)
             </h4>
@@ -403,7 +442,7 @@ watchEffect(() => {
               </div>
             </div>
           </div>
-          <p v-else class="text-sm text-gray-500 italic mt-4">No images have been uploaded yet.</p>
+          <p v-else class="text-sm text-gray-500 italic mt-2">No images have been uploaded yet.</p>
         </div>
       </div>
 

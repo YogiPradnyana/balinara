@@ -176,7 +176,6 @@ const goToPrevPage = () => {
                 <tr>
                   <th class="p-4 text-start font-semibold w-12">NO</th>
                   <th class="p-4 text-start font-semibold">NAME</th>
-                  <th class="p-4 text-start font-semibold">CATEGORY</th>
                   <th colspan="2" class="p-4 text-start font-semibold">ADDRESS</th>
                   <th class="p-4 text-start font-semibold">PHONE NUMBER</th>
                   <th class="p-4 text-start font-semibold">ACTION</th>
@@ -193,7 +192,6 @@ const goToPrevPage = () => {
                   }}
                   <td class="p-4 text-neu-900">{{ calculateItemNumber(index) }}</td>
                   <td class="p-4 text-neu-900 font-semibold">{{ destination.name }}</td>
-                  <td class="p-4">{{ destination.category?.name }}</td>
                   <td colspan="2" class="p-4">{{ formatAddress(destination.address) }}</td>
                   <td class="p-4">{{ destination.contact?.phone }}</td>
                   <td class="p-4 flex gap-3">
