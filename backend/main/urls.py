@@ -28,7 +28,7 @@ urlpatterns = [
     # UBAH MENJADI INI UNTUK MENAMBAHKAN PREFIX 'api/'
     # URL untuk chat: /api/chat/...
     path('api/chat/', include('apps.chat.urls')),
-    path('api/users/', include('apps.users.urls')),
+    path('api/users/', include('apps.users.user_urls')),
     path('api/auth/', include('apps.users.urls')),
     path('api/common/', include('apps.common.urls', namespace='common_api')),
     path('api/destinations/',
@@ -40,5 +40,4 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL,
-                          document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

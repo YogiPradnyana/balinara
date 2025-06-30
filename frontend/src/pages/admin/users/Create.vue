@@ -1,41 +1,94 @@
 <script setup lang="ts">
-import { ref } from 'vue' // Import ref
+import { ref, onMounted } from 'vue' // Pastikan onMounted diimpor
 import ArrowRight from '@/components/icons/ArrowRight.vue'
 import Show from '@/components/icons/Show.vue'
-import { RouterLink, useRouter } from 'vue-router' // Import useRouter untuk pengalihan
-import axios from 'axios' // Asumsikan Anda menggunakan Axios untuk permintaan HTTP
+import { RouterLink, useRouter } from 'vue-router'
+import axios from 'axios'
+import { toast } from 'vue-sonner'
 
-const router = useRouter() // Inisialisasi router
+const router = useRouter() 
 
-const username = ref('')
-const email = ref('')
-const phoneNumber = ref('')
-const password = ref('')
-const showPassword = ref(false) // Untuk mengaktifkan/menonaktifkan visibilitas kata sandi
+// --- Inisialisasi Awal Form ---
+// Ini adalah nilai default saat komponen pertama kali dibuat.
+const adminForm = ref({
+  username: '',
+  email: '',
+  phone: '', 
+  password: '',
+});
+// ------------------------------
+
+const showPassword = ref(false) 
 
 const togglePasswordVisibility = () => {
   showPassword.value = !showPassword.value
 }
 
+// --- PENTING: Reset form saat komponen dimuat (mounted) ---
+onMounted(() => {
+  // Pastikan form selalu kosong saat komponen pertama kali ditampilkan
+  // Ini akan mengatasi masalah data lama yang persisten atau autofill yang salah saat form dimuat.
+  adminForm.value = {
+    username: '',
+    email: '',
+    phone: '',
+    password: '',
+  };
+  console.log('Form direset saat mounted.');
+});
+// --------------------------------------------------------
+
+
 const createUser = async () => {
   try {
-    const response = await axios.post('http://localhost:8000/api/users/create-admin/', { // Ganti dengan URL API Django Anda yang sebenarnya
-      username: username.value,
-      email: email.value,
-      phone_number: phoneNumber.value, // Pastikan ini cocok dengan nama bidang Django Anda
-      password: password.value,
+    console.log('Data yang akan dikirim:', adminForm.value);
+
+    const token = localStorage.getItem('userToken'); 
+    if (!token) {
+        toast.error('Anda belum login. Silakan login kembali.');
+        router.push({ name: 'Login' });
+        return;
+    }
+
+    const response = await axios.post('http://localhost:8000/api/users/create-admin/', {
+      username: adminForm.value.username,
+      email: adminForm.value.email,
+      phone: adminForm.value.phone, 
+      password: adminForm.value.password,
+    }, {
+      headers: {
+        'Authorization': `Token ${token}`
+      }
     });
+
     console.log('User created successfully:', response.data);
-    alert('Admin user created successfully!');
-    router.push({ name: 'AdminUsers' }); // Arahkan kembali ke halaman manajemen pengguna
-  } catch (error) {
-    console.error('Error creating user:', error);
+    toast.success('Admin user created successfully!'); 
+    
+    // Reset form setelah sukses submit
+    adminForm.value = { 
+      username: '', 
+      email: '', 
+      phone: '', 
+      password: '' 
+    };
+    console.log('Form direset setelah sukses submit.');
+
+    router.push({ name: 'AdminUsers' });
+  } catch (error: any) {
+    console.error('Error saat membuat user:', error);
     if (axios.isAxiosError(error) && error.response) {
-      // Tangani kesalahan validasi atau kesalahan lain dari backend
       console.error('Response data:', error.response.data);
-      alert('Failed to create admin user: ' + JSON.stringify(error.response.data));
+      let errorMessage = 'Gagal membuat admin: ';
+      if (typeof error.response.data === 'object') {
+        for (const key in error.response.data) {
+          errorMessage += `${key}: ${JSON.stringify(error.response.data[key])}; `;
+        }
+      } else {
+        errorMessage += error.response.data;
+      }
+      toast.error(errorMessage);
     } else {
-      alert('An unexpected error occurred.');
+      toast.error('Terjadi kesalahan tak terduga.');
     }
   }
 }
@@ -61,8 +114,9 @@ const createUser = async () => {
           <input
             type="text"
             id="username"
-            v-model="username"
+            v-model="adminForm.username" 
             placeholder="Username"
+            autocomplete="off" 
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
           />
         </div>
@@ -71,20 +125,22 @@ const createUser = async () => {
           <input
             type="email"
             id="email"
-            v-model="email"
+            v-model="adminForm.email" 
             placeholder="Email"
+            autocomplete="off" 
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
           />
         </div>
       </div>
       <div class="flex flex-col md:flex-row gap-4 flex-1">
         <div class="flex flex-1 flex-col gap-3">
-          <label for="phoneNumber" class="text-base font-semibold">Phone Number</label>
+          <label for="phone" class="text-base font-semibold">Phone Number</label> 
           <input
             type="text"
-            id="phoneNumber"
-            v-model="phoneNumber"
+            id="phone" 
+            v-model="adminForm.phone" 
             placeholder="Phone Number"
+            autocomplete="off"
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
           />
         </div>
@@ -94,9 +150,10 @@ const createUser = async () => {
             <input
               :type="showPassword ? 'text' : 'password'"
               id="password"
-              v-model="password"
+              v-model="adminForm.password" 
               class="w-full border text-sm ps-3 pe-10 py-3 border-neu-200 rounded-full"
               placeholder="Password"
+              autocomplete="new-password"
             />
             <Show 
               class="size-5.5 absolute top-1/2 -translate-y-1/2 right-3 cursor-pointer" 
@@ -110,7 +167,7 @@ const createUser = async () => {
     <div class="flex gap-2.5 items-center">
       <button
         type="submit"
-        @click="createUser"
+        @click.prevent="createUser" 
         class="px-6 py-2 flex gap-2 items-center cursor-pointer hover:bg-pr-600 justify-center text-sm md:text-base font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
       >
         Create

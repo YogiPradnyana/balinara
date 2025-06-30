@@ -122,6 +122,12 @@ class UserListViewForAdmin(generics.ListAPIView):
     serializer_class = UserDetailSerializer
     permission_classes = [permissions.IsAdminUser]
 
+    pagination_class = None 
+    # ----------------------------------------------------
+
+    def get_serializer_context(self):
+        return {'request': self.request}
+
 
 class UserCreateAPIView(generics.CreateAPIView):
     queryset = User.objects.all()
