@@ -104,9 +104,17 @@ class UserDetailSerializer(serializers.ModelSerializer):
                             'is_active', 'is_staff', 'is_superuser')
 
     def get_image_url(self, obj):
+        print(f"    -> SERIALIZER: Memproses data untuk User ID: {obj.id} ({obj.username})")
+        
         request = self.context.get('request')
         if obj.image and hasattr(obj.image, 'url'):
-            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+            try:
+                # Menambahkan try-except untuk menangkap error saat mengakses .url
+                url = obj.image.url
+                return request.build_absolute_uri(url) if request else url
+            except Exception as e:
+                print(f"    !!!!!! ERROR saat mengakses .url untuk User ID: {obj.id}. Error: {e} !!!!!!")
+                return None
         return None
 
 

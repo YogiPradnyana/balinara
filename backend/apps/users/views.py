@@ -6,6 +6,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 from .serializers import UserCreateSerializer
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from .models import User
 from django.contrib.auth import get_user_model # <-- Tambahkan ini
@@ -117,18 +118,51 @@ class ChangePasswordView(generics.UpdateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserListViewForAdmin(generics.ListAPIView):
+class AdminUserPagination(PageNumberPagination):
+    page_size = 10 # Admin mungkin ingin melihat lebih banyak data per halaman
+    page_size_query_param = 'page_size'
+    max_page_size = 200
+
+
+class UserManagementViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet ini menangani semua operasi CRUD untuk manajemen pengguna oleh Admin.
+    Secara otomatis menyediakan fungsi:
+    - list() -> GET /
+    - retrieve() -> GET /{id}/
+    - create() -> POST /
+    - update() -> PUT /{id}/
+    - partial_update() -> PATCH /{id}/
+    - destroy() -> DELETE /{id}/  <-- INI UNTUK FUNGSI HAPUS
+    """
     queryset = User.objects.all().order_by('email')
     serializer_class = UserDetailSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAdminUser]  # Hanya admin yang bisa akses
+    pagination_class = AdminUserPagination  # Terapkan paginasi
 
-    pagination_class = None 
-    # ----------------------------------------------------
+    def list(self, request, *args, **kwargs):
+        print("--- 1. SERVER: Menerima permintaan GET untuk daftar pengguna ---")
+        queryset = self.get_queryset()
+        print(f"--- 2. SERVER: Query ke database berhasil, ditemukan {queryset.count()} total pengguna ---")
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            print(f"--- 3. SERVER: Paginasi berhasil, akan memproses {len(page)} pengguna untuk halaman ini ---")
+            serializer = self.get_serializer(page, many=True)
+            print("--- 4. SERVER: MEMULAI PROSES SERIALISASI (mengubah data ke JSON) ---")
+            
+            # Baris ini adalah tempat di mana proses berat terjadi
+            serialized_data = serializer.data 
+            
+            print("--- 5. SERVER: PROSES SERIALISASI BERHASIL! ---")
+            return self.get_paginated_response(serialized_data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def get_serializer_context(self):
         return {'request': self.request}
-
-
+    
 class UserCreateAPIView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
