@@ -1,6 +1,5 @@
 <script setup>
 import Subtract from '@/components/icons/Subtract.vue'
-import ArrowDown from '@/components/icons/ArrowDown.vue'
 import { ref, watchEffect, watch, computed } from 'vue'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useFacilityStore } from '@/stores/facilityStore'
@@ -40,6 +39,7 @@ const categoryStore = useCategoryStore()
 const facilityStore = useFacilityStore()
 
 const tempImagesForCreate = ref([])
+const newlyAddedTempImages = ref([])
 const isUploading = ref(false)
 const isDragging = ref(false)
 
@@ -65,11 +65,9 @@ const formData = ref({
 })
 
 const galleryImages = computed(() => {
-  if (props.isEditMode) {
-    console.log('Data gambar dari store:', store.currentDestination?.images)
-    return store.currentDestination?.images || []
-  }
-  return tempImagesForCreate.value
+  const existingImages = props.isEditMode ? store.currentDestination?.images || [] : []
+  const tempImages = props.isEditMode ? newlyAddedTempImages.value : tempImagesForCreate.value
+  return [...existingImages, ...tempImages]
 })
 
 if (categoryStore.allCategories.length === 0) categoryStore.fetchCategories()
@@ -111,28 +109,21 @@ async function handleFileChange(files) {
 
   isUploading.value = true
 
-  if (props.isEditMode) {
-    // MODE EDIT: Langsung upload ke destinasi yang sudah ada
-    const formData = new FormData()
-    for (const file of files) {
-      formData.append('images', file)
-    }
+  for (const file of files) {
     try {
-      await store.uploadDestinationImage(props.initialData.slug, formData)
-      // Data galeri akan otomatis ter-update karena store akan fetch ulang
-    } catch (error) {
-      showNotification('error', 'An error occurred during upload.')
-    }
-  } else {
-    // MODE CREATE: Upload ke endpoint temporary
-    for (const file of files) {
-      try {
-        const tempImage = await store.uploadTemporaryImage(file)
-        // Ganti properti 'image' menjadi 'image_url' agar konsisten dengan objek DestinationImage
-        galleryImages.value.push({ id: tempImage.id, image_url: tempImage.image, isTemp: true })
-      } catch (error) {
-        showNotification('error', `Failed to upload ${file.name}.`)
+      // Selalu upload ke endpoint temporary
+      const tempImage = await store.uploadTemporaryImage(file)
+      const newImageObject = { id: tempImage.id, image_url: tempImage.image, isTemp: true }
+
+      if (props.isEditMode) {
+        // Jika mode edit, tambahkan ke array `newlyAddedTempImages`
+        newlyAddedTempImages.value.push(newImageObject)
+      } else {
+        // Jika mode create, tambahkan ke array `tempImagesForCreate`
+        tempImagesForCreate.value.push(newImageObject)
       }
+    } catch (error) {
+      showNotification('error', `Failed to upload ${file.name}.`)
     }
   }
 
@@ -140,15 +131,21 @@ async function handleFileChange(files) {
 }
 
 async function handleImageDelete(image) {
-  if (props.isEditMode) {
-    // MODE EDIT: Hapus gambar permanen
+  if (image.isTemp) {
+    if (props.isEditMode) {
+      newlyAddedTempImages.value = newlyAddedTempImages.value.filter((img) => img.id !== image.id)
+    } else {
+      tempImagesForCreate.value = tempImagesForCreate.value.filter((img) => img.id !== image.id)
+    }
+    // Optional: panggil endpoint delete temporary image jika perlu
+    // await store.deleteTemporaryImage(image.id);
+  } else if (props.isEditMode) {
+    // Jika bukan temporer dan dalam mode edit, hapus gambar permanen
     try {
       await store.deleteDestinationImage(props.initialData.slug, image.id)
     } catch (error) {
       showNotification('error', 'Failed to delete image.')
     }
-  } else {
-    tempImagesForCreate.value = tempImagesForCreate.value.filter((img) => img.id !== image.id)
   }
 }
 
@@ -166,8 +163,12 @@ async function handleSetPrimary(image) {
 function submitForm() {
   let payload = { ...formData.value }
 
-  // Saat mode create, tambahkan ID gambar temporary ke payload
-  if (!props.isEditMode) {
+  // Tambahkan ID gambar temporary ke payload untuk KEDUA mode
+  if (props.isEditMode) {
+    // Untuk mode edit, kirim hanya ID gambar yang baru ditambahkan
+    payload.image_ids = newlyAddedTempImages.value.map((img) => img.id)
+  } else {
+    // Untuk mode create
     payload.image_ids = tempImagesForCreate.value.map((img) => img.id)
     if (payload.image_ids.length < 3) {
       showNotification('error', 'Please upload at least 3 images.')

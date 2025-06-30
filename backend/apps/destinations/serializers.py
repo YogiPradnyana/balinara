@@ -73,7 +73,7 @@ class TemporaryImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = TemporaryImage
         fields = ['id', 'image', 'uploaded_at']
-        read_only_fields = ('uploaded_at',)
+        read_only_fields = ('id', 'uploaded_at',)
 
 # --- Serializer untuk Detail, Create, dan Update Destinasi ---
 
@@ -200,9 +200,10 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
 
     @transaction.atomic
     def update(self, instance, validated_data):
+        # Ambil image_ids dari data yang divalidasi, jika ada.
+        image_ids = validated_data.pop('image_ids', [])
+
         # Handle nested Address and Contact
-        # Jika 'address_data' atau 'contact_data' ada di validated_data, proses.
-        # Jika tidak ada, biarkan field address/contact pada instance apa adanya.
         if 'address_data' in validated_data:
             address_data = validated_data.pop('address_data')
             instance.address = self._handle_nested_one_to_one_write(
@@ -213,8 +214,22 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
             instance.contact = self._handle_nested_one_to_one_write(
                 instance.contact, contact_data, Contact)
 
-        # 'facilities' (dari facility_ids) dan 'category' (dari category_id)
-        # akan diupdate oleh DRF secara default jika ada di validated_data.
-        # Kita panggil super().update() untuk menangani field Destination standar dan relasi M2M/FK.
+        # Update instance dengan data lainnya
         instance = super().update(instance, validated_data)
+
+        # Proses gambar temporer yang baru di-upload (jika ada)
+        if image_ids:
+            temp_images = TemporaryImage.objects.filter(id__in=image_ids)
+            for temp_image in temp_images:
+                destination_image = DestinationImage(
+                    destination=instance,
+                    alt_text=f"Image for {instance.name}",
+                )
+                destination_image.image.save(
+                    temp_image.image.name.split('/')[-1],
+                    temp_image.image.file,
+                    save=True
+                )
+                temp_image.delete()
+
         return instance

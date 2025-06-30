@@ -85,10 +85,10 @@ class Destination(models.Model):
     is_published = models.BooleanField(
         _("Is Published"), default=False,
         help_text=_("Check if the destination is ready to be shown to users."))
-    
+
     is_deleted = models.BooleanField(
-        default=False, 
-        db_index=True, 
+        default=False,
+        db_index=True,
         help_text="Mark if this destination is moved to trash (soft delete)."
     )
 
@@ -147,7 +147,7 @@ class DestinationImage(models.Model):
 
     def save(self, *args, **kwargs):
         if self.image and not self.pk:
-            
+
             # Buka gambar di memori menggunakan Pillow
             pil_image = Image.open(self.image)
 
@@ -160,10 +160,11 @@ class DestinationImage(models.Model):
             # Buat nama file baru dengan ekstensi .webp
             original_filename = os.path.splitext(self.image.name)[0]
             new_filename = f"{original_filename}.webp"
-            
+
             # Ganti file di instance ini dengan versi WebP dari buffer.
             # `save=False` penting untuk mencegah save rekursif di sini.
-            self.image.save(new_filename, ContentFile(buffer.getvalue()), save=False)
+            self.image.save(new_filename, ContentFile(
+                buffer.getvalue()), save=False)
 
         if self.is_primary:
             # Set semua gambar lain untuk destinasi ini menjadi bukan primary

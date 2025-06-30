@@ -122,7 +122,16 @@ export const useDestinationStore = defineStore('destination', {
       try {
         // Gunakan PATCH untuk mengirim hanya data yang berubah
 
-        const response = await apiClient.patch(`${DESTINATIONS_API_PATH}${slug}/`, destinationData)
+        const response = await apiClient.patch(
+          `${DESTINATIONS_API_PATH}${slug}/`,
+          destinationData,
+          {
+            // Tambahkan header ini untuk memastikan backend menginterpretasikannya sebagai JSON
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        )
 
         // Update data di state jika sedang dilihat
         this.currentDestination = response.data
