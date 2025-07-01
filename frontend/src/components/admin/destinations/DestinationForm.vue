@@ -43,6 +43,7 @@ const newlyAddedTempImages = ref([])
 const imagesMarkedForDeletion = ref(new Set())
 const isUploading = ref(false)
 const isDragging = ref(false)
+const imageError = ref(null)
 
 const formData = ref({
   name: '',
@@ -117,6 +118,8 @@ const handleFileUpload = (event) => {
 
 async function handleFileChange(files) {
   if (files.length === 0) return
+
+  imageError.value = null
   isUploading.value = true
 
   for (const file of files) {
@@ -129,7 +132,7 @@ async function handleFileChange(files) {
         tempImagesForCreate.value.push(newImageObject)
       }
     } catch (error) {
-      showNotification('error', `Failed to upload ${file.name}.`)
+      imageError.value = error.image[0] || 'An unknown error occurred during upload.'
     }
   }
 
@@ -164,20 +167,6 @@ function isMarkedForDeletion(imageId) {
   return imagesMarkedForDeletion.value.has(imageId)
 }
 
-// --- MODIFIKASI FUNGSI INI ---
-// Ganti nama dari handleImageDelete menjadi handleRemoveImageFromArray
-// untuk mencerminkan tugasnya yang sekarang hanya mengatur array di UI.
-function handleRemoveImageFromArray(image) {
-  // Hanya berlaku untuk gambar temporer yang baru di-upload
-  if (!image.isTemp) return
-
-  if (props.isEditMode) {
-    newlyAddedTempImages.value = newlyAddedTempImages.value.filter((img) => img.id !== image.id)
-  } else {
-    tempImagesForCreate.value = tempImagesForCreate.value.filter((img) => img.id !== image.id)
-  }
-}
-
 async function handleSetPrimary(image) {
   if (!props.isEditMode || image.is_primary || image.isTemp) return
   try {
@@ -188,6 +177,8 @@ async function handleSetPrimary(image) {
 }
 
 function submitForm() {
+  imageError.value = null
+
   let payload = { ...formData.value }
 
   if (props.isEditMode) {
@@ -196,7 +187,7 @@ function submitForm() {
   } else {
     payload.image_ids = tempImagesForCreate.value.map((img) => img.id)
     if (payload.image_ids.length < 3) {
-      showNotification('error', 'Please upload at least 3 images.')
+      imageError.value = 'Please upload at least 3 images.'
       return
     }
   }
@@ -243,7 +234,7 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
             :class="{ 'border-red-500': errors?.name, 'bg-[#F2F2F2]': isReadOnly }"
           />
           <p v-if="errors?.name" class="mt-1 text-xs text-red-500">
-            {{ errors.name[0] }}
+            {{ errors?.name[0] }}
           </p>
         </div>
         <label
@@ -283,7 +274,9 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
         </label>
 
         <div class="flex flex-col gap-3">
-          <label for="category" class="text-base font-semibold">Category</label>
+          <label for="category" class="text-base font-semibold"
+            >Category<span class="text-red-500">*</span>
+          </label>
           <div class="flex flex-wrap gap-x-6 gap-y-3">
             <label
               v-for="cat in categoryStore.allCategories"
@@ -300,6 +293,9 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
               <span class="ml-2 text-sm text-gray-700">{{ cat.name }}</span>
             </label>
           </div>
+          <p v-if="errors?.category_ids" class="mt-1 text-xs text-red-500">
+            {{ errors.category_ids[0] }}
+          </p>
         </div>
         <div class="flex flex-col gap-3">
           <label for="descriptions" class="text-base font-semibold">Descriptions</label>
@@ -409,18 +405,21 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
               :class="{
                 'border-blue-500 bg-blue-50': isDragging,
                 'border-pr-500 bg-gray-100 hover:bg-gray-200': !isDragging,
-                'border-red-500 bg-red-50': errors?.image,
+                'border-red-500 bg-red-50': imageError,
               }"
               @dragover.prevent="isDragging = true"
               @dragleave.prevent="isDragging = false"
               @drop.prevent="handleDrop"
             >
-              <Photo class="mb-1" :class="[isDragging ? 'text-blue-500' : 'text-pr-500']" />
+              <Photo
+                class="mb-1 text-pr-500"
+                :class="[isDragging ? 'text-blue-500' : '', imageError ? 'text-red-500' : '']"
+              />
 
               <!-- Text -->
               <p
-                class="font-medium text-sm mb-[2px]"
-                :class="[isDragging ? 'text-blue-500' : 'text-pr-500']"
+                class="font-medium text-sm mb-[2px] text-pr-500"
+                :class="[isDragging ? 'text-blue-500' : '', imageError ? 'text-red-500' : '']"
               >
                 Click to add photos
               </p>
@@ -437,11 +436,10 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
                 class="hidden"
                 :disabled="isUploading"
               />
-
-              <p v-if="errors?.image" class="mt-1 text-xs text-red-500">
-                {{ errors?.image[0] }}
-              </p>
             </label>
+            <p v-if="imageError" class="mt-2 text-xs text-red-500">
+              {{ imageError }}
+            </p>
           </div>
           <div v-if="galleryImages.length > 0" class="mt-2">
             <h4 class="text-base font-semibold mb-4">

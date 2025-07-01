@@ -17,9 +17,9 @@ async function handleCreateDestination(formData) {
     showNotification('success', 'Destination added successfully')
     router.push({ name: 'AdminDestinations' })
   } catch (error) {
-    formErrors.value = error
+    formErrors.value = error.response?.data
     showNotification('error', 'Failed to create destination. Please check the form for errors.')
-    console.error('Full error response:', error)
+    console.error('Full error response:', error.response?.data)
   }
 }
 </script>

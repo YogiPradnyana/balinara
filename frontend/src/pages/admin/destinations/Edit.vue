@@ -27,9 +27,9 @@ async function handleUpdateDestination(formData) {
     showNotification('success', 'Destination updated successfully')
     router.push({ name: 'AdminDestinations' })
   } catch (error) {
-    formErrors.value = error // Tangkap error validasi dari backend
+    formErrors.value = error.response?.data // Tangkap error validasi dari backend
     showNotification('error', 'Failed to update destination. Please check the form for errors.')
-    console.error('Full error response:', error)
+    console.error('Full error response:', error.response?.data)
   }
 }
 </script>
