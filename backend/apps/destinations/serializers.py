@@ -1,8 +1,10 @@
-# apps/destinations/serializers.py
+import os
+from PIL import Image
+from io import BytesIO
 from rest_framework import serializers
 # Untuk atomic transaction saat create/update nested
 from django.db import transaction
-
+from django.core.files.base import ContentFile
 from .models import Destination, DestinationImage, TemporaryImage
 from apps.common.models import Category, Address, Contact, Facility
 from apps.common.serializers import (
@@ -98,7 +100,7 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
 
     # Untuk Address dan Contact, kita akan terima data nested dan proses di create/update
     address_data = AddressSerializer(
-        write_only=True, required=True)
+        write_only=True, required=False)
     contact_data = ContactSerializer(
         write_only=True, required=False, allow_null=True)
 
@@ -110,7 +112,13 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
     image_ids = serializers.ListField(
         child=serializers.UUIDField(),
         write_only=True,
-        required=True  # Buat opsional, atau True jika gambar wajib
+        required=False, default=list
+    )
+
+    delete_image_ids = serializers.ListField(
+        child=serializers.IntegerField(),  # ID gambar adalah integer
+        write_only=True,
+        required=False, default=list
     )
 
     class Meta:
@@ -122,7 +130,7 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
             'categories', 'address', 'contact', 'facilities', 'images',
             # Write-only/input fields
             'category_ids', 'address_data', 'contact_data', 'facility_ids', 'image_ids',
-            'created_at', 'updated_at'
+            'delete_image_ids', 'created_at', 'updated_at'
         ]
         read_only_fields = (
             'id', 'slug', 'average_rating', 'total_reviews', 'created_at', 'updated_at',
@@ -151,14 +159,47 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
                 return NestedModel.objects.create(**nested_data_dict)
         return instance_field_obj  # Tidak ada perubahan pada field nested ini
 
+    def _handle_new_images(self, destination_instance, image_ids):
+        """Fungsi helper terpisah untuk memproses gambar baru."""
+        if not image_ids:
+            return
+
+        temp_images = TemporaryImage.objects.filter(id__in=image_ids)
+        temp_images_to_process = list(temp_images)
+
+        for temp_image in temp_images:
+            if not os.path.exists(temp_image.image.path):
+                continue
+
+            pil_image = Image.open(temp_image.image)
+            buffer = BytesIO()
+            pil_image.save(buffer, format='WEBP', quality=85)
+
+            # Buat nama file baru dengan ekstensi .webp
+            original_filename = os.path.splitext(
+                os.path.basename(temp_image.image.name))[0]
+            new_filename = f"{original_filename}.webp"
+            # -------------------------------------------
+
+            destination_image = DestinationImage(
+                destination=destination_instance,
+                alt_text=f"Image for {destination_instance.name}"
+            )
+
+            # Simpan konten WEBP dari buffer sebagai file baru di lokasi final
+            destination_image.image.save(
+                new_filename, ContentFile(buffer.getvalue()), save=True
+            )
+
+        for temp_image in temp_images_to_process:
+            temp_image.delete()
+
     @transaction.atomic  # Pastikan operasi database bersifat atomic
     def create(self, validated_data):
+        validated_data.pop('delete_image_ids', None)
         image_ids = validated_data.pop('image_ids', [])
         address_data = validated_data.pop('address_data', None)
         contact_data = validated_data.pop('contact_data', None)
-        # facilities dan category sudah di-handle oleh source di PrimaryKeyRelatedField
-        # dan akan di-set saat super().create() atau setelahnya.
-
         categories_qs = validated_data.pop('categories', [])
         facilities_qs = validated_data.pop('facilities', [])
 
@@ -170,7 +211,6 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
         destination = Destination.objects.create(
             address=address_instance,
             contact=contact_instance,
-            # validated_data sudah termasuk category (hasil dari category_id)
             **validated_data
         )
         if categories_qs:
@@ -178,30 +218,23 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
         if facilities_qs:
             destination.facilities.set(facilities_qs)
 
-        if image_ids:
-            temp_images = TemporaryImage.objects.filter(id__in=image_ids)
-            for temp_image in temp_images:
-                # Buat DestinationImage baru dari file sementara
-                destination_image = DestinationImage(
-                    destination=destination,
-                    alt_text=f"Image for {destination.name}",
-                )
-                # Pindahkan file dari temp ke lokasi permanen
-                destination_image.image.save(
-                    temp_image.image.name.split(
-                        '/')[-1],  # Ambil nama file asli
-                    temp_image.image.file,  # Ambil objek file
-                    save=True
-                )
-                # Hapus objek TemporaryImage (ini juga akan menghapus file fisiknya karena metode delete kustom)
-                temp_image.delete()
+        # Gunakan fungsi helper
+        self._handle_new_images(destination, image_ids)
 
         return destination
 
     @transaction.atomic
     def update(self, instance, validated_data):
         # Ambil image_ids dari data yang divalidasi, jika ada.
-        image_ids = validated_data.pop('image_ids', [])
+        image_ids_to_add = validated_data.pop('image_ids', [])
+        image_ids_to_delete = validated_data.pop('delete_image_ids', [])
+
+        # Hapus gambar yang ditandai untuk dihapus
+        if image_ids_to_delete:
+            images_to_delete = instance.images.filter(
+                id__in=image_ids_to_delete)
+            for image in images_to_delete:
+                image.delete()
 
         # Handle nested Address and Contact
         if 'address_data' in validated_data:
@@ -217,19 +250,7 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
         # Update instance dengan data lainnya
         instance = super().update(instance, validated_data)
 
-        # Proses gambar temporer yang baru di-upload (jika ada)
-        if image_ids:
-            temp_images = TemporaryImage.objects.filter(id__in=image_ids)
-            for temp_image in temp_images:
-                destination_image = DestinationImage(
-                    destination=instance,
-                    alt_text=f"Image for {instance.name}",
-                )
-                destination_image.image.save(
-                    temp_image.image.name.split('/')[-1],
-                    temp_image.image.file,
-                    save=True
-                )
-                temp_image.delete()
+        # Tambahkan gambar baru menggunakan fungsi helper yang sama
+        self._handle_new_images(instance, image_ids_to_add)
 
         return instance

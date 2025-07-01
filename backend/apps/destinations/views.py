@@ -52,7 +52,7 @@ class DestinationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        
+
         queryset = queryset.filter(is_deleted=False)
 
         if not self.request.user.is_staff:
@@ -80,7 +80,7 @@ class DestinationViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         instance.is_deleted = True
         instance.save()
-        
+
     @action(detail=True, methods=['post'], url_path='toggle-publish')
     def toggle_publish_status(self, request, slug=None):
         """
@@ -92,7 +92,7 @@ class DestinationViewSet(viewsets.ModelViewSet):
             # Balikkan nilainya: jika True menjadi False, jika False menjadi True
             destination.is_published = not destination.is_published
             destination.save(update_fields=['is_published'])
-            
+
             # Kembalikan data terbaru
             serializer = self.get_serializer(destination)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -217,17 +217,29 @@ class TemporaryImageViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAdminUser]
     parser_classes = [MultiPartParser, FormParser]
 
+    http_method_names = ['post', 'delete', 'head', 'options']
+
     def create(self, request, *args, **kwargs):
-        # Hanya menangani satu file per request agar lebih sederhana
+        """
+        Hanya menangani satu file per request. Ini adalah implementasi standar
+        yang seharusnya tidak menyebabkan duplikasi.
+        """
         image_file = request.FILES.get('image')
         if not image_file:
-            return Response({'detail': 'No image file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'No image file provided.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Pastikan data yang dikirim ke serializer dalam format yang benar
-        data_for_serializer = {'image': image_file}
-        serializer = self.get_serializer(data=data_for_serializer)
+        # Buat data untuk serializer
+        data = {'image': image_file}
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
+
+        # perform_create akan memanggil serializer.save() yang menyimpan objek
+        # dan file ke storage HANYA SATU KALI.
         self.perform_create(serializer)
+
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 

@@ -20,14 +20,11 @@ from apps.common.models import Category, Address, Contact, Facility
 
 
 def destination_image_path_processor(instance, filename):
-    # Ambil ekstensi dan jadikan lowercase
-    ext = filename.split('.')[-1].lower()
-    # Buat nama file yang unik menggunakan UUID untuk DestinationImage
-    new_filename = f'{uuid.uuid4()}.{ext}'
-    # Simpan dalam subfolder berdasarkan ID atau slug destinasi (pastikan instance.destination ada)
-    # instance di sini adalah DestinationImage, jadi kita akses instance.destination.id
-    destination_identifier = instance.destination.slug if instance.destination.slug else instance.destination.id
-    return f'destination_images/dest_{destination_identifier}/{new_filename}'
+    ext = os.path.splitext(filename)[1]
+    filename = f'{uuid.uuid4()}{ext}'
+    slug = instance.destination.slug
+
+    return os.path.join(f'destination_images/{slug}', filename)
 
 
 class Destination(models.Model):
@@ -146,26 +143,6 @@ class DestinationImage(models.Model):
         return f"Image for {self.destination.name} ({self.alt_text or self.image.name})"
 
     def save(self, *args, **kwargs):
-        if self.image and not self.pk:
-
-            # Buka gambar di memori menggunakan Pillow
-            pil_image = Image.open(self.image)
-
-            # Buat buffer (file sementara) di memori
-            buffer = BytesIO()
-
-            # Simpan gambar ke buffer dalam format WEBP dengan kualitas 85%
-            pil_image.save(buffer, format='WEBP', quality=85)
-
-            # Buat nama file baru dengan ekstensi .webp
-            original_filename = os.path.splitext(self.image.name)[0]
-            new_filename = f"{original_filename}.webp"
-
-            # Ganti file di instance ini dengan versi WebP dari buffer.
-            # `save=False` penting untuk mencegah save rekursif di sini.
-            self.image.save(new_filename, ContentFile(
-                buffer.getvalue()), save=False)
-
         if self.is_primary:
             # Set semua gambar lain untuk destinasi ini menjadi bukan primary
             DestinationImage.objects.filter(destination=self.destination, is_primary=True)\
@@ -184,10 +161,10 @@ class DestinationImage(models.Model):
 
 def temporary_image_path_processor(instance, filename):
     """Fungsi path untuk gambar sementara."""
-    ext = filename.split('.')[-1].lower()
-    # Simpan dalam satu folder temporary dengan nama file unik
-    new_filename = f'{uuid.uuid4()}.{ext}'
-    return f'destination_images/temp/{new_filename}'
+    ext = os.path.splitext(filename)[1]
+    filename = f'{uuid.uuid4()}{ext}'
+
+    return os.path.join('destination_images/temp', filename)
 
 
 class TemporaryImage(models.Model):

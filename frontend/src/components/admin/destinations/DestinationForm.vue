@@ -40,6 +40,7 @@ const facilityStore = useFacilityStore()
 
 const tempImagesForCreate = ref([])
 const newlyAddedTempImages = ref([])
+const imagesMarkedForDeletion = ref(new Set())
 const isUploading = ref(false)
 const isDragging = ref(false)
 
@@ -87,6 +88,16 @@ watch(
       formData.value.contact_data = { ...(newData.contact || formData.value.contact_data) }
       formData.value.category_ids = (newData.categories || []).map((c) => c.id)
       formData.value.facility_ids = (newData.facilities || []).map((f) => f.id)
+
+      const priceString = newData.ticket_price_range || ''
+      if (priceString.includes(' - ')) {
+        const parts = priceString.split(' - ')
+        minPrice.value = parts[0] || ''
+        maxPrice.value = parts[1] || ''
+      } else {
+        minPrice.value = priceString
+        maxPrice.value = ''
+      }
     }
   },
   { immediate: true, deep: true },
@@ -106,20 +117,15 @@ const handleFileUpload = (event) => {
 
 async function handleFileChange(files) {
   if (files.length === 0) return
-
   isUploading.value = true
 
   for (const file of files) {
     try {
-      // Selalu upload ke endpoint temporary
       const tempImage = await store.uploadTemporaryImage(file)
       const newImageObject = { id: tempImage.id, image_url: tempImage.image, isTemp: true }
-
       if (props.isEditMode) {
-        // Jika mode edit, tambahkan ke array `newlyAddedTempImages`
         newlyAddedTempImages.value.push(newImageObject)
       } else {
-        // Jika mode create, tambahkan ke array `tempImagesForCreate`
         tempImagesForCreate.value.push(newImageObject)
       }
     } catch (error) {
@@ -130,45 +136,64 @@ async function handleFileChange(files) {
   isUploading.value = false
 }
 
-async function handleImageDelete(image) {
-  if (image.isTemp) {
-    if (props.isEditMode) {
-      newlyAddedTempImages.value = newlyAddedTempImages.value.filter((img) => img.id !== image.id)
-    } else {
-      tempImagesForCreate.value = tempImagesForCreate.value.filter((img) => img.id !== image.id)
-    }
-    // Optional: panggil endpoint delete temporary image jika perlu
-    // await store.deleteTemporaryImage(image.id);
-  } else if (props.isEditMode) {
-    // Jika bukan temporer dan dalam mode edit, hapus gambar permanen
-    try {
-      await store.deleteDestinationImage(props.initialData.slug, image.id)
-    } catch (error) {
-      showNotification('error', 'Failed to delete image.')
-    }
+async function handleRemoveTempImage(image) {
+  if (!image.isTemp) return
+  if (props.isEditMode) {
+    newlyAddedTempImages.value = newlyAddedTempImages.value.filter((img) => img.id !== image.id)
+  } else {
+    tempImagesForCreate.value = tempImagesForCreate.value.filter((img) => img.id !== image.id)
+  }
+}
+
+function toggleDeletionMark(image) {
+  // Fungsi ini hanya relevan untuk gambar yang sudah ada (bukan temporer)
+  if (image.isTemp) return
+
+  const imageId = image.id
+  if (imagesMarkedForDeletion.value.has(imageId)) {
+    // Jika sudah ditandai, batalkan (hapus dari Set)
+    imagesMarkedForDeletion.value.delete(imageId)
+  } else {
+    // Jika belum, tandai untuk dihapus (tambahkan ke Set)
+    imagesMarkedForDeletion.value.add(imageId)
+  }
+}
+
+// Helper function untuk UI
+function isMarkedForDeletion(imageId) {
+  return imagesMarkedForDeletion.value.has(imageId)
+}
+
+// --- MODIFIKASI FUNGSI INI ---
+// Ganti nama dari handleImageDelete menjadi handleRemoveImageFromArray
+// untuk mencerminkan tugasnya yang sekarang hanya mengatur array di UI.
+function handleRemoveImageFromArray(image) {
+  // Hanya berlaku untuk gambar temporer yang baru di-upload
+  if (!image.isTemp) return
+
+  if (props.isEditMode) {
+    newlyAddedTempImages.value = newlyAddedTempImages.value.filter((img) => img.id !== image.id)
+  } else {
+    tempImagesForCreate.value = tempImagesForCreate.value.filter((img) => img.id !== image.id)
   }
 }
 
 async function handleSetPrimary(image) {
-  // Tombol ini hanya berfungsi di mode edit
-  if (!props.isEditMode || image.is_primary) return
-
+  if (!props.isEditMode || image.is_primary || image.isTemp) return
   try {
     await store.setPrimaryImage(props.initialData.slug, image.id)
   } catch (error) {
-    /* error sudah dihandle di store */
+    // error sudah dihandle di store
   }
 }
 
 function submitForm() {
   let payload = { ...formData.value }
 
-  // Tambahkan ID gambar temporary ke payload untuk KEDUA mode
   if (props.isEditMode) {
-    // Untuk mode edit, kirim hanya ID gambar yang baru ditambahkan
     payload.image_ids = newlyAddedTempImages.value.map((img) => img.id)
+    payload.delete_image_ids = Array.from(imagesMarkedForDeletion.value)
   } else {
-    // Untuk mode create
     payload.image_ids = tempImagesForCreate.value.map((img) => img.id)
     if (payload.image_ids.length < 3) {
       showNotification('error', 'Please upload at least 3 images.')
@@ -189,29 +214,13 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
     formData.value.ticket_price_range = `Rp ${cleanMin} - Rp ${cleanMax}`
   } else if (cleanMin) {
     // Jika hanya min yang diisi
-    formData.value.ticket_price_range = `Mulai dari Rp ${cleanMin}`
+    formData.value.ticket_price_range = `Start from Rp ${cleanMin}`
   } else if (cleanMax) {
     // Jika hanya max yang diisi
-    formData.value.ticket_price_range = `Hingga Rp ${cleanMax}`
+    formData.value.ticket_price_range = `Up to Rp ${cleanMax}`
   } else {
     // Jika keduanya kosong
     formData.value.ticket_price_range = ''
-  }
-})
-
-watchEffect(() => {
-  if (props.isEditMode && props.initialData && props.initialData.id) {
-    formData.value.ticket_price_range = props.initialData.ticket_price_range || ''
-
-    const priceString = props.initialData.ticket_price_range || ''
-    if (priceString.includes(' - ')) {
-      const parts = priceString.split(' - ')
-      minPrice.value = parts[0] || ''
-      maxPrice.value = parts[1] || ''
-    } else {
-      minPrice.value = priceString
-      maxPrice.value = ''
-    }
   }
 })
 </script>
@@ -443,12 +452,19 @@ watchEffect(() => {
                 v-for="image in galleryImages"
                 :key="image.id"
                 class="relative group aspect-square"
-                :class="{ 'ring-4 ring-offset-2 ring-pr-500 rounded-md': image.is_primary }"
+                :class="{
+                  'ring-4 ring-offset-2 ring-pr-500 rounded-md': image.is_primary,
+                  'ring-2 ring-red-500 ring-offset-2 rounded-md':
+                    !image.isTemp && isMarkedForDeletion(image.id),
+                }"
               >
                 <img
                   :src="image.image_url"
                   :alt="image.alt_text || `image-${image.id}`"
                   class="w-full h-full object-cover rounded-md shadow-md"
+                  :class="{
+                    'opacity-40': !image.isTemp && isMarkedForDeletion(image.id),
+                  }"
                 />
 
                 <div
@@ -462,7 +478,12 @@ watchEffect(() => {
                   class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-60 transition-all duration-300 flex flex-col items-center justify-center gap-2 p-2 rounded-md"
                 >
                   <button
-                    v-if="isEditMode && !image.is_primary"
+                    v-if="
+                      isEditMode &&
+                      !image.is_primary &&
+                      !image.isTemp &&
+                      !isMarkedForDeletion(image.id)
+                    "
                     @click="handleSetPrimary(image)"
                     type="button"
                     class="opacity-0 group-hover:opacity-100 transition-opacity w-full text-center px-3 py-1 bg-blue-600 text-white text-xs rounded-full"
@@ -471,11 +492,22 @@ watchEffect(() => {
                   </button>
 
                   <button
-                    @click="handleImageDelete(image)"
+                    v-if="isEditMode && !image.isTemp"
+                    @click="toggleDeletionMark(image)"
+                    type="button"
+                    class="opacity-0 group-hover:opacity-100 transition-opacity w-full text-center px-3 py-1 text-white text-xs rounded-full"
+                    :class="isMarkedForDeletion(image.id) ? 'bg-yellow-500' : 'bg-red-600'"
+                  >
+                    {{ isMarkedForDeletion(image.id) ? 'Undo Delete' : 'Delete' }}
+                  </button>
+
+                  <button
+                    v-if="image.isTemp"
+                    @click="handleRemoveTempImage(image)"
                     type="button"
                     class="opacity-0 group-hover:opacity-100 transition-opacity w-full text-center px-3 py-1 bg-red-600 text-white text-xs rounded-full"
                   >
-                    Delete
+                    Remove
                   </button>
                 </div>
               </div>
