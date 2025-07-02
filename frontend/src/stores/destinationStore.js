@@ -226,21 +226,28 @@ export const useDestinationStore = defineStore('destination', {
     async setPrimaryImage(slug, imageId) {
       this.error = null
       try {
-        // Panggil endpoint baru dengan method POST
-        const response = await apiClient.post(
-          `${DESTINATIONS_API_PATH}${slug}/images/${imageId}/set-primary/`,
-        )
+        await apiClient.post(`${DESTINATIONS_API_PATH}${slug}/images/${imageId}/set-primary/`)
 
-        const updatedImages = response.data.images
+        if (this.currentDestination?.images) {
+          const oldPrimary = this.currentDestination.images.find((img) => img.is_primary)
+          if (oldPrimary) {
+            oldPrimary.is_primary = false
+          }
 
-        if (this.currentDestination && updatedImages) {
-          this.currentDestination.images = updatedImages
+          const newPrimary = this.currentDestination.images.find((img) => img.id === imageId)
+          if (newPrimary) {
+            newPrimary.is_primary = true
+          }
+
+          this.currentDestination.images.sort((a, b) => {
+            if (a.is_primary !== b.is_primary) {
+              return b.is_primary - a.is_primary
+            }
+            return new Date(b.uploaded_at) - new Date(a.uploaded_at)
+          })
         }
 
         showNotification('success', 'Primary image has been updated.')
-
-        // KEMBALIKAN DATA GAMBAR YANG SUDAH UPDATE
-        return updatedImages
       } catch (err) {
         this.error = err.response?.data?.detail || 'Failed to set primary image.'
         showNotification('error', this.error)
