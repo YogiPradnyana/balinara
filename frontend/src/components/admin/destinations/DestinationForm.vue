@@ -1,13 +1,14 @@
 <script setup>
 import Subtract from '@/components/icons/Subtract.vue'
-import { ref, watchEffect, watch, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useCategoryStore } from '@/stores/categoryStore'
 import { useFacilityStore } from '@/stores/facilityStore'
 import { useDestinationStore } from '@/stores/destinationStore'
-import { showNotification } from '@/services/notificationService'
 import Photo from '@/components/icons/Photo.vue'
 import Hide from '@/components/icons/Hide.vue'
 import Show from '@/components/icons/Show.vue'
+import 'leaflet/dist/leaflet.css'
+import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
 
 const props = defineProps({
   initialData: {
@@ -66,6 +67,33 @@ const formData = ref({
   },
 })
 
+const zoom = ref(13) // Tingkat zoom awal peta
+
+// Pusat peta awal (misalnya, di Denpasar, Bali)
+const mapCenter = ref([-8.65, 115.216667])
+
+// Computed property untuk posisi marker, agar tetap sinkron dengan form
+const markerPosition = computed({
+  get: () => {
+    const lat = formData.value.address_data.latitude
+    const lng = formData.value.address_data.longitude
+    return lat && lng ? [lat, lng] : null
+  },
+  set: (val) => {
+    if (val) {
+      formData.value.address_data.latitude = val.lat
+      formData.value.address_data.longitude = val.lng
+    }
+  },
+})
+
+// Fungsi yang dijalankan saat peta diklik
+function handleMapClick(event) {
+  const { lat, lng } = event.latlng
+  formData.value.address_data.latitude = lat.toFixed(7) // Batasi desimal untuk konsistensi
+  formData.value.address_data.longitude = lng.toFixed(7)
+}
+
 const galleryImages = computed(() => {
   const existingImages = props.isEditMode ? store.currentDestination?.images || [] : []
   const tempImages = props.isEditMode ? newlyAddedTempImages.value : tempImagesForCreate.value
@@ -89,6 +117,10 @@ watch(
       formData.value.contact_data = { ...(newData.contact || formData.value.contact_data) }
       formData.value.category_ids = (newData.categories || []).map((c) => c.id)
       formData.value.facility_ids = (newData.facilities || []).map((f) => f.id)
+
+      if (newData.address?.latitude && newData.address?.longitude) {
+        mapCenter.value = [newData.address.latitude, newData.address.longitude]
+      }
 
       const priceString = newData.ticket_price_range || ''
       if (priceString.includes(' - ')) {
@@ -220,7 +252,7 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
     <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
       <!-- Form Left -->
       <div
-        class="p-4 w-full lg:w-1/2 xl:w-2/3 border border-neu-100 flex flex-col gap-6 rounded-3xl"
+        class="p-4 w-full lg:w-1/2 xl:w-7/12 border border-neu-100 flex flex-col gap-6 rounded-3xl"
       >
         <div class="flex flex-col gap-3">
           <label for="name" class="text-base font-semibold">Name</label>
@@ -517,18 +549,31 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
 
       <!-- Form Right -->
       <div
-        class="p-4 w-full flex flex-col gap-6 lg:w-1/2 xl:w-1/3 border h-fit border-neu-100 rounded-3xl"
+        class="p-4 w-full flex flex-col gap-6 lg:w-1/2 xl:w-5/12 border h-fit border-neu-100 rounded-3xl"
       >
         <!-- Map -->
         <div class="flex flex-col gap-3">
           <label class="text-base font-semibold">Map Location</label>
-          <div class="w-full h-62 rounded-3xl overflow-hidden">
-            <iframe
-              class="w-full h-full"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d126916.55586267437!2d115.0919508!3d-8.4095178!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd219b8c6d957b3%3A0x5030bfbca83c260!2sBali!5e0!3m2!1sen!2sid!4v1685538498765!5m2!1sen!2sid"
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-            ></iframe>
+          <div class="w-full h-76 rounded-3xl overflow-hidden">
+            <l-map
+              v-model:zoom="zoom"
+              :center="mapCenter"
+              :use-global-leaflet="false"
+              @click="handleMapClick"
+              style="height: 100%; width: 100%"
+            >
+              <l-tile-layer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                layer-type="base"
+                name="OpenStreetMap"
+              ></l-tile-layer>
+              <l-marker
+                v-if="markerPosition"
+                :lat-lng="markerPosition"
+                draggable
+                @update:lat-lng="markerPosition = $event"
+              ></l-marker>
+            </l-map>
           </div>
         </div>
 
