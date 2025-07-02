@@ -279,6 +279,7 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
           <div class="flex items-center">
             <input
               v-model="formData.is_published"
+              :disabled="isReadOnly"
               type="checkbox"
               id="is_published"
               class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
@@ -433,29 +434,41 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
           <div class="w-full">
             <label
               for="imageUploadInput"
-              class="flex flex-col items-center justify-center w-full h-40 border-[1.6px] border-dashed rounded-3xl cursor-pointer hover:bg-gray-200 transition"
+              class="flex flex-col items-center justify-center w-full h-40 border-[1.6px] border-dashed rounded-3xl cursor-pointer transition"
               :class="{
                 'border-blue-500 bg-blue-50': isDragging,
-                'border-pr-500 bg-gray-100 hover:bg-gray-200': !isDragging,
+                'border-pr-500 bg-gray-100 hover:bg-gray-200': !isDragging && !isReadOnly,
                 'border-red-500 bg-red-50': imageError,
+                'border-neu-200 bg-[#F2F2F2]': isReadOnly,
+                'hover:bg-gray-200': !isReadOnly,
               }"
               @dragover.prevent="isDragging = true"
               @dragleave.prevent="isDragging = false"
               @drop.prevent="handleDrop"
             >
               <Photo
-                class="mb-1 text-pr-500"
-                :class="[isDragging ? 'text-blue-500' : '', imageError ? 'text-red-500' : '']"
+                class="mb-1"
+                :class="[
+                  isDragging ? 'text-blue-500' : '',
+                  imageError ? 'text-red-500' : '',
+                  isReadOnly ? 'text-neu-500' : 'text-pr-500',
+                ]"
               />
 
               <!-- Text -->
               <p
-                class="font-medium text-sm mb-[2px] text-pr-500"
-                :class="[isDragging ? 'text-blue-500' : '', imageError ? 'text-red-500' : '']"
+                class="font-medium text-sm mb-[2px]"
+                :class="[
+                  isDragging ? 'text-blue-500' : '',
+                  imageError ? 'text-red-500' : '',
+                  isReadOnly ? 'text-neu-500' : 'text-pr-500',
+                ]"
               >
                 Click to add photos
               </p>
-              <p class="text-neu-900 text-sm">or drag & drop</p>
+              <p class="text-sm" :class="[isReadOnly ? 'text-neu-800' : 'text-neu-900']">
+                or drag & drop
+              </p>
 
               <!-- Hidden input -->
               <!-- <input id="photo-upload" type="file" class="hidden" multiple /> -->
@@ -466,7 +479,7 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
                 multiple
                 accept="image/*"
                 class="hidden"
-                :disabled="isUploading"
+                :disabled="isUploading || isReadOnly"
               />
             </label>
             <p v-if="imageError" class="mt-2 text-xs text-red-500">
@@ -512,7 +525,8 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
                       isEditMode &&
                       !image.is_primary &&
                       !image.isTemp &&
-                      !isMarkedForDeletion(image.id)
+                      !isMarkedForDeletion(image.id) &&
+                      !isReadOnly
                     "
                     @click="handleSetPrimary(image)"
                     type="button"
@@ -522,7 +536,7 @@ watch([minPrice, maxPrice], ([newMin, newMax]) => {
                   </button>
 
                   <button
-                    v-if="isEditMode && !image.isTemp"
+                    v-if="isEditMode && !image.isTemp && !isReadOnly"
                     @click="toggleDeletionMark(image)"
                     type="button"
                     class="opacity-0 group-hover:opacity-100 transition-opacity w-full text-center px-3 py-1 text-white text-xs rounded-full"
