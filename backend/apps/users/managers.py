@@ -36,6 +36,7 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
         extra_fields.setdefault('is_active', True) # Pengguna biasa biasanya aktif secara default
+        extra_fields.setdefault('role', 'traveler')
         
         # Meneruskan semua argumen ke _create_user
         return self._create_user(email, username, password, phone, **extra_fields)
@@ -48,6 +49,7 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True) # Superuser harus selalu aktif
+        extra_fields.setdefault('role', 'admin')
 
         # Validasi tambahan untuk superuser
         if extra_fields.get('is_staff') is not True:

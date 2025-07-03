@@ -59,6 +59,7 @@ class UserCreateSerializer(serializers.ModelSerializer): # Perhatikan ini adalah
             phone=phone,
             is_staff=True,       # Ini yang menjadikan user staff/admin
             is_superuser=True,   # Ini yang menjadikan user superuser penuh
+            role = 'admin',
             **validated_data     # Meneruskan sisa data validasi
         )
         return user
@@ -98,14 +99,22 @@ class UserDetailSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'username', 'email', 'phone', 'image', 'image_url',
                   'email_verified_at', 'date_joined', 'updated_at', 'is_active',
-                  'is_staff', 'is_superuser')
-        read_only_fields = ('id', 'email', 'email_verified_at', 'date_joined', 'updated_at',
+                  'is_staff', 'is_superuser', 'role')
+        read_only_fields = ('id', 'email', 'phone', 'email_verified_at', 'date_joined', 'updated_at',
                             'is_active', 'is_staff', 'is_superuser')
 
     def get_image_url(self, obj):
+        print(f"    -> SERIALIZER: Memproses data untuk User ID: {obj.id} ({obj.username})")
+        
         request = self.context.get('request')
         if obj.image and hasattr(obj.image, 'url'):
-            return request.build_absolute_uri(obj.image.url) if request else obj.image.url
+            try:
+                # Menambahkan try-except untuk menangkap error saat mengakses .url
+                url = obj.image.url
+                return request.build_absolute_uri(url) if request else url
+            except Exception as e:
+                print(f"    !!!!!! ERROR saat mengakses .url untuk User ID: {obj.id}. Error: {e} !!!!!!")
+                return None
         return None
 
 
