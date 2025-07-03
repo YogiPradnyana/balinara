@@ -33,6 +33,8 @@ urlpatterns = [
     path('api/common/', include('apps.common.urls', namespace='common_api')),
     path('api/destinations/',
          include('apps.destinations.urls', namespace='destinations_api')),
+    path('api/reviews/',
+         include('apps.reviews.urls', namespace='reviews_api')),
     path('api/wishlists/', include('apps.wishlists.urls')),
 ]
 

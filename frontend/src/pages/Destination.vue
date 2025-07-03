@@ -10,6 +10,25 @@ import Penjor from '@/components/icons/Penjor.vue'
 import Search from '@/components/icons/Search.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const searchTerm = ref('')
+
+function performSearch() {
+  // Hanya lakukan navigasi jika ada teks yang diketik
+  if (searchTerm.value.trim()) {
+    router.push({
+      name: 'Search', // Pastikan ini nama rute halaman pencarian Anda
+      query: { search: searchTerm.value },
+    })
+  } else {
+    router.push({
+      name: 'Search', // Kembali ke halaman daftar destinasi jika tidak ada teks
+    })
+  }
+}
 
 const regenciesData = {
   badung: {
@@ -76,7 +95,7 @@ const regenciesData = {
   },
 }
 
-//  State untuk interaktivitas 
+//  State untuk interaktivitas
 const clickedRegencyId = ref('')
 const tooltipText = ref('')
 const tooltipVisible = ref(false)
@@ -86,13 +105,13 @@ const tooltipY = ref(0)
 const isLoadingLocation = ref(true) // State untuk menampilkan loading
 const errorMessage = ref('') // Untuk menampilkan pesan error
 
-//  Computed property untuk menampilkan data aktif 
+//  Computed property untuk menampilkan data aktif
 const activeRegency = computed(() => {
   // Jika tidak ada yang diklik, tampilkan data default (Badung)
   return regenciesData[clickedRegencyId.value] || ''
 })
 
-//  Event Handlers 
+//  Event Handlers
 function handleRegencyHover(regency) {
   // 'regency' adalah object { id: 'badung', name: 'Badung' } dari event
   tooltipText.value = regency.name
@@ -138,12 +157,14 @@ function updateTooltipPosition(event) {
         </p>
       </div>
       <form
+        @submit.prevent="performSearch"
         class="max-w-[640px] w-full flex items-center justify-between rounded-full outline outline-neu-200 p-1.5"
       >
         <div class="wrapper gap-2 ps-1.5 flex items-center w-full">
           <Search />
           <input
             type="text"
+            v-model="searchTerm"
             class="w-full text-xs md:text-sm leading-5 placeholder:text-neu-500 focus:outline-none"
             placeholder="Search Destionations..."
           />
