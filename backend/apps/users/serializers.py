@@ -2,11 +2,10 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
-from .models import User # Mengimpor model User kustom Anda
+from .models import User  # Mengimpor model User kustom Anda
 
 
-
-## UserRegistrationSerializer (Untuk Pendaftaran User Umum)
+# UserRegistrationSerializer (Untuk Pendaftaran User Umum)
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[
@@ -22,23 +21,26 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         username = validated_data.pop('username')
         email = validated_data.pop('email')
         password = validated_data.pop('password')
-        phone = validated_data.pop('phone', None) # Gunakan None sebagai default jika tidak ada
+        # Gunakan None sebagai default jika tidak ada
+        phone = validated_data.pop('phone', None)
 
         user = User.objects.create_user(
             username=username,
             email=email,
             password=password,
             phone=phone,
-            **validated_data  # Meneruskan sisa data validasi (misalnya, jika ada bidang tambahan di masa mendatang)
+            # Meneruskan sisa data validasi (misalnya, jika ada bidang tambahan di masa mendatang)
+            **validated_data
         )
         return user
 
 
+# UserCreateSerializer (Untuk Membuat Admin oleh Admin Lain)
 
-## UserCreateSerializer (Untuk Membuat Admin oleh Admin Lain)
-
-class UserCreateSerializer(serializers.ModelSerializer): # Perhatikan ini adalah UserCreateSerializer, bukan UserRegistrationSerializer lagi
-    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+# Perhatikan ini adalah UserCreateSerializer, bukan UserRegistrationSerializer lagi
+class UserCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, style={
+                                     'input_type': 'password'})
 
     class Meta:
         model = User
@@ -50,7 +52,8 @@ class UserCreateSerializer(serializers.ModelSerializer): # Perhatikan ini adalah
         username = validated_data.pop('username')
         email = validated_data.pop('email')
         password = validated_data.pop('password')
-        phone = validated_data.pop('phone', None) # Gunakan None sebagai default jika tidak ada
+        # Gunakan None sebagai default jika tidak ada
+        phone = validated_data.pop('phone', None)
 
         user = User.objects.create_user(
             username=username,
@@ -59,14 +62,13 @@ class UserCreateSerializer(serializers.ModelSerializer): # Perhatikan ini adalah
             phone=phone,
             is_staff=True,       # Ini yang menjadikan user staff/admin
             is_superuser=True,   # Ini yang menjadikan user superuser penuh
-            role = 'admin',
+            role='admin',
             **validated_data     # Meneruskan sisa data validasi
         )
         return user
 
 
-
-## UserLoginSerializer
+# UserLoginSerializer
 
 class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField(label="Email")
@@ -78,7 +80,8 @@ class UserLoginSerializer(serializers.Serializer):
         password = attrs.get('password')
         if email and password:
             user = authenticate(request=self.context.get(
-                'request'), username=email, password=password) # username=email karena USERNAME_FIELD Anda
+                # username=email karena USERNAME_FIELD Anda
+                'request'), username=email, password=password)
             if not user:
                 raise serializers.ValidationError(
                     'Unable to log in with provided credentials.', code='authorization')
@@ -89,8 +92,7 @@ class UserLoginSerializer(serializers.Serializer):
         return attrs
 
 
-
-## UserDetailSerializer
+# UserDetailSerializer
 
 class UserDetailSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
@@ -104,8 +106,9 @@ class UserDetailSerializer(serializers.ModelSerializer):
                             'is_active', 'is_staff', 'is_superuser')
 
     def get_image_url(self, obj):
-        print(f"    -> SERIALIZER: Memproses data untuk User ID: {obj.id} ({obj.username})")
-        
+        print(
+            f"    -> SERIALIZER: Memproses data untuk User ID: {obj.id} ({obj.username})")
+
         request = self.context.get('request')
         if obj.image and hasattr(obj.image, 'url'):
             try:
@@ -113,13 +116,13 @@ class UserDetailSerializer(serializers.ModelSerializer):
                 url = obj.image.url
                 return request.build_absolute_uri(url) if request else url
             except Exception as e:
-                print(f"    !!!!!! ERROR saat mengakses .url untuk User ID: {obj.id}. Error: {e} !!!!!!")
+                print(
+                    f"    !!!!!! ERROR saat mengakses .url untuk User ID: {obj.id}. Error: {e} !!!!!!")
                 return None
         return None
 
 
-
-## UserProfileUpdateSerializer
+# UserProfileUpdateSerializer
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(
@@ -127,15 +130,39 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'phone', 'image') # Field yang boleh diupdate oleh user sendiri
+        # Field yang boleh diupdate oleh user sendiri
+        fields = ('username', 'phone', 'image')
         extra_kwargs = {
             'username': {'required': False},
             'phone': {'required': False, 'allow_blank': True, 'allow_null': True},
         }
 
 
+class UserSimpleSerializer(serializers.ModelSerializer):
+    """
+    Serializer ringkas untuk menampilkan data user yang tidak sensitif,
+    khusus untuk keperluan data bersarang (nested) di dalam review.
+    """
+    image_url = serializers.SerializerMethodField()
 
-## ChangePasswordSerializer
+    class Meta:
+        model = User
+        # Pilih hanya field yang aman dan relevan untuk ditampilkan di samping review
+        fields = ['id', 'username', 'image_url']
+
+    def get_image_url(self, obj):
+        # Kita gunakan lagi logika yang sama dari UserDetailSerializer Anda
+        request = self.context.get('request')
+        if obj.image and hasattr(obj.image, 'url'):
+            try:
+                url = obj.image.url
+                return request.build_absolute_uri(url) if request else url
+            except Exception:
+                return None
+        return None
+
+
+# ChangePasswordSerializer
 
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(

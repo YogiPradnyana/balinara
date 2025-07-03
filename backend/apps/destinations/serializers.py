@@ -46,7 +46,7 @@ class DestinationImageSerializer(serializers.ModelSerializer):
 
 
 class DestinationListSerializer(serializers.ModelSerializer):
-    category = CategorySerializer(read_only=True)
+    categories = CategorySerializer(many=True, read_only=True)
     primary_image_url = serializers.SerializerMethodField()
     address = AddressSerializer(read_only=True)
     contact = ContactSerializer(read_only=True)
@@ -54,10 +54,10 @@ class DestinationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Destination
         fields = [
-            'id', 'name', 'slug', 'average_rating', 'total_reviews',
-            'category', 'primary_image_url', 'address', 'contact', 'is_published'
+            'id', 'name', 'slug', 'average_rating', 'total_reviews', 'description',
+            'categories', 'primary_image_url', 'address', 'contact', 'is_published'
         ]
-        read_only_fields = ('id', 'slug', 'average_rating',
+        read_only_fields = ('id', 'slug', 'average_rating', 'description',
                             'total_reviews', 'primary_image_url', 'address')
 
     def get_primary_image_url(self, obj):

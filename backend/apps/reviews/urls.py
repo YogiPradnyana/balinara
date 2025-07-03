@@ -6,7 +6,7 @@ app_name = 'reviews_api'
 
 # Membuat router dan mendaftarkan ViewSet kita dengannya.
 router = DefaultRouter()
-router.register(r'', views.DestinationViewSet,
+router.register(r'', views.ReviewViewSet,
                 basename='reviews')
 
 # URL API akan ditentukan secara otomatis oleh router.
