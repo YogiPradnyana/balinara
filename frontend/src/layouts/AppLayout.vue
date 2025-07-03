@@ -33,9 +33,9 @@ watch(useRoute(), () => {
   <div>
     <Navbar />
     <div class="relative min-h-screen font-pr text-neu-900 overflow-x-hidden">
-      <router-view v-slot="{ Component, route }">
+      <router-view v-slot="{ Component }">
         <KeepAlive>
-          <component :is="Component" :key="route.fullPath" />
+          <component :is="Component" />
         </KeepAlive>
       </router-view>
     </div>

@@ -1,11 +1,9 @@
 <script setup>
 import { ref, onMounted, computed, watch, onActivated } from 'vue'
+import { onClickOutside } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { useDestinationStore } from '@/stores/destinationStore'
-import { useCategoryStore } from '@/stores/categoryStore' // Asumsi store kategori ada di common
-// import { useFacilityStore } from '@/stores/facilityStore'; // Jika Anda punya filter fasilitas
-
-// Import ikon Anda
+import { useCategoryStore } from '@/stores/categoryStore'
 import Filter from '@/components/icons/Filter.vue'
 import Location from '@/components/icons/Location.vue'
 import Star from '@/components/icons/Star.vue'
@@ -15,31 +13,24 @@ import { useWishlistStore } from '@/stores/wishlistStore'
 
 const route = useRoute()
 const router = useRouter()
-
 const destinationStore = useDestinationStore()
 const categoryStore = useCategoryStore()
-// const facilityStore = useFacilityStore();
+const filterPanelRef = ref(null)
 
-// State untuk parameter query, diinisialisasi dari URL
-const queryParams = ref({
-  page: parseInt(route.query.page) || 1,
-  q: route.query.q || '', // 'q' untuk search term, atau 'search' jika itu parameter API Anda
-  category: route.query.category || [], // Array untuk multiple categories, akan di-join jadi string saat API call
-  regency: route.query.regency || [], // Array untuk multiple regencies
-  rating: parseInt(route.query.rating) || 0, // Untuk filter rating
-  ordering: route.query.ordering || '-average_rating,name', // Default ordering
+const ITEMS_PER_PAGE = 10
+
+const filters = ref({
+  search: '',
+  category: [],
+  regency: [],
+  min_rating: 0,
+  ordering: '-average_rating',
+  page: 1,
 })
 
-function formatAddress(address) {
-  if (!address) {
-    return 'N/A'
-  }
-  // Menggabungkan bagian alamat menjadi satu string yang rapi
-  const parts = [address.district, address.regency]
-  return parts.filter((part) => part).join(', ') // filter(part => part) untuk menghapus bagian yang kosong
-}
-
-const ITEMS_PER_PAGE = 10 // Sesuaikan dengan backend
+// State untuk UI filter
+const hoverRating = ref(0) // Untuk efek hover pada bintang rating filter
+const isFilterOpen = computed(() => destinationStore.isMobileFilterOpen)
 
 // Computed properties dari store
 const destinations = computed(() => destinationStore.allDestinations)
@@ -63,111 +54,108 @@ const allRegencies = ref([
   { name: 'Jembrana', slug: 'jembrana' },
 ])
 
-// State untuk UI filter
-const hoverRating = ref(0) // Untuk efek hover pada bintang rating filter
-const isFilterOpen = ref(false) // Untuk toggle filter di mobile
+onClickOutside(filterPanelRef, () => {
+  destinationStore.toggleMobileFilter(false)
+})
 
-// Fungsi untuk mengambil data destinasi
-const fetchDestinationsWithParams = () => {
-  const paramsToSend = { page: queryParams.value.page, ordering: queryParams.value.ordering }
-  if (queryParams.value.q) paramsToSend.search = queryParams.value.q // Ganti 'search' jika parameter API Anda 'q'
-  if (queryParams.value.category.length > 0) {
-    // Backend DRF DjangoFilterBackend dengan filter 'category__slug' dan lookup 'in' bisa menerima ?category__slug__in=slug1,slug2
-    // Atau jika backend Anda menerima multiple params: ?category__slug=slug1&category__slug=slug2
-    // Untuk contoh ini, kita kirim comma-separated string. Sesuaikan dengan backend Anda.
-    paramsToSend.category_slug = queryParams.value.category.join(',') // Asumsi backend bisa handle comma-separated slugs untuk category
-  }
-  if (queryParams.value.regency.length > 0) {
-    paramsToSend.address_regency = queryParams.value.regency.join(',') // Asumsi filter backend: address__regency__in (atau icontains jika teks)
-  }
-  if (queryParams.value.rating > 0) {
-    paramsToSend.min_rating = queryParams.value.rating
-  }
+function updateRouterQuery() {
+  const newQuery = {}
 
-  // Update URL browser dengan query params saat ini
-  router.push({ query: paramsToSend }) // Ini akan memicu watcher di bawah jika query berubah
-  destinationStore.fetchDestinations(paramsToSend)
+  if (filters.value.search) newQuery.search = filters.value.search
+  if (filters.value.category.length > 0) newQuery.category = filters.value.category.join(',')
+  if (filters.value.regency.length > 0) newQuery.regency = filters.value.regency.join(',')
+  if (filters.value.min_rating > 0) newQuery.min_rating = filters.value.min_rating
+  if (filters.value.ordering) newQuery.ordering = filters.value.ordering
+  if (filters.value.page > 1) newQuery.page = filters.value.page
+
+  // Ganti URL tanpa memicu navigasi ulang halaman penuh
+  router.push({ query: newQuery })
 }
 
-onMounted(() => {
-  // queryParams sudah diinisialisasi dari route.query, jadi langsung fetch
-  fetchDestinationsWithParams()
-
-  if (categoriesForFilter.value.length === 0) categoryStore.fetchCategories()
-  // if (facilitiesForFilter.value.length === 0) facilityStore.fetchFacilities();
-})
-
-// 2. Ini berjalan SETIAP KALI halaman ini ditampilkan kembali
-//    (termasuk saat Anda "kembali" dari halaman wishlist)
-onActivated(() => {
-  useWishlistStore().fetchWishlist()
-})
-
-// Watcher untuk perubahan filter/search/ordering untuk memicu fetch ulang
-// Kita akan watch objek queryParams secara keseluruhan, tapi exclude 'page' dari trigger reset page
+// Watcher Utama: satu-satunya "mesin" yang mengawasi URL.
+// Jika URL berubah (baik dari navbar atau dari filter lokal), ia akan mengambil data baru.
+let debounceTimeout
 watch(
-  () => ({ ...queryParams.value, page: undefined }),
-  (newParams, oldParams) => {
-    // Hanya fetch jika ada perubahan signifikan selain 'page'
-    // Perbandingan objek bisa tricky, cara sederhana: serialize ke string
-    if (JSON.stringify(newParams) !== JSON.stringify(oldParams)) {
-      queryParams.value.page = 1 // Selalu reset ke halaman 1 saat filter/search/ordering berubah
-      fetchDestinationsWithParams()
-    }
+  () => route.query,
+  (newQuery) => {
+    // 1. Sinkronkan state `filters` agar UI (checkbox, dll) cocok dengan URL
+    filters.value.search = newQuery.search || ''
+    filters.value.category = newQuery.category ? newQuery.category.split(',') : []
+    filters.value.regency = newQuery.regency ? newQuery.regency.split(',') : []
+    filters.value.min_rating = parseInt(newQuery.min_rating) || 0
+    filters.value.ordering = newQuery.ordering || '-average_rating'
+    filters.value.page = parseInt(newQuery.page) || 1
+
+    // 2. Panggil API dengan parameter dari URL yang baru
+    destinationStore.fetchDestinations(newQuery)
   },
-  { deep: true },
+  {
+    deep: true,
+    immediate: true, // 'immediate: true' akan menjalankan ini saat halaman pertama kali dibuka
+  },
 )
 
-// Fungsi untuk Paginasi
-const goToPage = (page) => {
-  const totalPages = Math.ceil(pagination.value.count / ITEMS_PER_PAGE) || 1
-  if (page > 0 && page <= totalPages) {
-    queryParams.value.page = page
-    fetchDestinationsWithParams() // URL akan diupdate oleh fetchDestinationsWithParams
-  }
-}
+// --- Handler untuk interaksi UI ---
+// Tugasnya sekarang hanya mengubah state `filters` lalu memanggil `updateRouterQuery`
 
-const viewDestinationDetail = (slug) => {
-  router.push({ name: 'DetailDestination', params: { slug: slug } })
-}
+watch(
+  () => filters.value.search,
+  () => {
+    clearTimeout(debounceTimeout)
+    debounceTimeout = setTimeout(() => {
+      filters.value.page = 1
+      updateRouterQuery()
+    }, 500) // Debounce 500ms
+  },
+)
 
-// Handler untuk filter
 const toggleFilterSelection = (type, value) => {
-  if (!queryParams.value[type]) {
-    queryParams.value[type] = []
-  }
-  const selectedArray = queryParams.value[type]
+  const selectedArray = filters.value[type]
   const index = selectedArray.indexOf(value)
+
   if (index > -1) {
-    selectedArray.splice(index, 1)
+    selectedArray.splice(index, 1) // Uncheck
   } else {
-    if (type === 'regency') {
-      // Jika regency radio button (hanya satu pilihan)
-      queryParams.value[type] = [value]
-    } else {
-      // Jika category checkbox (bisa banyak pilihan)
-      selectedArray.push(value)
-    }
+    // Karena regency diubah jadi checkbox, logikanya disamakan
+    selectedArray.push(value) // Check
   }
-  // Watcher di atas akan otomatis memicu fetch ulang
+
+  filters.value.page = 1
+  updateRouterQuery()
 }
 
 const setSelectedRating = (rating) => {
-  queryParams.value.rating = queryParams.value.rating === rating ? 0 : rating // Klik lagi untuk clear
-  // Watcher akan memicu fetch
+  filters.value.min_rating = filters.value.min_rating === rating ? 0 : rating
+  filters.value.page = 1
+  updateRouterQuery()
 }
 
-// Untuk keyword, kita ambil dari queryParams.q yang di-v-model ke input
-const keyword = computed({
-  get: () => queryParams.value.q,
-  set: (value) => {
-    queryParams.value.q = value
-  }, // Watcher akan handle debounce dan fetch
+const goToPage = (page) => {
+  const totalPages = Math.ceil(pagination.value.count / ITEMS_PER_PAGE) || 1
+  if (page > 0 && page <= totalPages && page !== filters.value.page) {
+    filters.value.page = page
+    updateRouterQuery()
+  }
+}
+
+function formatAddress(address) {
+  if (!address) return 'N/A'
+  const parts = [address.district, address.regency]
+  return parts.filter((part) => part).join(', ')
+}
+const viewDestinationDetail = (slug) => {
+  router.push({ name: 'DetailDestination', params: { slug: slug } })
+}
+onMounted(() => {
+  if (categoryStore.allCategories.length === 0) categoryStore.fetchCategories()
+})
+onActivated(() => {
+  useWishlistStore().fetchWishlist()
 })
 </script>
 
 <template>
-  <div class="px-6 sm:px-16 lg:px-[140px] bg-[#ECF4F0] pb-24 md:pb-30">
+  <div class="px-6 sm:px-16 lg:px-[140px] min-h-200 md:min-h-screen bg-[#ECF4F0] pb-24 md:pb-30">
     <div class="flex flex-col md:flex-row gap-8 pt-10 md:pt-16">
       <!-- Sidebar -->
       <div class="min-w-52 lg:min-w-60 space-y-5 lg:space-y-8 hidden md:block">
@@ -179,7 +167,7 @@ const keyword = computed({
                 <input
                   type="checkbox"
                   :value="cat.slug"
-                  :checked="queryParams.category.includes(cat.slug)"
+                  :checked="filters.category.includes(cat.slug)"
                   @change="toggleFilterSelection('category', cat.slug)"
                 />{{ cat.name }}
               </label>
@@ -190,11 +178,11 @@ const keyword = computed({
           <h3 class="text-base sm:text-lg font-semibold mb-3">Regency</h3>
           <ul class="space-y-1.5">
             <li v-for="reg in allRegencies" :key="reg.slug">
-              <label class="flex items-center gap-2">
+              <label class="flex items-center gap-2 cursor-pointer">
                 <input
-                  type="radio"
+                  type="checkbox"
                   :value="reg.slug"
-                  :checked="queryParams.regency.includes(reg.slug)"
+                  :checked="filters.regency.includes(reg.slug)"
                   @change="toggleFilterSelection('regency', reg.slug)"
                 />
                 {{ reg.name }}
@@ -214,18 +202,18 @@ const keyword = computed({
               class="text-2xl transition"
               :aria-label="`Set rating to ${i}`"
               :class="{
-                'opacity-50': queryParams.rating > 0 && queryParams.rating !== i && !hoverRating,
+                'opacity-50': filters.rating > 0 && filters.min_rating !== i && !hoverRating,
               }"
             >
               <component
-                :is="i <= (hoverRating || queryParams.rating) ? StarFilled : Star"
+                :is="i <= (hoverRating || filters.min_rating) ? StarFilled : Star"
                 class="size-6 lg:size-8"
-                :class="i <= (hoverRating || queryParams.rating) ? '' : 'text-[#FDB528]'"
+                :class="i <= (hoverRating || filters.min_rating) ? '' : 'text-[#FDB528]'"
               />
             </button>
           </div>
           <button
-            v-if="queryParams.rating > 0"
+            v-if="filters.min_rating > 0"
             @click="setSelectedRating(0)"
             class="mt-2 text-xs text-pr-500 hover:underline"
           >
@@ -237,7 +225,7 @@ const keyword = computed({
       <!-- Search Result List -->
       <div class="flex-1 flex flex-col">
         <h1 class="text-2xl md:mb-1 md:text-[32px] font-se font-semibold leading-10 md:leading-12">
-          Search results for "{{ keyword || 'All Destinations' }}"
+          Search results for "{{ filters.search || 'All Destinations' }}"
         </h1>
         <p class="text-sm sm:text-base">
           Your adventure starts with places we found for you.
@@ -245,7 +233,7 @@ const keyword = computed({
         </p>
         <div class="md:hidden flex relative w-full justify-end">
           <button
-            @click="isFilterOpen = !isFilterOpen"
+            @click="destinationStore.toggleMobileFilter"
             class="flex w-fit rounded-lg mt-2 bg-sur-50 p-2 items-center justify-center"
             aria-expanded="isFilterOpen"
             aria-controls="mobile-filters"
@@ -255,7 +243,8 @@ const keyword = computed({
           <div
             v-if="isFilterOpen"
             id="mobile-filters"
-            class="md:hidden top-13 min-w-56 p-4 absolute bg-sur-50 shadow-sm rounded-2xl flex flex-col gap-4"
+            ref="filterPanelRef"
+            class="md:hidden top-13 min-w-56 p-4 z-30 absolute bg-sur-50 shadow-sm rounded-2xl flex flex-col gap-4"
           >
             <div class="flex flex-col">
               <h3 class="font-semibold mb-2">Categories</h3>
@@ -265,7 +254,7 @@ const keyword = computed({
                     <input
                       type="checkbox"
                       :value="cat.slug"
-                      :checked="queryParams.category.includes(cat.slug)"
+                      :checked="filters.category.includes(cat.slug)"
                       @change="toggleFilterSelection('category', cat.slug)"
                     />
                     {{ cat.name }}
@@ -280,9 +269,9 @@ const keyword = computed({
                 <li v-for="reg in allRegencies" :key="reg.slug + '-mobile'">
                   <label class="flex items-center gap-2 cursor-pointer">
                     <input
-                      type="radio"
+                      type="checkbox"
                       :value="reg.slug"
-                      :checked="queryParams.regency.includes(reg.slug)"
+                      :checked="filters.regency.includes(reg.slug)"
                       @change="toggleFilterSelection('regency', reg.slug)"
                     />
                     {{ reg.name }}
@@ -303,24 +292,24 @@ const keyword = computed({
                   class="text-2xl transition"
                 >
                   <component
-                    :is="i <= (hoverRating || selectedRating) ? StarFilled : Star"
+                    :is="i <= (hoverRating || filters.min_rating) ? StarFilled : Star"
                     class="size-5"
-                    :class="i <= (hoverRating || selectedRating) ? '' : 'text-[#FDB528]'"
+                    :class="i <= (hoverRating || filters.min_rating) ? '' : 'text-[#FDB528]'"
                   />
                 </button>
               </div>
               <button
-                v-if="queryParams.rating > 0"
+                v-if="filters.min_rating > 0"
                 @click="setSelectedRating(0)"
-                class="mt-2 text-xs ..."
+                class="mt-2 text-xs text-pr-500 hover:underline"
               >
                 Clear Rating
               </button>
               <button
-                @click="isFilterOpen = false"
+                @click="destinationStore.toggleMobileFilter"
                 class="mt-4 w-full py-2 bg-pr-500 text-white rounded-lg"
               >
-                Apply Filters
+                Close
               </button>
             </div>
           </div>
@@ -411,7 +400,7 @@ const keyword = computed({
           class="mt-8 flex justify-center items-center space-x-1 sm:space-x-2"
         >
           <button
-            @click="goToPage(queryParams.page - 1)"
+            @click="goToPage(filters.page - 1)"
             :disabled="!pagination.previous"
             class="px-3 py-1.5 sm:px-4 sm:py-2 border rounded-md disabled:opacity-50 text-sm ..."
           >
@@ -419,11 +408,11 @@ const keyword = computed({
           </button>
           <!-- Anda bisa loop untuk nomor halaman di sini -->
           <span class="text-sm text-gray-700 dark:text-gray-300"
-            >Page {{ queryParams.page }} of
+            >Page {{ filters.page }} of
             {{ Math.ceil(pagination.count / ITEMS_PER_PAGE) || 1 }}</span
           >
           <button
-            @click="goToPage(queryParams.page + 1)"
+            @click="goToPage(filters.page + 1)"
             :disabled="!pagination.next"
             class="px-3 py-1.5 sm:px-4 sm:py-2 border rounded-md disabled:opacity-50 text-sm ..."
           >

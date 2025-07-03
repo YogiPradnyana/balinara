@@ -18,9 +18,7 @@ export const useDestinationStore = defineStore('destination', {
       previous: null,
       currentPage: 1, // Kelola halaman saat ini
     },
-    // Anda bisa menambahkan state untuk filter dan search term di sini
-    // currentFilters: {},
-    // currentSearchTerm: '',
+    isMobileFilterOpen: false,
   }),
 
   getters: {
@@ -30,6 +28,10 @@ export const useDestinationStore = defineStore('destination', {
   },
 
   actions: {
+    toggleMobileFilter() {
+      this.isMobileFilterOpen = !this.isMobileFilterOpen
+    },
+
     async fetchDestinations(params = {}) {
       // params bisa berisi { page, search, category__slug, dll. }
       this.isLoadingList = true
