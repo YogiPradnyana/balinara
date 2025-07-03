@@ -6,12 +6,11 @@ from rest_framework import status, generics
 from .models import Message
 from .serializers import MessageSerializer
 from rest_framework.permissions import AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser
 
-# Konfigurasi API Gemini
-try:
-    genai.configure(api_key=settings.GEMINI_API_KEY)
-except Exception as e:
-    print(f"Error configuring Gemini API: {e}")
+from .models import Message
+from .serializers import MessageSerializer
+from .services import process_chatbot_message, process_image_query
 
 
 class ChatAPIView(APIView):
@@ -20,77 +19,88 @@ class ChatAPIView(APIView):
     Juga mengelola riwayat chat dalam database.
     """
     permission_classes = [AllowAny]
+    parser_classes = (MultiPartParser, FormParser)
 
     def post(self, request, *args, **kwargs):
-        user_message_text = request.data.get('message')
-        if not user_message_text:
-            return Response({'error': 'Pesan tidak boleh kosong.'}, status=status.HTTP_400_BAD_REQUEST)
+        image_file = request.FILES.get('image', None)
+        user_message = request.data.get('message')
+        session_id = request.data.get('session_id')
 
-        # ✅ Gunakan system_instruction agar pembatas topik aktif sepanjang sesi
-        try:
-            gemini_model = genai.GenerativeModel(
-                'models/gemini-1.5-flash-latest',
-                system_instruction=(
-                    "You are Nara, an informative assistant focused on tourism"
-                    "Provide any kind of tourism-related information. Do not answer questions that are unrelated to tourism, unless you can relate them back to tourism."
-                    "If someone asks a question unrelated to tourism, refuse to answer with varied and polite responses"
-                )
+        if not session_id:
+            return Response(
+                {'error': 'Field "session_id" is required.'},
+                status=status.HTTP_400_BAD_REQUEST
             )
-        except Exception as e:
-            return Response({'error': f"Error: Model Gemini tidak terkonfigurasi dengan benar. {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Ambil seluruh riwayat chat dari database (urut dari yang lama)
-        chat_history_db = Message.objects.all().order_by('timestamp')
+        # Validasi user_message (jika tidak ada gambar, maka pesan wajib ada)
+        if not image_file and not user_message:
+            return Response(
+                {'error': 'Either "message" or "image" must be provided.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        # Format riwayat untuk Gemini API
-        formatted_history = []
-        for msg in chat_history_db:
-            formatted_history.append({'role': msg.sender, 'parts': [msg.text]})
+        if image_file:
+            MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+            if image_file.size > MAX_UPLOAD_SIZE:
+                logger.warning(
+                    f"User tried to upload a file larger than the limit. "
+                    f"File size: {image_file.size} bytes."
+                )
+                return Response(
+                    {"error": "Ukuran file gambar tidak boleh melebihi 5MB."},
+                    status=status.HTTP_400_BAD_REQUEST  # Error 400 Bad Request
+                )
 
         try:
-            # Mulai sesi chat dengan riwayat percakapan
-            chat_session = gemini_model.start_chat(history=formatted_history)
+            bot_reply = ""
+            user_message_obj = None
 
-            # ✅ Kirim hanya pesan user, tanpa prompt tambahan (biar konteks jalan)
-            response = chat_session.send_message(user_message_text)
-            bot_response_text = response.text
+            if image_file:
+                image_file.seek(0)
+                bot_reply, user_message_obj = process_image_query(
+                    image_file=image_file,
+                    user_message=user_message,
+                    session_id=session_id,
+                    user=request.user
+                )
+            else:
+                bot_reply, user_message_obj = process_chatbot_message(
+                    user_message=user_message,
+                    session_id=session_id,
+                    user=request.user
+                )
 
-            # Simpan pesan user ke database
-            user_message_obj = Message.objects.create(
-                sender='user', text=user_message_text)
-            user_serializer = MessageSerializer(user_message_obj)
-
-            # Simpan respons bot ke database
             bot_message_obj = Message.objects.create(
-                sender='model', text=bot_response_text)
-            bot_serializer = MessageSerializer(bot_message_obj)
+                session=user_message_obj.session,
+                sender='model',
+                text=bot_reply
+            )
 
-            # Kembalikan respons API
+            user_message_data = MessageSerializer(user_message_obj).data
+            bot_message_data = MessageSerializer(bot_message_obj).data
+
             return Response({
-                'user_message': user_serializer.data,
-                'bot_response': bot_serializer.data
+                "user_message_final": user_message_data,
+                "bot_reply": bot_message_data
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            error_message = f"Terjadi kesalahan saat menghubungi Gemini atau menyimpan pesan: {str(e)}"
-            print(error_message)
-            return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # Ini adalah jaring pengaman terakhir jika service gagal total
+            print(f"ChatAPIView Error: {e}")
+            return Response(
+                {'error': 'Maaf, terjadi kesalahan tak terduga di sistem kami.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
-class MessageHistoryAPIView(generics.ListAPIView):
-    """
-    API endpoint untuk mendapatkan seluruh riwayat pesan.
-    """
-    queryset = Message.objects.all().order_by('timestamp')
+class MessageHistoryBySessionAPIView(generics.ListAPIView):
     serializer_class = MessageSerializer
-
-
-class ClearChatHistoryAPIView(APIView):
-    """
-    API endpoint untuk menghapus seluruh riwayat pesan dari database.
-    """
     permission_classes = [AllowAny]
+    pagination_class = None
 
-    def post(self, request, *args, **kwargs):
-        Message.objects.all().delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def get_queryset(self):
+        session_id = self.kwargs.get('session_id')
+        if session_id:
+            # Ambil pesan yang 'id' dari 'session'-nya cocok
+            return Message.objects.filter(session__id=session_id).order_by('timestamp')
+        return Message.objects.none()

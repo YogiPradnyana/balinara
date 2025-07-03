@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import authService from '@/services/authService' // Sekarang aman untuk diimpor
 import router from '@/router' // Impor router untuk navigasi
 import { toast } from 'vue-sonner'
+import { useChatStore } from './chatStore'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -152,7 +153,9 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       this.error = null
       try {
+        const chatStore = useChatStore()
         await authService.logout()
+        chatStore.clearSession()
       } catch (error) {
         console.error('Logout API call failed, but user is logged out locally:', error)
       } finally {

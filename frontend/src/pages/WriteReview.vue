@@ -40,9 +40,7 @@ onBeforeUnmount(() => {
   <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <div class="relative w-full h-124 xs:h-[380px] rounded-3xl mt-10 md:mt-16">
       <img :src="mainImage" alt="" class="object-cover w-full h-full rounded-3xl overflow-hidden" />
-      <div
-        class="flex flex-col w-full justify-between absolute bottom-0 top-0 left-0 p-4 md:p-6 bg-neu-900/24"
-      >
+      <div class="flex flex-col w-full justify-between absolute bottom-0 top-0 left-0 p-4 md:p-6">
         <div
           class="px-4 py-2.5 flex gap-1.5 items-center w-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full"
         >

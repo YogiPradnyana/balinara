@@ -7,6 +7,10 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+import os
+from io import BytesIO
+from PIL import Image
+from django.core.files.base import ContentFile
 
 # Impor model dari aplikasi 'common'
 # Pastikan Django bisa menemukan path ini. Jika 'apps' adalah root source Anda, maka ini benar.
@@ -16,18 +20,15 @@ from apps.common.models import Category, Address, Contact, Facility
 
 
 def destination_image_path_processor(instance, filename):
-    # Ambil ekstensi dan jadikan lowercase
-    ext = filename.split('.')[-1].lower()
-    # Buat nama file yang unik menggunakan UUID untuk DestinationImage
-    new_filename = f'{uuid.uuid4()}.{ext}'
-    # Simpan dalam subfolder berdasarkan ID atau slug destinasi (pastikan instance.destination ada)
-    # instance di sini adalah DestinationImage, jadi kita akses instance.destination.id
-    destination_identifier = instance.destination.slug if instance.destination.slug else instance.destination.id
-    return f'destination_images/dest_{destination_identifier}/{new_filename}'
+    ext = os.path.splitext(filename)[1]
+    filename = f'{uuid.uuid4()}{ext}'
+    slug = instance.destination.slug
+
+    return os.path.join(f'destination_images/{slug}', filename)
 
 
 class Destination(models.Model):
-    name = models.CharField(_("Destination Name"), max_length=255,
+    name = models.CharField(_("Destination Name"), max_length=255, unique=True,
                             help_text=_("The official name of the destination."))
     slug = models.SlugField(_("Slug"), max_length=270, unique=True, blank=True,
                             help_text=_("A URL-friendly version of the name. Leave blank to auto-generate."))
@@ -36,9 +37,6 @@ class Destination(models.Model):
     ticket_price_range = models.CharField(
         _("Ticket Price Range"), max_length=100, blank=True, null=True,
         help_text=_("e.g., Rp 50.000 - Rp 100.000, Free, or Starting from Rp 25.000"))
-    operational_hours = models.CharField(
-        _("Operational Hours"), max_length=150, blank=True, null=True,
-        help_text=_("e.g., 08:00 - 17:00 (Daily), 09:00 - 15:00 (Weekends only)"))
 
     # Field untuk rating dan review (akan diupdate oleh logika lain, misal signals dari Review)
     average_rating = models.DecimalField(
@@ -46,13 +44,11 @@ class Destination(models.Model):
     total_reviews = models.PositiveIntegerField(_("Total Reviews"), default=0)
 
     # Relasi ke model di aplikasi 'common'
-    category = models.ForeignKey(
+    categories = models.ManyToManyField(
         Category,
         related_name='destinations',  # Cara mengakses destinasi dari objek Category
-        on_delete=models.SET_NULL,   # Jika kategori dihapus, set field ini ke NULL
-        null=True,
         blank=True,
-        verbose_name=_("Category")
+        verbose_name=_("Categories")
     )
     address = models.OneToOneField(  # Satu destinasi memiliki satu alamat utama
         Address,
@@ -87,11 +83,17 @@ class Destination(models.Model):
         _("Is Published"), default=False,
         help_text=_("Check if the destination is ready to be shown to users."))
 
+    is_deleted = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Mark if this destination is moved to trash (soft delete)."
+    )
+
     class Meta:
         verbose_name = _("Destination")
         verbose_name_plural = _("Destinations")
         # Urutkan destinasi berdasarkan nama secara default
-        ordering = ['name']
+        ordering = ['-id']
 
     def __str__(self):
         return self.name
@@ -141,7 +143,6 @@ class DestinationImage(models.Model):
         return f"Image for {self.destination.name} ({self.alt_text or self.image.name})"
 
     def save(self, *args, **kwargs):
-        # Pastikan hanya ada satu gambar primary per destinasi
         if self.is_primary:
             # Set semua gambar lain untuk destinasi ini menjadi bukan primary
             DestinationImage.objects.filter(destination=self.destination, is_primary=True)\
@@ -154,5 +155,29 @@ class DestinationImage(models.Model):
         # Ini adalah praktik yang baik untuk menjaga kebersihan storage
         if self.image:
             # save=False agar tidak mencoba save model lagi
+            self.image.delete(save=False)
+        super().delete(*args, **kwargs)
+
+
+def temporary_image_path_processor(instance, filename):
+    """Fungsi path untuk gambar sementara."""
+    ext = os.path.splitext(filename)[1]
+    filename = f'{uuid.uuid4()}{ext}'
+
+    return os.path.join('temp_images', filename)
+
+
+class TemporaryImage(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    image = models.ImageField(
+        _("Temporary Image File"), upload_to=temporary_image_path_processor)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.id)
+
+    def delete(self, *args, **kwargs):
+        # Pastikan file fisik juga dihapus saat record dihapus
+        if self.image:
             self.image.delete(save=False)
         super().delete(*args, **kwargs)

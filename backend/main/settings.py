@@ -43,6 +43,11 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Application definition
 
 REST_FRAMEWORK = {
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser'
+    ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',  # Berguna untuk browsing API
@@ -61,15 +66,20 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    'cloudinary_storage',
+    'cloudinary',
     "apps.chat",
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
     'django_filters',
 
+
     'apps.users.apps.UsersConfig',
     'apps.common.apps.CommonConfig',
     'apps.destinations.apps.DestinationsConfig',
+    'apps.reviews.apps.ReviewsConfig',
+    'apps.wishlists.apps.WishlistsConfig',
 ]
 
 MIDDLEWARE = [
@@ -115,8 +125,19 @@ DATABASES = {
         'PASSWORD': '',  # sesuaikan password MySQL kamu
         'HOST': 'localhost',
         'PORT': '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        }
     }
 }
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv("CLOUDINARY_CLOUD_NAME"),
+    'API_KEY': os.getenv("CLOUDINARY_API_KEY"),
+    'API_SECRET': os.getenv("CLOUDINARY_API_SECRET"),
+}
+
 
 # CORS configuration
 CORS_ALLOWED_ORIGINS = [

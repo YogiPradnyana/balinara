@@ -30,13 +30,13 @@ function handleCancel() {
         @click="handleConfirm"
         class="px-3 py-1 text-sm font-semibold text-white bg-red-600 rounded hover:bg-red-700"
       >
-        Ya, Hapus
+        Yes, Sure
       </button>
       <button
         @click="handleCancel"
         class="px-3 py-1 text-sm font-semibold bg-gray-200 rounded hover:bg-gray-300"
       >
-        Batal
+        Cancel
       </button>
     </div>
   </div>

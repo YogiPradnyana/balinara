@@ -1,26 +1,64 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed, onMounted, onActivated } from 'vue'
 import ArrowLeft from '@/components/icons/ArrowLeft.vue'
 import ArrowRight2 from '@/components/icons/ArrowRight2.vue'
 import ArrowUpRight from '@/components/icons/ArrowUpRight.vue'
 import Call from '@/components/icons/Call.vue'
 import DoubleQuotes from '@/components/icons/DoubleQuotes.vue'
-import FreeWifi from '@/components/icons/facilities/FreeWifi.vue'
-import Guide from '@/components/icons/facilities/Guide.vue'
-import Parking from '@/components/icons/facilities/Parking.vue'
-import Restaurant from '@/components/icons/facilities/Restaurant.vue'
-import SouvenirShop from '@/components/icons/facilities/SouvenirShop.vue'
-import Toilet from '@/components/icons/facilities/Toilet.vue'
 import Heart from '@/components/icons/Heart.vue'
 import Location from '@/components/icons/Location.vue'
 import Mail from '@/components/icons/Mail.vue'
 import Search from '@/components/icons/Search.vue'
-import Star from '@/components/icons/Star.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
-import Temple from '@/components/icons/Temple.vue'
 import StarRatingDisplay from '@/components/StarRatingDisplay.vue'
 import ImageModal from '@/components/ImageModal.vue'
 import FacilityIcon from '@/components/icons/facilities/FacilityIcon.vue'
+import { RouterLink, useRoute } from 'vue-router'
+import { useDestinationStore } from '@/stores/destinationStore'
+import WishlistButton from '@/components/WishlistButton.vue'
+import { useWishlistStore } from '@/stores/wishlistStore'
+
+const route = useRoute()
+const destinationStore = useDestinationStore()
+
+const destination = computed(() => destinationStore.currentDestination)
+const isLoading = computed(() => destinationStore.isLoadingDetail)
+const error = computed(() => destinationStore.error)
+
+onActivated(() => {
+  useWishlistStore().fetchWishlist()
+})
+
+onMounted(() => {
+  const slug = route.params.slug
+  if (slug) {
+    destinationStore.fetchDestinationBySlug(slug)
+  }
+})
+
+const hasTicketInfo = computed(() => {
+  return !!destination.value?.ticket_price_range
+})
+
+const hasContactInfo = computed(() => {
+  const contact = destination.value?.contact
+  return contact && (!!contact.phone || !!contact.mail)
+})
+
+const showInfoBox = computed(() => {
+  return hasTicketInfo.value || hasContactInfo.value
+})
+
+const googleMapsEmbedUrl = computed(() => {
+  if (destination.value && destination.value.address) {
+    const lat = destination.value.address.latitude
+    const lon = destination.value.address.longitude
+    if (lat && lon) {
+      return `https://maps.google.com/maps?q=${lat},${lon}&hl=es;z=14&output=embed`
+    }
+  }
+  return ''
+})
 
 const searchTerm = ref('')
 
@@ -114,13 +152,18 @@ const reviewData = ref([
 </style>
 <template>
   <!-- <ImageModal /> -->
+  <div v-if="isLoading" class="text-center py-40">Loading...</div>
+  <div v-else-if="error" class="text-center py-40 text-red-500">
+    Error loading destination: {{ error.message }}
+  </div>
   <!-- Main Content -->
-  <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
+  <div v-else-if="destination" class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <!-- Breadcrumb -->
-    <nav class="flex gap-1 mt-10 md:mt-14 items-center">
-      <ArrowLeft />
+    <nav class="mt-10 md:mt-14 items-center">
       <div class="flex gap-2 text-sm sm:text-base items-center text-neu-500">
-        <a href="#" class="text-neu-900"><span>Discover</span></a>
+        <RouterLink :to="{ name: 'Destinations' }" class="text-neu-900 gap-1 flex items-center"
+          ><ArrowLeft /><span>Discover</span></RouterLink
+        >
         /
         <span>Tanah Lot</span>
       </div>
@@ -130,28 +173,57 @@ const reviewData = ref([
     <div
       class="grid grid-rows-3 lg:grid-rows-1 relative lg:grid-cols-3 gap-2 sm:gap-3 mt-4 md:mt-8 h-96 sm:h-[435px]"
     >
-      <div class="relative w-full h-full row-span-2 lg:row-span-1 lg:col-span-2">
+      <div
+        v-if="destination.images && destination.images.length > 0"
+        class="relative w-full h-full row-span-2 lg:row-span-1 lg:col-span-2"
+      >
         <img
-          src="@/assets/images/tanah-lot-1.webp"
-          alt="Tanah Lot"
+          :src="
+            (destination.images.find((img) => img.is_primary) || destination.images[0]).image_url
+          "
+          :alt="destination.name"
           class="absolute inset-0 w-full h-full object-cover rounded-[20px]"
         />
       </div>
+      <div
+        v-else
+        class="relative w-full h-full row-span-2 lg:row-span-1 lg:col-span-2 bg-gray-200 rounded-[20px] flex items-center justify-center"
+      >
+        No Image
+      </div>
 
       <div class="grid grid-cols-2 lg:grid-cols-1 lg:grid-rows-2 gap-2 sm:gap-3 h-full">
-        <div class="relative w-full h-full">
+        <div
+          v-if="destination.images && destination.images.length > 1"
+          class="relative w-full h-full"
+        >
           <img
-            src="@/assets/images/tanah-lot-2.webp"
-            alt="Tanah Lot 2"
+            :src="destination.images[1].image_url"
+            :alt="destination.name + ' 2'"
             class="absolute inset-0 w-full h-full object-cover rounded-[20px]"
           />
         </div>
-        <div class="relative w-full h-full">
+        <div
+          v-else
+          class="relative w-full h-full row-span-2 lg:row-span-1 lg:col-span-2 bg-gray-200 rounded-[20px] flex items-center justify-center"
+        >
+          No Image
+        </div>
+        <div
+          v-if="destination.images && destination.images.length > 2"
+          class="relative w-full h-full"
+        >
           <img
-            src="@/assets/images/tanah-lot-3.webp"
-            alt="Tanah Lot 3"
+            :src="destination.images[2].image_url"
+            :alt="destination.name + ' 3'"
             class="absolute inset-0 w-full h-full object-cover rounded-[20px]"
           />
+        </div>
+        <div
+          v-else
+          class="relative w-full h-full row-span-2 lg:row-span-1 lg:col-span-2 bg-gray-200 rounded-[20px] flex items-center justify-center"
+        >
+          No Image
         </div>
       </div>
       <button
@@ -165,108 +237,81 @@ const reviewData = ref([
     <!-- Info Section -->
     <section class="mb-8 mt-13">
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-8 sm:gap-16">
-        <div class="xl:col-span-2">
+        <div class="xl:col-span-2" :class="{ 'xl:col-span-3': !showInfoBox }">
           <div>
             <div class="flex items-start gap-2 sm:items-center justify-between">
               <h1 class="text-3xl md:text-4xl lg:text-[42px] font-se font-semibold leading-12">
-                Tanah Lot
+                {{ destination.name }}
               </h1>
               <div class="flex gap-1.5 sm:gap-2.5">
-                <div
-                  class="bg-[#F1F8F9] text-sm sm:text-base px-4 gap-2 py-2 rounded-full font-medium items-center text-se-500 flex"
-                >
-                  <Temple class="size-5 sm:size-6 hidden sm:block" />
-                  Temple
-                </div>
-                <div
-                  class="px-2 sm:px-4 border-neu-200 text-sm sm:text-base border-[1.6px] gap-2 py-2 rounded-full font-medium items-center flex"
-                >
-                  <Heart class="size-5 sm:size-6" />
-                  <span class="hidden sm:block">Save</span>
-                </div>
+                <WishlistButton :destination-id="destination.id" :is-icon="false" />
               </div>
             </div>
 
             <div class="flex gap-1 items-center mt-2">
-              4.5
-              <div class="flex gap-0.5 items-center">
-                <StarFilled class="size-5" />
-                <StarFilled class="size-5" />
-                <StarFilled class="size-5" />
-                <StarFilled class="size-5" />
-                <StarFilled class="size-5" />
-              </div>
-              (532 reviews)
+              <span class="font-bold">{{ parseFloat(destination.average_rating).toFixed(1) }}</span>
+
+              <StarRatingDisplay :rating="destination.average_rating" />
+              ({{ destination.total_reviews }} reviews)
             </div>
 
             <p class="mt-4 sm:mt-6 text-neu-600 text-sm sm:text-base">
-              Tanah Lot Temple is an iconic Balinese sea temple perched dramatically on a rock
-              formation just off the coast. This ancient Hindu shrine is dedicated to the sea gods
-              and is renowned for its stunning ocean views, especially during sunset. The temple’s
-              name literally translates to “Land in the Sea,” perfectly describing its unique
-              offshore setting. Often regarded as one of Bali’s most important landmarks, Tanah Lot
-              not only offers breathtaking scenery but also holds deep spiritual significance for
-              the local Balinese people.
+              {{ destination.description }}
             </p>
+          </div>
+          <!-- Categories -->
+          <div class="mt-6 sm:mt-8">
+            <h2 class="text-lg sm:text-xl font-semibold mb-4">Categories</h2>
+            <ul
+              v-if="destination.categories && destination.categories.length > 0"
+              class="flex flex-wrap text-sm sm:text-base gap-3 sm:gap-4"
+            >
+              <li
+                v-for="category in destination.categories"
+                :key="category.id"
+                class="bg-[#F1F8F9] text-se-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
+              >
+                {{ category.name }}
+              </li>
+            </ul>
+            <p v-else>No facility information available.</p>
           </div>
           <!-- Facilities -->
           <div class="mt-6 sm:mt-8">
             <h2 class="text-lg sm:text-xl font-semibold mb-4">Facilities</h2>
-            <ul class="flex flex-wrap text-sm sm:text-base gap-3 sm:gap-4">
+            <ul
+              v-if="destination.facilities && destination.facilities.length > 0"
+              class="flex flex-wrap text-sm sm:text-base gap-3 sm:gap-4"
+            >
               <li
+                v-for="facility in destination.facilities"
+                :key="facility.id"
                 class="bg-[#F2F8F5] text-pr-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
               >
-                <Parking class="size-5 sm:size-6" />Parking Area
-              </li>
-              <li
-                class="bg-[#F2F8F5] text-pr-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
-              >
-                <Toilet class="size-5 sm:size-6" />Restrooms
-              </li>
-              <li
-                class="bg-[#F2F8F5] text-pr-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
-              >
-                <Guide class="size-5 sm:size-6" />Guided Tours
-              </li>
-              <li
-                class="bg-[#F2F8F5] text-pr-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
-              >
-                <Restaurant class="size-5 sm:size-6" />Restaurant
-              </li>
-              <li
-                class="bg-[#F2F8F5] text-pr-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
-              >
-                <FreeWifi class="size-5 sm:size-6" />Free Wi-Fi
-              </li>
-              <li
-                class="bg-[#F2F8F5] text-pr-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
-              >
-                <FacilityIcon class="size-5 sm:size-6" />Free Wis-Fi
-              </li>
-              <li
-                class="bg-[#F2F8F5] text-pr-500 gap-2 font-medium items-center px-4 py-2 rounded-full flex"
-              >
-                <SouvenirShop class="size-5 sm:size-6" />Souvenir Shop
+                <FacilityIcon :icon-url="facility.icon" class="size-5 sm:size-6" />
+                {{ facility.name }}
               </li>
             </ul>
+            <p v-else>No facility information available.</p>
           </div>
         </div>
 
         <div
+          v-if="showInfoBox"
           class="p-6 border-neu-200 text-sm sm:text-base max-w-120 xl:w-full h-fit border rounded-3xl"
         >
-          <div class="gap-3 flex flex-col">
+          <div v-if="hasTicketInfo" class="gap-3 flex flex-col">
             <p class="font-medium text-base">Entrance Ticket</p>
-            <p class="ml-6">Rp 75.000 - 120.000</p>
+            <p class="ml-6">{{ destination.ticket_price_range }}</p>
           </div>
-          <div class="gap-3 flex flex-col mt-6">
+          <div v-if="hasContactInfo" class="gap-3 flex flex-col" :class="{ 'mt-6': hasTicketInfo }">
             <p class="font-medium text-base">Contact Person</p>
             <div class="ml-6 flex flex-col gap-3">
-              <p class="flex items-center gap-2">
-                <Call class="size-5 sm:size-6" />+62 812-3456-7890
+              <p v-if="destination.contact.phone" class="flex items-center gap-2">
+                <Call class="size-5 sm:size-6" />{{ destination.contact.phone }}
               </p>
-              <p class="flex items-center gap-2">
-                <Mail class="size-5 sm:size-6" />hello@balinara.id
+              <p v-if="destination.contact.mail" class="flex items-center gap-2">
+                <Mail class="size-5 sm:size-6" />{{ destination.contact.mail }}
               </p>
             </div>
           </div>
@@ -275,15 +320,16 @@ const reviewData = ref([
     </section>
 
     <!-- Location Map -->
-    <section class="mt-8 sm:mt-16">
+    <section v-if="googleMapsEmbedUrl" class="mt-8 sm:mt-16">
       <h2 class="text-xl font-semibold mb-4">Location</h2>
-      <div class="gap-1 text-sm sm:text-base items-center flex mb-4">
-        <Location class="size-5" />Beraban Village, Kediri, Tabanan
+      <div v-if="destination.address" class="gap-1 text-sm sm:text-base items-center flex mb-4">
+        <Location class="size-5" />{{ destination.address.street }},
+        {{ destination.address.regency }}
       </div>
       <div class="w-full h-64 sm:h-[420px] rounded-3xl overflow-hidden">
         <iframe
           class="w-full h-full"
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d126716.86249239304!2d115.00318589688208!3d-8.620116957947658!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2dd2465b5ed1c7c3%3A0x60ee9fa80ff10d53!2sTanah%20Lot!5e0!3m2!1sen!2sid!4v1715437775084!5m2!1sen!2sid"
+          :src="googleMapsEmbedUrl"
           allowfullscreen=""
           loading="lazy"
           referrerpolicy="no-referrer-when-downgrade"

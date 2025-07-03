@@ -33,3 +33,9 @@ npm run build
 ```sh
 npm run lint
 ```
+
+# Hapus seluruh isi folde temp_images dan di database table temporaryimages:
+
+```sh
+python manage.py cleanup_temp_files
+```

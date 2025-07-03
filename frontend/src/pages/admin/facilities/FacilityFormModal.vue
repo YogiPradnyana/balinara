@@ -75,16 +75,16 @@ const handleFile = (file) => {
   fileSize.value = (file.size / 1024).toFixed(2) + ' KB'
   iconPreview.value = URL.createObjectURL(file) // Buat URL lokal untuk pratinjau
 }
-//  AKHIR PENAMBAHAN 
+//  AKHIR PENAMBAHAN
 
-//  PERUBAHAN: Disederhanakan untuk memanggil handleFile 
+//  PERUBAHAN: Disederhanakan untuk memanggil handleFile
 const handleIconUpload = (event) => {
   const file = event.target.files?.[0]
   handleFile(file)
 }
-//  AKHIR PERUBAHAN 
+//  AKHIR PERUBAHAN
 
-//  PENAMBAHAN: Handler untuk drag-and-drop 
+//  PENAMBAHAN: Handler untuk drag-and-drop
 const handleDrop = (event) => {
   isDragging.value = false
   const file = event.dataTransfer.files?.[0]
@@ -102,7 +102,7 @@ const removeIcon = () => {
     input.value = ''
   }
 }
-//  AKHIR PENAMBAHAN 
+//  AKHIR PENAMBAHAN
 
 const submitForm = async () => {
   formErrors.value = {}

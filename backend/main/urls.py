@@ -33,10 +33,9 @@ urlpatterns = [
     path('api/common/', include('apps.common.urls', namespace='common_api')),
     path('api/destinations/',
          include('apps.destinations.urls', namespace='destinations_api')),
-    # Jika Anda ingin ada sesuatu di root URL ('/'), Anda bisa menambahkan rute lain di sini
-    # Misalnya, untuk redirect ke /api/messages/ seperti yang kita diskusikan sebelumnya:
-    # from chat.views import api_root_redirect
-    # path('', api_root_redirect),
+    path('api/reviews/',
+         include('apps.reviews.urls', namespace='reviews_api')),
+    path('api/wishlists/', include('apps.wishlists.urls')),
 ]
 
 if settings.DEBUG:

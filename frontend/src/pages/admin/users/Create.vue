@@ -41,6 +41,7 @@ onMounted(() => {
 
 const createUser = async () => {
   try {
+
     console.log('Data yang akan dikirim:', adminForm.value);
 
     const token = localStorage.getItem('userToken'); 
@@ -89,6 +90,7 @@ const createUser = async () => {
       toast.error(errorMessage);
     } else {
       toast.error('Terjadi kesalahan tak terduga.');
+
     }
   }
 }
@@ -155,9 +157,9 @@ const createUser = async () => {
               placeholder="Password"
               autocomplete="new-password"
             />
-            <Show 
-              class="size-5.5 absolute top-1/2 -translate-y-1/2 right-3 cursor-pointer" 
-              @click="togglePasswordVisibility" 
+            <Show
+              class="size-5.5 absolute top-1/2 -translate-y-1/2 right-3 cursor-pointer"
+              @click="togglePasswordVisibility"
             />
           </div>
         </div>

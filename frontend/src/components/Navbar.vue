@@ -4,13 +4,17 @@ import HamburgerMenu from './icons/HamburgerMenu.vue'
 import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
 import Login from './icons/Login.vue'
 import Search from './icons/Search.vue'
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
+import { useRoute, useRouter } from 'vue-router'
 
 const handleImageError = (event) => {
   event.target.src = defaultAvatar
 }
 
+const route = useRoute()
+const router = useRouter()
+const searchTerm = ref('')
 const authStore = useAuthStore()
 // Lock scroll saat login dibuka
 watch(authStore.showLoginModal, (val) => {
@@ -29,6 +33,19 @@ const navbarRef = ref(null)
 const navHeight = ref(0)
 const isScrolled = ref(false)
 
+const isSearchPage = computed(() => route.name === 'Search')
+
+function handleSearch() {
+  // Bawa semua filter yang sudah ada, tapi update 'search' dan reset 'page'
+  const newQuery = {
+    ...route.query,
+    search: searchTerm.value || undefined, // Hapus parameter search jika kosong
+    page: 1, // Selalu kembali ke halaman 1 untuk pencarian baru
+  }
+
+  router.push({ name: 'Search', query: newQuery })
+}
+
 const toggleReviewDropdown = () => {
   isReviewOpen.value = !isReviewOpen.value
 }
@@ -38,7 +55,7 @@ const toggleUserDropdown = () => {
 
 const handleScroll = () => {
   isScrolled.value = window.scrollY > navbarRef.value.offsetHeight
-  isSticky.value = window.scrollY > window.innerHeight
+  isSticky.value = isSearchPage.value || window.scrollY > window.innerHeight
 }
 
 onMounted(() => {
@@ -57,10 +74,28 @@ onMounted(() => {
     }
   })
   window.addEventListener('scroll', handleScroll)
+  handleScroll()
 })
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
 })
+
+watch(isSearchPage, (newValue) => {
+  handleScroll()
+})
+
+watch(
+  () => route.query.search,
+  (newSearchTerm) => {
+    // Setiap kali URL ?search=... berubah, update nilai di dalam search bar navbar
+    searchTerm.value = newSearchTerm || ''
+  },
+  {
+    // Jalankan watcher ini saat komponen pertama kali dimuat
+    // agar search bar terisi jika user membuka URL dengan query search
+    immediate: true,
+  },
+)
 
 const toggleSidebar = () => {
   isSidebarOpen.value = !isSidebarOpen.value
@@ -181,12 +216,14 @@ const toggleSidebar = () => {
       <!-- Search Bar (HANYA muncul saat sticky) -->
       <form
         v-if="isSticky"
+        @submit.prevent="handleSearch"
         class="flex sm:max-w-[560px] sm:order-2 w-full items-center justify-between rounded-full outline outline-neu-200 p-1"
       >
         <div class="wrapper gap-2 ps-1.5 flex items-center w-full">
           <Search class="min-w-5" />
           <input
             type="text"
+            v-model="searchTerm"
             class="w-full text-xs md:text-sm leading-5 placeholder:text-neu-500 focus:outline-none bg-transparent"
             placeholder="Type something here..."
           />

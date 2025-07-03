@@ -37,10 +37,7 @@ class FacilitySerializer(serializers.ModelSerializer):
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
-        # Sebutkan field secara eksplisit untuk kontrol yang lebih baik
-        fields = ['id', 'street', 'sub_district',
-                  'regency', 'latitude', 'longitude']
-        # Atau jika ingin semua: fields = '__all__'
+        fields = '__all__'
 
 
 class ContactSerializer(serializers.ModelSerializer):

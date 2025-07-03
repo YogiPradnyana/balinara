@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick, onMounted, onUnmounted, watch, computed } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, watch, computed, h } from 'vue'
 import { useChatStore } from '@/stores/chatStore'
 import Nara from './icons/Nara.vue'
 import ChatBuble from './icons/ChatBuble.vue'
@@ -9,9 +9,13 @@ import {
   showConfirmationToast,
   dismissCurrentConfirmationToast,
 } from '@/services/notificationService'
+import ConfirmationToast from '@/components/ConfirmationToast.vue'
 
 const chatStore = useChatStore()
 
+const selectedImageFile = ref(null)
+const imagePreviewUrl = ref(null)
+const fileInput = ref(null)
 const userInput = ref('')
 const isOpen = ref(false)
 const messagesContainer = ref(null)
@@ -20,21 +24,63 @@ const userInputField = ref(null)
 const showCalloutMessage = ref(false)
 const calloutTexts = ['How can I help?', 'Ask me anything!', 'Hello Traveler!👋']
 const currentCalloutText = ref('')
-let calloutInterval = null
-let calloutDisplayTimeout = null
+const calloutInterval = ref(null)
+const calloutDisplayTimeout = ref(null)
 
 // Menggunakan computed properties untuk mengakses state dari store
-const messages = computed(() => chatStore.getMessages)
-const isSending = computed(() => chatStore.isChatSending)
-const isLoadingHistory = computed(() => chatStore.isHistoryLoading)
-const isClearing = computed(() => chatStore.isHistoryClearing)
-const error = computed({
-  // Getter dan setter untuk error agar bisa di-clear dari komponen
-  get: () => chatStore.chatError,
-  set: (value) => {
-    chatStore.error = value
-  },
-})
+const messages = computed(() => chatStore.messages)
+const isSending = computed(() => chatStore.isSendingMessage)
+const isLoadingHistory = computed(() => chatStore.isLoadingHistory)
+const error = computed(() => chatStore.error)
+
+const handleSendMessage = async () => {
+  if (!userInput.value.trim() && !selectedImageFile.value) return
+
+  const payload = {
+    text: userInput.value,
+    image: selectedImageFile.value,
+  }
+
+  userInput.value = '' // Kosongkan input segerac
+  removeSelectedImage()
+
+  await nextTick()
+  if (userInputField.value) {
+    userInputField.value.style.height = 'auto'
+  }
+
+  // Cukup panggil action store. Store yang akan menangani semuanya.
+  try {
+    await chatStore.sendMessage(payload)
+    focusUserInput()
+    // focusUserInput()
+  } catch (err) {
+    // Error sudah ditangani di store, di sini hanya untuk log jika perlu
+    console.error('Component caught an error from sendMessage action:', err)
+  }
+}
+
+const sendSuggestedReply = (reply) => {
+  chatStore.sendMessage(reply) // Langsung panggil action store
+}
+
+const handleClearHistory = () => {
+  // Gunakan toast konfirmasi canggih Anda
+  const onConfirm = () => {
+    chatStore.clearSession()
+    showNotification('success', 'Chat session has been reset.')
+    dismissCurrentConfirmationToast()
+    focusUserInput()
+  }
+
+  showConfirmationToast(
+    h(ConfirmationToast, {
+      message: 'Are you sure you want to clear this chat session?',
+      onConfirm,
+      onCancel: dismissCurrentConfirmationToast,
+    }),
+  )
+}
 
 // Fungsi untuk memformat pesan (misal: markdown sederhana)
 const formatMessage = (text) => {
@@ -45,53 +91,6 @@ const formatMessage = (text) => {
   return formattedText
 }
 
-const scrollToBottom = async () => {
-  await nextTick()
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-  }
-}
-
-// Mengirim pesan menggunakan action di store
-const handleSendMessage = async () => {
-  if (!userInput.value.trim()) {
-    error.value = 'Message cannot be empty' // Set error lokal atau di store
-    return
-  }
-  const messageToSend = userInput.value
-  userInput.value = '' // Kosongkan input segera
-
-  try {
-    await chatStore.sendMessage(messageToSend)
-    // Reset suggested replies setelah mendapatkan respons baru (jika dikelola di sini)
-    // suggestedReplies.value = [ /* ... */ ];
-  } catch (err) {
-    // Error sudah di-handle dan di-set di store, akan otomatis update computed 'error'
-    // Anda bisa menambahkan notifikasi tambahan di sini jika mau
-    console.error('Component error after sendMessage action:', err)
-  }
-}
-
-// Menghapus riwayat pesan menggunakan action di store
-const handleClearHistory = async () => {
-  if (
-    !confirm(
-      'Are you sure you want to delete the entire chat history? This action cannot be undone.',
-    )
-  ) {
-    return
-  }
-  try {
-    await chatStore.clearChatHistory()
-    showNotification('success', 'Chat history deleted successfully')
-    // Reset suggested replies (jika dikelola di sini)
-    // suggestedReplies.value = [ /* ... */ ];
-  } catch (err) {
-    // Error sudah di-handle dan di-set di store
-    // alert(error.value || 'Gagal menghapus riwayat.'); // Tampilkan error dari store
-  }
-}
-
 const displayNextCallout = () => {
   if (isOpen.value) {
     showCalloutMessage.value = false
@@ -100,8 +99,8 @@ const displayNextCallout = () => {
   const randomIndex = Math.floor(Math.random() * calloutTexts.length)
   currentCalloutText.value = calloutTexts[randomIndex]
   showCalloutMessage.value = true
-  clearTimeout(calloutDisplayTimeout)
-  calloutDisplayTimeout = setTimeout(() => {
+  if (calloutDisplayTimeout.value) clearTimeout(calloutDisplayTimeout.value)
+  calloutDisplayTimeout.value = setTimeout(() => {
     showCalloutMessage.value = false
   }, 4000)
 }
@@ -109,29 +108,20 @@ const displayNextCallout = () => {
 const focusUserInput = () => {
   if (userInputField.value) {
     userInputField.value.focus()
-    // console.log('Attempting to focus input:', userInputField.value); // Untuk debugging
   } else {
-    // console.log('userInputField is null, cannot focus.'); // Untuk debugging
+    console.log('userInputField is null, cannot focus.')
+  }
+}
+
+const scrollToBottom = async () => {
+  await nextTick()
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
 }
 
 const toggleChat = () => {
   isOpen.value = !isOpen.value
-  if (isOpen.value) {
-    showCalloutMessage.value = false
-    clearTimeout(calloutDisplayTimeout)
-    clearInterval(calloutInterval)
-    scrollToBottom()
-    // Panggil fetchMessages dari store jika messages kosong dan tidak sedang loading
-    if (chatStore.messages.length === 0 && !chatStore.isLoadingHistory) {
-      chatStore.fetchMessages()
-    }
-  } else {
-    setTimeout(() => {
-      displayNextCallout()
-      calloutInterval = setInterval(displayNextCallout, 10000)
-    }, 1000)
-  }
 }
 
 const suggestedReplies = ref([
@@ -141,21 +131,23 @@ const suggestedReplies = ref([
   'Adventure activities',
 ])
 
-const sendSuggestedReply = (reply) => {
-  userInput.value = reply
-  handleSendMessage()
-}
-
 onMounted(() => {
+  chatStore.startSession()
+
+  // Panggil fetchHistory jika ada session dan pesan masih kosong
+  if (chatStore.sessionId && chatStore.messages.length === 0) {
+    chatStore.fetchHistory()
+  }
+
   setTimeout(() => {
     displayNextCallout()
-    calloutInterval = setInterval(displayNextCallout, 10000)
+    calloutInterval.value = setInterval(displayNextCallout, 10000)
   }, 2000)
 })
 
 onUnmounted(() => {
-  clearInterval(calloutInterval)
-  clearTimeout(calloutDisplayTimeout)
+  if (calloutInterval.value) clearInterval(calloutInterval.value)
+  if (calloutDisplayTimeout.value) clearTimeout(calloutDisplayTimeout.value)
 })
 
 watch(
@@ -166,6 +158,29 @@ watch(
   { deep: true },
 )
 
+// Watcher untuk auto-focus (sudah bagus)
+watch(
+  isOpen,
+  (newValue) => {
+    if (calloutInterval.value) clearInterval(calloutInterval.value)
+    if (calloutDisplayTimeout.value) clearTimeout(calloutDisplayTimeout.value)
+    if (newValue) {
+      showCalloutMessage.value = false
+      // nextTick() di sini juga baik untuk memastikan elemen ada
+      nextTick(() => {
+        scrollToBottom()
+        focusUserInput()
+      })
+    } else {
+      setTimeout(() => {
+        displayNextCallout()
+        calloutInterval.value = setInterval(displayNextCallout, 10000)
+      }, 1000)
+    }
+  },
+  { flush: 'post' },
+)
+
 const autoResizeTextarea = () => {
   if (userInputField.value) {
     userInputField.value.style.height = 'auto' // Reset tinggi untuk perhitungan yang benar
@@ -173,18 +188,38 @@ const autoResizeTextarea = () => {
   }
 }
 
-watch(
-  isOpen,
-  (newValue) => {
-    if (newValue) {
-      // nextTick() di sini juga baik untuk memastikan elemen ada
-      nextTick(() => {
-        focusUserInput()
-      })
-    }
-  },
-  { flush: 'post' },
-)
+const triggerFileInput = () => {
+  fileInput.value.click()
+}
+
+const handleFileSelect = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  // Validasi sederhana (opsional tapi sangat disarankan)
+  if (!file.type.startsWith('image/')) {
+    showNotification('error', 'Please select an image file.')
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    // 5MB limit
+    showNotification('error', 'Image size cannot exceed 5MB.')
+    return
+  }
+
+  selectedImageFile.value = file
+  imagePreviewUrl.value = URL.createObjectURL(file)
+  focusUserInput()
+}
+
+const removeSelectedImage = () => {
+  selectedImageFile.value = null
+  imagePreviewUrl.value = null
+  // Penting untuk mereset value dari input file agar bisa memilih file yang sama lagi
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
 </script>
 
 <style scoped>
@@ -355,7 +390,17 @@ watch(
                   'bg-neu-100 rounded-tr-none': message.sender === 'user',
                 }"
               >
-                <p v-html="formatMessage(message.text)"></p>
+                <div>
+                  <img
+                    v-if="message.image"
+                    :src="message.image"
+                    alt="Uploaded image in chat"
+                    class="rounded-lg mb-2 max-w-full h-auto cursor-pointer"
+                    @click="openImageInNewTab(message.image)"
+                  />
+
+                  <p v-if="message.text" v-html="formatMessage(message.text)"></p>
+                </div>
                 <small
                   v-if="message.timestamp"
                   class="block text-right mt-1 text-[10px]"
@@ -411,17 +456,74 @@ watch(
             </button>
           </div>
 
+          <div v-if="imagePreviewUrl" class="relative w-32 h-32 mb-2">
+            <img
+              :src="imagePreviewUrl"
+              class="w-full h-full object-cover rounded-lg"
+              alt="Image preview"
+            />
+            <button
+              @click="removeSelectedImage"
+              class="absolute -top-2 -right-2 bg-gray-700 text-white rounded-full p-1 leading-none"
+              aria-label="Remove image"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
           <form @submit.prevent="handleSendMessage" class="flex items-center space-x-2">
+            <button
+              type="button"
+              @click="triggerFileInput"
+              class="flex-shrink-0 text-neu-500 rounded-lg hover:text-pr-500 size-8 flex items-center justify-center"
+              aria-label="Attach Image"
+            >
+              <svg
+                version="1.1"
+                class="size-6"
+                fill="currentColor"
+                id="Uploaded to svgrepo.com"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
+                viewBox="0 0 32 32"
+                xml:space="preserve"
+              >
+                <path
+                  d="M27.41,5.586c-1.021-1.021-2.363-1.532-3.705-1.532S21.021,4.564,20,5.586L8.153,17.431
+	c-1.216,1.216-1.216,3.196,0.002,4.414c1.217,1.217,3.195,1.217,4.412,0l8.26-8.26l-1.414-1.414l-8.26,8.26
+	c-0.437,0.436-1.146,0.437-1.586-0.002c-0.437-0.437-0.437-1.147,0-1.584L21.414,7C22.678,5.738,24.732,5.737,26,7.004
+	c1.263,1.263,1.263,3.319,0,4.582L14.151,23.433c-2.091,2.089-5.491,2.089-7.586-0.006c-2.09-2.09-2.09-5.49,0-7.58L16.828,5.586
+	l-1.414-1.414L5.151,14.433c-2.87,2.87-2.87,7.539,0.006,10.414c2.869,2.87,7.539,2.87,10.408,0L27.414,13
+	C29.457,10.957,29.457,7.633,27.41,5.586z"
+                />
+              </svg>
+            </button>
+
+            <input
+              type="file"
+              ref="fileInput"
+              @change="handleFileSelect"
+              class="hidden"
+              accept="image/png, image/jpeg, image/webp"
+            />
             <textarea
               ref="userInputField"
               v-model="userInput"
               @input="autoResizeTextarea"
               @keydown.enter.exact.prevent="handleSendMessage"
-              @keydown.enter.shift.exact="allowNewLine"
               placeholder="Start a conversation..."
-              class="flex-grow p-2.5 rounded-lg focus:ring-1 focus:ring-neu-200 focus:border-transparent outline-none text-sm resize-none overflow-hidden"
+              class="flex-grow p-2.5 rounded-lg focus:ring-1 focus:ring-inset focus:ring-neu-200 focus:border-transparent outline-none text-sm resize-none overflow-hidden"
               rows="1"
-              :disabled="isChatSending || isHistoryLoading || isHistoryClearing"
+              :disabled="isSending || isLoadingHistory"
               aria-label="Chat input"
             ></textarea>
 
@@ -429,17 +531,17 @@ watch(
               type="submit"
               class="bg-pr-500 hover:bg-pr-600 cursor-pointer flex items-center justify-center text-white size-10 rounded-lg"
               aria-label="Send Message"
-              :disabled="isSending || !userInput.trim() || isLoadingHistory || isClearing"
+              :disabled="isSending || !userInput.trim() || isLoadingHistory"
             >
               <FilledSend class="size-5" />
             </button>
           </form>
           <button
             @click="handleClearHistory"
-            :disabled="isClearing || messages.length === 0"
+            v-if="messages.length > 0"
             class="w-full mt-2.5 py-1.5 text-xs text-center text-gray-500 hover:text-red-600 disabled:text-gray-300 transition-colors"
           >
-            {{ isClearing ? 'Clearing history...' : 'Clear Chat History' }}
+            Clear Chat History
           </button>
           <div
             v-if="error && !isSending && !isLoadingHistory"

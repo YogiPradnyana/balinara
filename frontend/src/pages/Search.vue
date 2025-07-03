@@ -1,44 +1,175 @@
 <script setup>
+import { ref, onMounted, computed, watch, onActivated } from 'vue'
+import { onClickOutside } from '@vueuse/core'
+import { useRoute, useRouter } from 'vue-router'
+import { useDestinationStore } from '@/stores/destinationStore'
+import { useCategoryStore } from '@/stores/categoryStore'
 import Filter from '@/components/icons/Filter.vue'
-import Heart from '@/components/icons/Heart.vue'
 import Location from '@/components/icons/Location.vue'
 import Star from '@/components/icons/Star.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
-import { ref } from 'vue'
-import { useRoute } from 'vue-router'
+import WishlistButton from '@/components/WishlistButton.vue'
+import { useWishlistStore } from '@/stores/wishlistStore'
 
 const route = useRoute()
+const router = useRouter()
+const destinationStore = useDestinationStore()
+const categoryStore = useCategoryStore()
+const filterPanelRef = ref(null)
 
-const keyword = ref(route.query.q || '')
-const selectedRating = ref(0)
-const hoverRating = ref(0)
-const isFilterOpen = ref(0)
+const ITEMS_PER_PAGE = 10
+
+const filters = ref({
+  search: '',
+  category: [],
+  regency: [],
+  min_rating: 0,
+  ordering: '-average_rating',
+  page: 1,
+})
+
+// State untuk UI filter
+const hoverRating = ref(0) // Untuk efek hover pada bintang rating filter
+const isFilterOpen = computed(() => destinationStore.isMobileFilterOpen)
+
+// Computed properties dari store
+const destinations = computed(() => destinationStore.allDestinations)
+const pagination = computed(() => destinationStore.pagination)
+const isLoading = computed(() => destinationStore.isLoadingList)
+const DBERROR = computed(() => destinationStore.error)
+
+// Data untuk filter dropdown/checkbox
+const categoriesForFilter = computed(() => categoryStore.allCategories)
+// const facilitiesForFilter = computed(() => facilityStore.allFacilities);
+const allRegencies = ref([
+  // Anda bisa fetch ini dari API jika dinamis
+  { name: 'Denpasar', slug: 'denpasar' },
+  { name: 'Badung', slug: 'badung' },
+  { name: 'Gianyar', slug: 'gianyar' },
+  { name: 'Tabanan', slug: 'tabanan' },
+  { name: 'Klungkung', slug: 'klungkung' },
+  { name: 'Bangli', slug: 'bangli' },
+  { name: 'Karangasem', slug: 'karangasem' },
+  { name: 'Buleleng', slug: 'buleleng' },
+  { name: 'Jembrana', slug: 'jembrana' },
+])
+
+onClickOutside(filterPanelRef, () => {
+  destinationStore.toggleMobileFilter(false)
+})
+
+function updateRouterQuery() {
+  const newQuery = {}
+
+  if (filters.value.search) newQuery.search = filters.value.search
+  if (filters.value.category.length > 0) newQuery.category = filters.value.category.join(',')
+  if (filters.value.regency.length > 0) newQuery.regency = filters.value.regency.join(',')
+  if (filters.value.min_rating > 0) newQuery.min_rating = filters.value.min_rating
+  if (filters.value.ordering) newQuery.ordering = filters.value.ordering
+  if (filters.value.page > 1) newQuery.page = filters.value.page
+
+  // Ganti URL tanpa memicu navigasi ulang halaman penuh
+  router.push({ query: newQuery })
+}
+
+// Watcher Utama: satu-satunya "mesin" yang mengawasi URL.
+// Jika URL berubah (baik dari navbar atau dari filter lokal), ia akan mengambil data baru.
+let debounceTimeout
+watch(
+  () => route.query,
+  (newQuery) => {
+    // 1. Sinkronkan state `filters` agar UI (checkbox, dll) cocok dengan URL
+    filters.value.search = newQuery.search || ''
+    filters.value.category = newQuery.category ? newQuery.category.split(',') : []
+    filters.value.regency = newQuery.regency ? newQuery.regency.split(',') : []
+    filters.value.min_rating = parseInt(newQuery.min_rating) || 0
+    filters.value.ordering = newQuery.ordering || '-average_rating'
+    filters.value.page = parseInt(newQuery.page) || 1
+
+    // 2. Panggil API dengan parameter dari URL yang baru
+    destinationStore.fetchDestinations(newQuery)
+  },
+  {
+    deep: true,
+    immediate: true, // 'immediate: true' akan menjalankan ini saat halaman pertama kali dibuka
+  },
+)
+
+// --- Handler untuk interaksi UI ---
+// Tugasnya sekarang hanya mengubah state `filters` lalu memanggil `updateRouterQuery`
+
+watch(
+  () => filters.value.search,
+  () => {
+    clearTimeout(debounceTimeout)
+    debounceTimeout = setTimeout(() => {
+      filters.value.page = 1
+      updateRouterQuery()
+    }, 500) // Debounce 500ms
+  },
+)
+
+const toggleFilterSelection = (type, value) => {
+  const selectedArray = filters.value[type]
+  const index = selectedArray.indexOf(value)
+
+  if (index > -1) {
+    selectedArray.splice(index, 1) // Uncheck
+  } else {
+    // Karena regency diubah jadi checkbox, logikanya disamakan
+    selectedArray.push(value) // Check
+  }
+
+  filters.value.page = 1
+  updateRouterQuery()
+}
+
+const setSelectedRating = (rating) => {
+  filters.value.min_rating = filters.value.min_rating === rating ? 0 : rating
+  filters.value.page = 1
+  updateRouterQuery()
+}
+
+const goToPage = (page) => {
+  const totalPages = Math.ceil(pagination.value.count / ITEMS_PER_PAGE) || 1
+  if (page > 0 && page <= totalPages && page !== filters.value.page) {
+    filters.value.page = page
+    updateRouterQuery()
+  }
+}
+
+function formatAddress(address) {
+  if (!address) return 'N/A'
+  const parts = [address.district, address.regency]
+  return parts.filter((part) => part).join(', ')
+}
+const viewDestinationDetail = (slug) => {
+  router.push({ name: 'DetailDestination', params: { slug: slug } })
+}
+onMounted(() => {
+  if (categoryStore.allCategories.length === 0) categoryStore.fetchCategories()
+})
+onActivated(() => {
+  useWishlistStore().fetchWishlist()
+})
 </script>
 
 <template>
-  <div class="px-6 sm:px-16 lg:px-[140px] bg-[#ECF4F0] pb-24 md:pb-30">
+  <div class="px-6 sm:px-16 lg:px-[140px] min-h-200 md:min-h-screen bg-[#ECF4F0] pb-24 md:pb-30">
     <div class="flex flex-col md:flex-row gap-8 pt-10 md:pt-16">
       <!-- Sidebar -->
       <div class="min-w-52 lg:min-w-60 space-y-5 lg:space-y-8 hidden md:block">
         <div class="flex p-6 bg-sur-50 rounded-3xl flex-col">
           <h3 class="text-base sm:text-lg font-semibold mb-3">Categories</h3>
           <ul class="space-y-1.5">
-            <li>
+            <li v-for="cat in categoriesForFilter" :key="cat.slug">
               <label class="flex items-center gap-2">
-                <input type="checkbox" value="beach" />
-                Beach
-              </label>
-            </li>
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="checkbox" value="mountain" />
-                Mountain
-              </label>
-            </li>
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="checkbox" value="lake" />
-                Lake
+                <input
+                  type="checkbox"
+                  :value="cat.slug"
+                  :checked="filters.category.includes(cat.slug)"
+                  @change="toggleFilterSelection('category', cat.slug)"
+                />{{ cat.name }}
               </label>
             </li>
           </ul>
@@ -46,58 +177,15 @@ const isFilterOpen = ref(0)
         <div class="flex p-6 bg-sur-50 rounded-3xl flex-col">
           <h3 class="text-base sm:text-lg font-semibold mb-3">Regency</h3>
           <ul class="space-y-1.5">
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="radio" name="regency" value="denpasar" />
-                Denpasar
-              </label>
-            </li>
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="radio" name="regency" value="badung" />
-                Badung
-              </label>
-            </li>
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="radio" name="regency" value="klungkung" />
-                Klungkung
-              </label>
-            </li>
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="radio" name="regency" value="bangli" />
-                Bangli
-              </label>
-            </li>
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="radio" name="regency" value="tabanan" />
-                Tabanan
-              </label>
-            </li>
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="radio" name="regency" value="gianyar" />
-                Gianyar
-              </label>
-            </li>
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="radio" name="regency" value="buleleng" />
-                Buleleng
-              </label>
-            </li>
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="radio" name="regency" value="jembrana" />
-                Jembrana
-              </label>
-            </li>
-            <li>
-              <label class="flex items-center gap-2">
-                <input type="radio" name="regency" value="karangasem" />
-                Karangasem
+            <li v-for="reg in allRegencies" :key="reg.slug">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  :value="reg.slug"
+                  :checked="filters.regency.includes(reg.slug)"
+                  @change="toggleFilterSelection('regency', reg.slug)"
+                />
+                {{ reg.name }}
               </label>
             </li>
           </ul>
@@ -108,57 +196,68 @@ const isFilterOpen = ref(0)
             <button
               v-for="i in 5"
               :key="i"
-              @click="selectedRating = i"
+              @click="setSelectedRating(i)"
               @mouseover="hoverRating = i"
               @mouseleave="hoverRating = 0"
               class="text-2xl transition"
+              :aria-label="`Set rating to ${i}`"
+              :class="{
+                'opacity-50': filters.rating > 0 && filters.min_rating !== i && !hoverRating,
+              }"
             >
               <component
-                :is="i <= (hoverRating || selectedRating) ? StarFilled : Star"
+                :is="i <= (hoverRating || filters.min_rating) ? StarFilled : Star"
                 class="size-6 lg:size-8"
-                :class="i <= (hoverRating || selectedRating) ? '' : 'text-[#FDB528]'"
+                :class="i <= (hoverRating || filters.min_rating) ? '' : 'text-[#FDB528]'"
               />
             </button>
           </div>
+          <button
+            v-if="filters.min_rating > 0"
+            @click="setSelectedRating(0)"
+            class="mt-2 text-xs text-pr-500 hover:underline"
+          >
+            Clear Rating
+          </button>
         </div>
       </div>
 
       <!-- Search Result List -->
       <div class="flex-1 flex flex-col">
         <h1 class="text-2xl md:mb-1 md:text-[32px] font-se font-semibold leading-10 md:leading-12">
-          Search results for "{{ keyword }}"
+          Search results for "{{ filters.search || 'All Destinations' }}"
         </h1>
-        <p class="text-sm sm:text-base">Your adventure starts with places we found for you.</p>
+        <p class="text-sm sm:text-base">
+          Your adventure starts with places we found for you.
+          <span v-if="pagination.count > 0"> ({{ pagination.count }} results)</span>
+        </p>
         <div class="md:hidden flex relative w-full justify-end">
-          <div
-            @click="isFilterOpen = !isFilterOpen"
+          <button
+            @click="destinationStore.toggleMobileFilter"
             class="flex w-fit rounded-lg mt-2 bg-sur-50 p-2 items-center justify-center"
+            aria-expanded="isFilterOpen"
+            aria-controls="mobile-filters"
           >
             <Filter class="size-5" />
-          </div>
+          </button>
           <div
-            class="top-13 min-w-56 p-4 absolute bg-sur-50 shadow-sm rounded-2xl flex-col gap-4"
-            :class="isFilterOpen ? 'flex' : 'hidden'"
+            v-if="isFilterOpen"
+            id="mobile-filters"
+            ref="filterPanelRef"
+            class="md:hidden top-13 min-w-56 p-4 z-30 absolute bg-sur-50 shadow-sm rounded-2xl flex flex-col gap-4"
           >
             <div class="flex flex-col">
               <h3 class="font-semibold mb-2">Categories</h3>
               <ul class="space-y-1.5 text-sm">
-                <li>
-                  <label class="flex items-center gap-1.5">
-                    <input type="checkbox" value="beach" />
-                    Beach
-                  </label>
-                </li>
-                <li>
-                  <label class="flex items-center gap-1.5">
-                    <input type="checkbox" value="mountain" />
-                    Mountain
-                  </label>
-                </li>
-                <li>
-                  <label class="flex items-center gap-1.5">
-                    <input type="checkbox" value="lake" />
-                    Lake
+                <li v-for="cat in categoriesForFilter" :key="cat.slug + '-mobile'">
+                  <label class="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      :value="cat.slug"
+                      :checked="filters.category.includes(cat.slug)"
+                      @change="toggleFilterSelection('category', cat.slug)"
+                    />
+                    {{ cat.name }}
                   </label>
                 </li>
               </ul>
@@ -167,58 +266,15 @@ const isFilterOpen = ref(0)
             <div class="flex flex-col">
               <h3 class="font-semibold mb-2">Regency</h3>
               <ul class="space-y-1.5 text-sm">
-                <li>
-                  <label class="flex items-center gap-2">
-                    <input type="radio" name="regency" value="denpasar" />
-                    Denpasar
-                  </label>
-                </li>
-                <li>
-                  <label class="flex items-center gap-2">
-                    <input type="radio" name="regency" value="badung" />
-                    Badung
-                  </label>
-                </li>
-                <li>
-                  <label class="flex items-center gap-2">
-                    <input type="radio" name="regency" value="klungkung" />
-                    Klungkung
-                  </label>
-                </li>
-                <li>
-                  <label class="flex items-center gap-2">
-                    <input type="radio" name="regency" value="bangli" />
-                    Bangli
-                  </label>
-                </li>
-                <li>
-                  <label class="flex items-center gap-2">
-                    <input type="radio" name="regency" value="tabanan" />
-                    Tabanan
-                  </label>
-                </li>
-                <li>
-                  <label class="flex items-center gap-2">
-                    <input type="radio" name="regency" value="gianyar" />
-                    Gianyar
-                  </label>
-                </li>
-                <li>
-                  <label class="flex items-center gap-2">
-                    <input type="radio" name="regency" value="buleleng" />
-                    Buleleng
-                  </label>
-                </li>
-                <li>
-                  <label class="flex items-center gap-2">
-                    <input type="radio" name="regency" value="jembrana" />
-                    Jembrana
-                  </label>
-                </li>
-                <li>
-                  <label class="flex items-center gap-2">
-                    <input type="radio" name="regency" value="karangasem" />
-                    Karangasem
+                <li v-for="reg in allRegencies" :key="reg.slug + '-mobile'">
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      :value="reg.slug"
+                      :checked="filters.regency.includes(reg.slug)"
+                      @change="toggleFilterSelection('regency', reg.slug)"
+                    />
+                    {{ reg.name }}
                   </label>
                 </li>
               </ul>
@@ -229,43 +285,67 @@ const isFilterOpen = ref(0)
               <div class="flex gap-1">
                 <button
                   v-for="i in 5"
-                  :key="i"
-                  @click="selectedRating = i"
+                  :key="i + '-mobile-star'"
+                  @click="setSelectedRating(i)"
                   @mouseover="hoverRating = i"
                   @mouseleave="hoverRating = 0"
                   class="text-2xl transition"
                 >
                   <component
-                    :is="i <= (hoverRating || selectedRating) ? StarFilled : Star"
+                    :is="i <= (hoverRating || filters.min_rating) ? StarFilled : Star"
                     class="size-5"
-                    :class="i <= (hoverRating || selectedRating) ? '' : 'text-[#FDB528]'"
+                    :class="i <= (hoverRating || filters.min_rating) ? '' : 'text-[#FDB528]'"
                   />
                 </button>
               </div>
+              <button
+                v-if="filters.min_rating > 0"
+                @click="setSelectedRating(0)"
+                class="mt-2 text-xs text-pr-500 hover:underline"
+              >
+                Clear Rating
+              </button>
+              <button
+                @click="destinationStore.toggleMobileFilter"
+                class="mt-4 w-full py-2 bg-pr-500 text-white rounded-lg"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
+        <div v-if="isLoading && destinations.length === 0" class="text-center py-10">
+          <p class="text-gray-500 dark:text-gray-400">Finding amazing places for you...</p>
+        </div>
+        <div
+          v-else-if="DBERROR && destinations.length === 0 && !isLoading"
+          class="my-6 p-4 bg-red-100 text-red-700 rounded-lg"
+        >
+          <p>Oops! {{ DBERROR }}</p>
+        </div>
         <!-- Card -->
-        <ul class="flex gap-4 mt-4 md:mt-6 flex-col">
+        <ul
+          v-else-if="!isLoading && destinations.length > 0"
+          class="flex gap-4 mt-4 md:mt-6 flex-col"
+        >
           <div
-            v-for="i in 5"
-            :key="i"
+            v-for="destination in destinations"
+            :key="destination.slug"
+            @click="viewDestinationDetail(destination.slug)"
             class="flex bg-sur-50 rounded-4xl p-4 gap-3 sm:gap-5 items-center w-full"
           >
             <div
               class="relative overflow-hidden size-32 xs:size-36 md:size-40 lg:size-45 rounded-3xl"
             >
               <img
-                src="@/assets/images/tirta-empul-temple.webp"
-                alt="Tirta Empul"
+                :src="destination.primary_image_url || 'https://placehold.co/160x160'"
+                :alt="destination.name"
                 class="object-cover w-full h-full"
               />
               <div
                 class="flex flex-col justify-between items-end absolute bottom-0 top-0 left-0 right-0 p-3"
               >
-                <div class="p-2 flex items-center justify-center bg-sur-50 rounded-full w-fit">
-                  <Heart class="size-6 text-neu-900" />
-                </div>
+                <WishlistButton :destination-id="destination.id" :is-icon="true" />
                 <p class="text-[8px] w-full text-start md:text-[10px] text-neu-50">
                   Photo by unsplash
                 </p>
@@ -276,36 +356,69 @@ const isFilterOpen = ref(0)
               <div class="flex justify-between">
                 <div>
                   <h3 class="font-semibold text-base md:text-lg line-clamp-1">
-                    Tirta Empul Temple
+                    {{ destination.name }}
                   </h3>
                   <div class="gap-1 md:mt-1 font-medium text-xs md:text-sm items-center flex">
-                    <Location class="size-4 md:size-4.5" /><span class="line-clamp-1"
-                      >Tampaksiring, Gianyar</span
-                    >
+                    <Location class="size-4 md:size-4.5" /><span class="line-clamp-1">{{
+                      formatAddress(destination.address)
+                    }}</span>
                   </div>
                 </div>
                 <div
+                  v-if="destination.average_rating > 0"
                   class="py-1 px-2 sm:px-2.5 flex items-center border border-neu-200 justify-center w-fit h-fit font-medium text-xs sm:text-sm gap-1 bg-sur-50 rounded-full"
                 >
                   <StarFilled class="size-4 md:size-4.5" />
-                  4.8
+                  {{ parseFloat(destination.average_rating).toFixed(1) }}
                 </div>
               </div>
 
               <p class="text-sm md:text-base text-neu-600 mt-2 lg:mt-3 line-clamp-2">
-                Tirta Empul is a sacred temple in Bali with natural spring water baths, believed to
-                have purifying and spiritual benefits.
+                {{ destination.description || 'Discover the beauty of this destination.' }}
               </p>
 
               <button
                 type="button"
-                class="px-6 py-2 mt-3 sm:mt-4 lg:mt-6 flex gap-2 w-fit items-center justify-center text-xs md:text-sm font-medium bg-pr-500 rounded-full text-neu-50"
+                @click.stop="viewDestinationDetail(destination.slug)"
+                class="px-6 py-2 mt-3 sm:mt-4 lg:mt-6 flex gap-2 w-fit cursor-pointer items-center justify-center text-xs md:text-sm font-medium bg-pr-500 rounded-full text-neu-50"
               >
                 View More
               </button>
             </div>
           </div>
         </ul>
+        <div
+          v-else-if="!isLoading && destinations.length === 0 && !DBERROR"
+          class="text-center py-10 text-gray-500 dark:text-gray-400"
+        >
+          No destinations found matching your criteria.
+        </div>
+
+        <!-- Paginasi -->
+        <div
+          v-if="!isLoading && pagination.count > ITEMS_PER_PAGE"
+          class="mt-8 flex justify-center items-center space-x-1 sm:space-x-2"
+        >
+          <button
+            @click="goToPage(filters.page - 1)"
+            :disabled="!pagination.previous"
+            class="px-3 py-1.5 sm:px-4 sm:py-2 border rounded-md disabled:opacity-50 text-sm ..."
+          >
+            Prev
+          </button>
+          <!-- Anda bisa loop untuk nomor halaman di sini -->
+          <span class="text-sm text-gray-700 dark:text-gray-300"
+            >Page {{ filters.page }} of
+            {{ Math.ceil(pagination.count / ITEMS_PER_PAGE) || 1 }}</span
+          >
+          <button
+            @click="goToPage(filters.page + 1)"
+            :disabled="!pagination.next"
+            class="px-3 py-1.5 sm:px-4 sm:py-2 border rounded-md disabled:opacity-50 text-sm ..."
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   </div>

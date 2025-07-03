@@ -7,6 +7,8 @@ app_name = 'destinations_api'
 
 # Membuat router dan mendaftarkan ViewSet kita dengannya.
 router = DefaultRouter()
+router.register(r'temp-images', views.TemporaryImageViewSet,
+                basename='temporary-image')
 router.register(r'', views.DestinationViewSet,
                 basename='destination')
 
