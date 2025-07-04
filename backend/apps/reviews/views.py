@@ -26,5 +26,5 @@ class TemporaryReviewImageViewSet(viewsets.ModelViewSet):
     queryset = TemporaryReviewImage.objects.all()
     serializer_class = TemporaryReviewImageSerializer
     # Hanya user login yang bisa upload
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     http_method_names = ['post', 'delete']

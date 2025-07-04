@@ -13,6 +13,7 @@ import Search from '@/components/icons/Search.vue'
 import Star from '@/components/icons/Star.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
 import SuccessNotification from '@/components/SuccessNotification.vue'
+import Exit from '@/components/icons/Exit.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -105,6 +106,7 @@ async function handleSubmit() {
   // 1. Cek apakah user sudah login
   if (!authStore.isAuthenticated) {
     authStore.showLoginModal = true
+    authStore.loginRedirectPath = route.fullPath
     return
   }
 
@@ -292,6 +294,12 @@ onMounted(() => {
 
       <!-- Right Column -->
       <form @submit.prevent="handleSubmit" class="flex-1 flex-col flex gap-8">
+        <div
+          v-if="!selectedDestination"
+          class="p-4 text-center bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl text-sm"
+        >
+          <p>Please search for and select a destination above to leave your review.</p>
+        </div>
         <div class="flex flex-col gap-3">
           <label for="descriptions" class="text-base md:text-lg font-semibold"
             >Rate Your Experience</label
@@ -300,9 +308,11 @@ onMounted(() => {
             <button
               v-for="i in 5"
               :key="i"
+              type="button"
               @click="setRating(i)"
               @mouseover="hoverRating = i"
               @mouseleave="hoverRating = 0"
+              :disabled="!selectedDestination"
               class="transition cursor-pointer"
             >
               <component
@@ -350,7 +360,7 @@ onMounted(() => {
                 class="hidden"
                 multiple
                 @change="handleImageUpload"
-                :disabled="isUploading"
+                :disabled="isUploading || !selectedDestination"
                 accept="image/*"
               />
             </label>
@@ -365,9 +375,9 @@ onMounted(() => {
               <button
                 @click="removeTempImage(image)"
                 type="button"
-                class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100"
+                class="absolute top-1 right-1 bg-red-500 text-white rounded-full p-2 cursor-pointer flex items-center justify-center text-xs opacity-0 group-hover:opacity-100"
               >
-                &times;
+                <Exit class="size-4" />
               </button>
             </div>
           </div>
