@@ -10,7 +10,20 @@ export const useReviewStore = defineStore('review', {
     error: null,
   }),
   actions: {
-    // Action untuk mengambil semua review untuk satu destinasi
+    async uploadTemporaryReviewImage(file) {
+      const formData = new FormData()
+      formData.append('image', file)
+      try {
+        const response = await apiClient.post('/reviews/temp-images/', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        return response.data // Mengembalikan { id, image }
+      } catch (err) {
+        console.error('Temporary review image upload error:', err.response?.data)
+        throw err.response?.data || { detail: 'Failed to upload image.' }
+      }
+    },
+
     async fetchReviewsByDestination(destinationId) {
       if (!destinationId) return
       this.isLoading = true

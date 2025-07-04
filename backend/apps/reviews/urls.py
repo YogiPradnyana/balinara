@@ -6,6 +6,8 @@ app_name = 'reviews_api'
 
 # Membuat router dan mendaftarkan ViewSet kita dengannya.
 router = DefaultRouter()
+router.register(r'temp-images', views.TemporaryReviewImageViewSet,
+                basename='temp-review-image')
 router.register(r'', views.ReviewViewSet,
                 basename='reviews')
 

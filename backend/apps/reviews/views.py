@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions
-from .models import Review
-from .serializers import ReviewSerializer
+from .models import Review, TemporaryReviewImage
+from .serializers import ReviewSerializer, TemporaryReviewImageSerializer
 from .permissions import IsOwnerOrReadOnly  # Kita perlu buat permission ini
 
 
@@ -20,3 +20,11 @@ class ReviewViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Set user secara otomatis berdasarkan user yang sedang login
         serializer.save(user=self.request.user)
+
+
+class TemporaryReviewImageViewSet(viewsets.ModelViewSet):
+    queryset = TemporaryReviewImage.objects.all()
+    serializer_class = TemporaryReviewImageSerializer
+    # Hanya user login yang bisa upload
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ['post', 'delete']

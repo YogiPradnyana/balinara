@@ -27,6 +27,7 @@ const reviewData = ref({
   destination: null, // Akan diisi dengan ID destinasi
   rating: 0,
   comment: '',
+  image_ids: [],
 })
 
 // State untuk logika search destinasi
@@ -34,6 +35,8 @@ const searchTerm = ref('')
 const searchResults = ref([])
 const isSearching = ref(false)
 const isSearchFocused = ref(false)
+const tempImages = ref([]) // State untuk menampilkan thumbnail
+const isUploading = ref(false)
 
 // State untuk UI
 const hoverRating = ref(0)
@@ -70,6 +73,31 @@ function selectDestination(destination) {
 // Fungsi untuk memberikan rating bintang
 function setRating(rating) {
   reviewData.value.rating = rating
+}
+
+async function handleImageUpload(event) {
+  const files = Array.from(event.target.files)
+  event.target.value = null
+
+  if (files.length === 0) return
+
+  isUploading.value = true
+  for (const file of files) {
+    try {
+      const tempImage = await reviewStore.uploadTemporaryReviewImage(file)
+      tempImages.value.push(tempImage) // Tampilkan thumbnail
+      reviewData.value.image_ids.push(tempImage.id) // Simpan ID untuk dikirim
+    } catch (error) {
+      showNotification('error', `Failed to upload ${file.name}`)
+    }
+  }
+  isUploading.value = false
+}
+
+function removeTempImage(imageToRemove) {
+  tempImages.value = tempImages.value.filter((img) => img.id !== imageToRemove.id)
+  reviewData.value.image_ids = reviewData.value.image_ids.filter((id) => id !== imageToRemove.id)
+  // TODO: Opsional, panggil API untuk hapus file fisik dari server jika perlu
 }
 
 // Fungsi utama saat tombol "Post My Review" ditekan
@@ -297,6 +325,52 @@ onMounted(() => {
             placeholder="Clean, quiet, and perfect for relaxing. Highly recommended!"
             class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-3xl"
           ></textarea>
+        </div>
+
+        <div class="flex flex-col">
+          <label for="name" class="mb-1 text-base md:text-lg font-semibold"
+            >Capture the Moment? Share It!</label
+          >
+          <p class="text-neu-600 mb-3">Optional</p>
+          <div class="w-full">
+            <label
+              for="photo-upload"
+              class="flex flex-col items-center justify-center w-full h-40 border-[1.6px] border-dashed border-pr-500 rounded-3xl cursor-pointer bg-gray-100 hover:bg-gray-200 transition"
+            >
+              <Photo class="mb-1" />
+
+              <!-- Text -->
+              <p class="text-pr-500 font-medium text-sm mb-[2px]">Click to add photos</p>
+              <p class="text-neu-900 text-sm">or drag & drop</p>
+
+              <!-- Hidden input -->
+              <input
+                id="photo-upload"
+                type="file"
+                class="hidden"
+                multiple
+                @change="handleImageUpload"
+                :disabled="isUploading"
+                accept="image/*"
+              />
+            </label>
+          </div>
+          <div v-if="tempImages.length > 0" class="mt-4 grid grid-cols-4 gap-4">
+            <div v-for="image in tempImages" :key="image.id" class="relative group aspect-square">
+              <img
+                :src="image.image"
+                :alt="`review-image-${image.id}`"
+                class="w-full h-full object-cover rounded-lg"
+              />
+              <button
+                @click="removeTempImage(image)"
+                type="button"
+                class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
         </div>
 
         <label class="flex items-center gap-3">
