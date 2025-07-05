@@ -365,7 +365,6 @@ onActivated(() => {
                   </div>
                 </div>
                 <div
-                  v-if="destination.average_rating > 0"
                   class="py-1 px-2 sm:px-2.5 flex items-center border border-neu-200 justify-center w-fit h-fit font-medium text-xs sm:text-sm gap-1 bg-sur-50 rounded-full"
                 >
                   <StarFilled class="size-4 md:size-4.5" />

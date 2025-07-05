@@ -59,6 +59,21 @@ export const useDestinationStore = defineStore('destination', {
       }
     },
 
+    async fetchTopDestinations() {
+      try {
+        // Panggil API dengan parameter untuk mengurutkan berdasarkan rating tertinggi
+        // dan batasi hasilnya hanya 5.
+        const response = await apiClient.get('/destinations/', {
+          params: { ordering: '-average_rating', page_size: 5 },
+        })
+        // Langsung kembalikan hasilnya, tidak perlu disimpan di state global
+        return response.data.results || []
+      } catch (err) {
+        console.error('Failed to fetch top destinations:', err)
+        return [] // Kembalikan array kosong jika gagal
+      }
+    },
+
     async fetchDestinationBySlug(slug) {
       this.isLoadingDetail = true
       this.error = null
@@ -66,7 +81,6 @@ export const useDestinationStore = defineStore('destination', {
       try {
         const response = await apiClient.get(`${DESTINATIONS_API_PATH}${slug}/`)
         this.currentDestination = response.data
-        console.log(response.data)
       } catch (err) {
         /* ... handle error ... */
       } finally {

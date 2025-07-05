@@ -4,6 +4,7 @@ import Sidebar from '@/components/Sidebar.vue'
 import { useAuthStore } from '@/stores/authStore'
 import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
 import { toast } from 'vue-sonner'
+import Spinner from '@/components/icons/Spinner.vue'
 
 const authStore = useAuthStore()
 
@@ -307,9 +308,13 @@ const getInitials = (username) => {
                 <button
                   type="submit"
                   :disabled="!isProfileFormChanged || profileUpdateStatus === 'loading'"
-                  class="disabled:bg-pr-200 disabled:cursor-not-allowed bg-pr-500 transition-colors text-sm sm:text-base font-medium text-neu-50 py-2 px-6 rounded-full"
+                  class="disabled:bg-pr-200 disabled:cursor-not-allowed flex items-center jusitfy-center gap-1 bg-pr-500 transition-colors text-sm sm:text-base font-medium text-neu-50 py-2 px-6 rounded-full"
                 >
-                  {{ profileUpdateStatus === 'loading' ? 'Saving...' : 'Save Changes' }}
+                  <Spinner v-if="profileUpdateStatus == 'loading'" />
+
+                  <span>{{
+                    profileUpdateStatus == 'loading' ? 'Saving Changes...' : 'Save Changes'
+                  }}</span>
                 </button>
               </div>
             </form>

@@ -17,13 +17,20 @@ import { RouterLink, useRoute } from 'vue-router'
 import { useDestinationStore } from '@/stores/destinationStore'
 import WishlistButton from '@/components/WishlistButton.vue'
 import { useWishlistStore } from '@/stores/wishlistStore'
+import { useReviewStore } from '@/stores/reviewStore'
+import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
 
 const route = useRoute()
 const destinationStore = useDestinationStore()
+const reviewStore = useReviewStore()
 
 const destination = computed(() => destinationStore.currentDestination)
 const isLoading = computed(() => destinationStore.isLoadingDetail)
 const error = computed(() => destinationStore.error)
+
+const reviews = computed(() => reviewStore.reviews)
+const reviewSummary = computed(() => reviewStore.reviewSummary)
+const isLoadingReviews = computed(() => reviewStore.isLoading)
 
 onActivated(() => {
   useWishlistStore().fetchWishlist()
@@ -32,7 +39,12 @@ onActivated(() => {
 onMounted(() => {
   const slug = route.params.slug
   if (slug) {
-    destinationStore.fetchDestinationBySlug(slug)
+    destinationStore.fetchDestinationBySlug(slug).then(() => {
+      // Setelah data destinasi ada, ambil reviewnya berdasarkan ID
+      if (destination.value) {
+        reviewStore.fetchReviewsByDestination(destination.value.id)
+      }
+    })
   }
 })
 
@@ -357,42 +369,40 @@ const reviewData = ref([
             Add your own experience to guide and inspire more travelers exploring this amazing
             destination.
           </p>
-          <div class="p-4 flex items-center justify-center bg-pr-500 rounded-full">
+          <RouterLink
+            :to="{ name: 'WriteReview', params: { slug: destination.slug } }"
+            class="p-4 flex items-center cursor-pointer justify-center bg-pr-500 rounded-full"
+          >
             <ArrowUpRight class="size-5 sm:size-9 text-neu-50" />
-          </div>
+          </RouterLink>
         </div>
       </div>
 
       <!-- Review cards -->
       <div class="flex flex-col md:flex-row gap-8 mt-8">
         <div
-          v-for="i in 2"
-          :key="i"
-          class="flex items-center rounded-2xl md:rounded-3xl outline-neu-200 outline-1 bg-sur-50 py-2 md:py-4 px-3 md:px-5"
+          v-for="review in reviews.slice(0, 2)"
+          :key="review.id"
+          class="flex items-center w-full rounded-2xl md:rounded-3xl outline-neu-200 outline-1 bg-sur-50 py-2 md:py-4 px-3 md:px-5"
         >
           <div class="w-full">
             <div class="flex-col flex gap-2">
               <DoubleQuotes class="size-6 sm:size-8 text-neu-900" />
               <p class="text-neu-600 text-sm sm:text-base h-10 sm:h-12 line-clamp-2">
-                The sunset at Tanah Lot was absolutely breathtaking! A magical moment I'll remember
-                forever.
+                {{ review.comment }}
               </p>
             </div>
             <div class="flex mt-1.5 gap-1 items-center">
-              <StarFilled class="size-5 sm:size-6" />
-              <StarFilled class="size-5 sm:size-6" />
-              <StarFilled class="size-5 sm:size-6" />
-              <StarFilled class="size-5 sm:size-6" />
-              <StarFilled class="size-5 sm:size-6" />
+              <StarRatingDisplay :rating="review.rating" />
             </div>
             <div class="gap-2 mt-3 min-w-fit flex items-center">
               <img
-                src="@/assets/images/User Avatar.jpg"
+                :src="review.user.image_url || defaultAvatar"
                 alt="User Profile"
-                class="size-9 sm:size-10.5 rounded-full"
+                class="size-9 sm:size-10.5 rounded-full object-cover"
               />
               <p class="text-neu-900 font-medium whitespace-nowrap text-xs sm:text-sm">
-                Udin Surudin
+                {{ review.user.username }}
               </p>
             </div>
           </div>
@@ -405,21 +415,23 @@ const reviewData = ref([
         <div class="flex flex-col gap-4 w-full lg:w-1/4">
           <div class="flex flex-col gap-4">
             <div class="flex items-center gap-3">
-              <h1 class="text-4xl font-se font-semibold tabular-nums">4.5</h1>
+              <h1 class="text-4xl font-se font-semibold tabular-nums">
+                {{ parseFloat(reviewSummary.average_rating).toFixed(1) }}
+              </h1>
               <div class="space-y-1">
                 <div class="flex gap-0.5 items-center">
-                  <StarFilled class="size-5" />
-                  <StarFilled class="size-5" />
-                  <StarFilled class="size-5" />
-                  <StarFilled class="size-5" />
-                  <StarFilled class="size-5" />
+                  <StarRatingDisplay :rating="reviewSummary.average_rating" />
                 </div>
-                <p class="text-sm text-neu-700">532 reviews</p>
+                <p class="text-sm text-neu-700">{{ reviewSummary.total_reviews }} reviews</p>
               </div>
             </div>
 
             <div class="space-y-2">
-              <div v-for="item in reviewData" :key="item.stars" class="flex items-center gap-2">
+              <div
+                v-for="item in reviewSummary.rating_distribution"
+                :key="item.rating"
+                class="flex items-center gap-2"
+              >
                 <!-- Progress Bar -->
                 <div class="flex-grow bg-neu-100 rounded-full h-2 sm:h-3 overflow-hidden">
                   <div
@@ -434,12 +446,12 @@ const reviewData = ref([
                 </div>
                 <!-- Star Rating Label -->
                 <span class="text-sm font-semibold w-7 text-right tabular-nums">
-                  {{ item.stars.toFixed(1) }}
+                  {{ item.rating }}.0
                 </span>
 
                 <!-- Review Count -->
                 <span class="text-sm text-neu-500 w-10 text-right whitespace-nowrap tabular-nums">
-                  ({{ item.reviews }})
+                  ({{ item.count }})
                 </span>
               </div>
             </div>
@@ -447,7 +459,7 @@ const reviewData = ref([
           <div class="flex flex-col gap-2">
             <h3 class="text-base md:text-lg font-semibold">Contribute</h3>
             <RouterLink
-              :to="{ name: 'WriteReview' }"
+              :to="{ name: 'WriteReview', params: { slug: destination.slug } }"
               class="px-3 w-fit sm:px-4 cursor-pointer text-sm sm:text-base border-[1px] font-medium py-2 rounded-full items-center flex transition-colors duration-150 border-neu-900 hover:bg-[#F0F0F0]"
             >
               Write a review
@@ -540,47 +552,56 @@ const reviewData = ref([
               </div>
             </div>
           </div>
-          <div class="pb-6 space-y-4 border-b border-neu-100" v-for="i in 3" :key="i">
+          <div
+            class="pb-6 space-y-4 border-b border-neu-100"
+            v-for="review in reviews"
+            :key="review.id"
+          >
             <div class="flex justify-between">
               <div class="gap-2 min-w-fit flex items-center">
                 <img
-                  src="@/assets/images/User Avatar.jpg"
+                  :src="review.user.image_url || defaultAvatar"
                   alt="User Profile"
-                  class="size-9 rounded-full"
+                  class="size-9 rounded-full object-cover"
                 />
                 <div class="flex flex-col">
-                  <h3 class="font-medium whitespace-nowrap text-xs sm:text-sm">Udin Surudin</h3>
-                  <p class="text-xs text-neu-600">4 months ago</p>
+                  <h3 class="font-medium whitespace-nowrap text-xs sm:text-sm">
+                    {{ review.user.username }}
+                  </h3>
+                  <p class="text-xs text-neu-600">
+                    {{
+                      new Date(review.created_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    }}
+                  </p>
                 </div>
               </div>
               <div class="flex gap-1 sm:gap-2 font-medium items-center text-sm sm:text-base">
-                4.5
-                <div class="flex gap-0.5 items-center">
-                  <StarFilled class="size-4.5 sm:size-5" />
-                  <div class="hidden sm:flex sm:gap-0.5 sm:items-center">
-                    <StarFilled class="size-4.5 sm:size-5" />
-                    <StarFilled class="size-4.5 sm:size-5" />
-                    <StarFilled class="size-4.5 sm:size-5" />
-                    <StarFilled class="size-4.5 sm:size-5" />
-                  </div>
-                </div>
+                {{ review.rating.toFixed(1) }}
+                <StarRatingDisplay :rating="review.rating" class="hidden sm:flex" />
+                <StarFilled class="size-4.5 sm:size-5 flex sm:hidden" />
               </div>
             </div>
             <p class="text-sm sm:text-base text-neu-600">
-              Lorem ipsum dolor sit amet consectetur adipisicing elit. Hic in dolorem itaque impedit
-              aut ad harum dolores? Odit veniam dicta reiciendis, consectetur tempore, culpa dolorum
-              accusamus iure quo, illum exercitationem.
+              {{ review.comment }}
             </p>
-            <div class="flex gap-2">
+            <div class="flex gap-2" v-if="review.images && review.images.length > 0">
               <img
-                src="@/assets/images/tanah-lot.webp"
-                class="size-16 sm:size-20 rounded-lg sm:rounded-xl"
-              />
-              <img
-                src="@/assets/images/tanah-lot.webp"
-                class="size-16 sm:size-20 rounded-lg sm:rounded-xl"
+                v-for="img in review.images"
+                :key="img.id"
+                :src="img.image"
+                class="size-16 sm:size-20 rounded-lg sm:rounded-xl border border-neu-200 object-cover cursor-pointer"
               />
             </div>
+          </div>
+          <div
+            v-if="!isLoadingReviews && reviews.length === 0"
+            class="text-center py-10 text-neu-500"
+          >
+            Be the first to write a review for this destination!
           </div>
         </div>
       </div>

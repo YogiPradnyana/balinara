@@ -89,6 +89,8 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
     images = DestinationImageSerializer(
         many=True, read_only=True)  # Gambar dikelola via action
 
+    primary_image_url = serializers.SerializerMethodField()
+
     # --- WRITE-ONLY fields (untuk POST/PUT/PATCH request) ---
     category_ids = serializers.PrimaryKeyRelatedField(
         queryset=Category.objects.all(),
@@ -121,13 +123,23 @@ class DestinationDetailCRUDSerializer(serializers.ModelSerializer):
         required=False, default=list
     )
 
+    def get_primary_image_url(self, obj):
+        request = self.context.get('request')
+        primary_image = obj.images.filter(is_primary=True).first()
+        if not primary_image:
+            primary_image = obj.images.order_by('uploaded_at').first()
+
+        if primary_image and primary_image.image and hasattr(primary_image.image, 'url'):
+            return request.build_absolute_uri(primary_image.image.url) if request else primary_image.image.url
+        return None
+
     class Meta:
         model = Destination
         fields = [
             'id', 'name', 'slug', 'description', 'ticket_price_range',
             'average_rating', 'total_reviews', 'is_published',
             # Read-only representasi
-            'categories', 'address', 'contact', 'facilities', 'images',
+            'categories', 'address', 'contact', 'facilities', 'images', 'primary_image_url',
             # Write-only/input fields
             'category_ids', 'address_data', 'contact_data', 'facility_ids', 'image_ids',
             'delete_image_ids', 'created_at', 'updated_at'

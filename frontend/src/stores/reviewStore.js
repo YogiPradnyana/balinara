@@ -6,6 +6,11 @@ import apiClient from '@/api/axiosInstance'
 export const useReviewStore = defineStore('review', {
   state: () => ({
     reviews: [],
+    reviewSummary: {
+      total_reviews: 0,
+      average_rating: 0,
+      rating_distribution: [],
+    },
     isLoading: false,
     error: null,
   }),
@@ -29,11 +34,17 @@ export const useReviewStore = defineStore('review', {
       this.isLoading = true
       this.error = null
       try {
-        // API akan memfilter berdasarkan destination_id yang dikirim sebagai query param
         const response = await apiClient.get('/reviews/', {
           params: { destination_id: destinationId },
         })
-        this.reviews = response.data
+
+        if (response.data) {
+          this.reviews = response.data.reviews || []
+          this.reviewSummary = response.data.summary || {}
+        } else {
+          this.reviews = []
+          this.reviewSummary = {}
+        }
       } catch (err) {
         this.error = err
         console.error('Failed to fetch reviews:', err)

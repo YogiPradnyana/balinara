@@ -1,10 +1,28 @@
 <script setup>
 import Exit from '@/components/icons/Exit.vue'
+import { useRouter } from 'vue-router'
+
+const props = defineProps({
+  destinationSlug: {
+    type: String,
+    required: true,
+  },
+})
 
 const emit = defineEmits(['close'])
+const router = useRouter()
 
 const handleClose = () => {
   emit('close')
+}
+
+const redirectToDetail = () => {
+  if (props.destinationSlug) {
+    router.push({
+      name: 'DetailDestination',
+      params: { slug: props.destinationSlug },
+    })
+  }
 }
 </script>
 <template>
@@ -17,7 +35,7 @@ const handleClose = () => {
     <div
       class="bg-white px-4 pt-4 pb-8 flex-col flex items-end rounded-3xl w-full max-w-lg md:max-w-[524px] animate-fadeIn"
     >
-      <Exit class="size-5 cursor-pointer hover:text-neu-500 transition" @click="handleClose" />
+      <Exit class="size-5 cursor-pointer hover:text-neu-500 transition" @click="redirectToDetail" />
       <div class="w-full mt-4 px-4">
         <h1
           class="text-[28px] md:text-[32px] text-center font-se font-semibold leading-7 md:leading-[38px]"
@@ -35,12 +53,13 @@ const handleClose = () => {
         </div>
         <div class="flex flex-col sm:flex-row text-sm md:text-base gap-3 mt-12">
           <button
+            @click="handleClose"
             class="px-4.5 py-3.5 flex flex-1 items-center cursor-pointer text-pr-500 hover:bg-[#F0F0F0] justify-center text-sm md:text-base font-medium bg-sur-50 rounded-full border border-pr-500"
           >
             Write Another Review
           </button>
           <button
-            @click="handleClose"
+            @click="redirectToDetail"
             class="px-4.5 py-3.5 flex flex-1 gap-2 items-center cursor-pointer hover:bg-pr-600 justify-center text-sm md:text-base font-medium bg-pr-500 rounded-full text-neu-50"
           >
             Back

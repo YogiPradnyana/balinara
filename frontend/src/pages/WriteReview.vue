@@ -14,6 +14,7 @@ import Star from '@/components/icons/Star.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
 import SuccessNotification from '@/components/SuccessNotification.vue'
 import Exit from '@/components/icons/Exit.vue'
+import Spinner from '@/components/icons/Spinner.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -34,30 +35,43 @@ const reviewData = ref({
 // State untuk logika search destinasi
 const searchTerm = ref('')
 const searchResults = ref([])
+const topDestinations = ref([])
 const isSearching = ref(false)
 const isSearchFocused = ref(false)
 const tempImages = ref([]) // State untuk menampilkan thumbnail
 const isUploading = ref(false)
-
+const showSuccessModal = ref(false)
+const isSubmitting = ref(false)
 // State untuk UI
 const hoverRating = ref(0)
 
 // Computed property untuk mengosongkan search result saat tidak fokus
 const displayedSearchResults = computed(() => {
-  return isSearchFocused.value ? searchResults.value : []
+  if (!isSearchFocused.value) {
+    return []
+  }
+  // Jika ada teks yang diketik, tampilkan hasil pencarian
+  if (searchTerm.value) {
+    return searchResults.value
+  }
+  // Jika tidak ada teks (input kosong), tampilkan 5 destinasi teratas
+  return topDestinations.value
 })
 
 let searchTimeout
 watch(searchTerm, (newQuery) => {
   searchResults.value = [] // Kosongkan hasil lama
-  if (!newQuery) return
+  if (!newQuery) {
+    searchResults.value = []
+    return
+  }
 
   isSearching.value = true
   clearTimeout(searchTimeout)
 
   searchTimeout = setTimeout(async () => {
     // Gunakan action yang sudah ada, tapi simpan hasilnya secara lokal
-    const response = await destinationStore.fetchDestinations({ search: newQuery, page_size: 5 })
+    await destinationStore.fetchDestinations({ search: newQuery, page_size: 5 })
     searchResults.value = destinationStore.destinations
     isSearching.value = false
   }, 500)
@@ -122,32 +136,56 @@ async function handleSubmit() {
     return
   }
 
+  isSubmitting.value = true
+
   try {
     await reviewStore.createReview(reviewData.value)
-    showNotification('success', 'Thank you! Your review has been submitted.')
-
-    // Arahkan kembali ke halaman detail setelah berhasil
-    router.push({
-      name: 'DetailDestination',
-      params: { slug: selectedDestination.value.slug },
-    })
+    showSuccessModal.value = true
   } catch (error) {
     const errorMessage =
       error.response?.data?.detail ||
       'Failed to submit review. You may have already reviewed this place.'
     showNotification('error', errorMessage)
+  } finally {
+    isSubmitting.value = false
   }
+}
+
+function handleSuccessModalClose() {
+  showSuccessModal.value = false
+  router.push({ name: 'WriteReview' })
 }
 
 // Logika untuk menangani klik di luar area search agar dropdown tertutup
 const searchFormRef = ref(null)
-onMounted(() => {
-  // Jika datang dari halaman detail, langsung pilih destinasinya
+onMounted(async () => {
+  destinationStore.fetchTopDestinations().then((data) => {
+    topDestinations.value = data
+  })
+
   const slug = route.params.slug
+  console.log('Slug from route params:', slug)
+
   if (slug) {
-    destinationStore.fetchDestinationBySlug(slug).then(() => {
+    // 1. Tampilkan status loading
+    destinationStore.isLoadingDetail = true
+
+    try {
+      // 2. Tunggu SAMPAI proses pengambilan data lengkap SELESAI
+      await destinationStore.fetchDestinationBySlug(slug)
+
+      // 3. SETELAH selesai, baru panggil fungsi selectDestination.
+      //    Pada titik ini, `destinationStore.currentDestination` dijamin sudah
+      //    berisi data lengkap, termasuk `primary_image_url`.
       selectDestination(destinationStore.currentDestination)
-    })
+      console.log('Selected destination:', selectedDestination.value)
+    } catch (error) {
+      console.error('Gagal memuat data destinasi awal:', error)
+      showNotification('error', 'Gagal memuat detail destinasi.')
+    } finally {
+      // 4. Hentikan status loading
+      destinationStore.isLoadingDetail = false
+    }
   }
 
   // Event listener untuk klik di luar
@@ -162,8 +200,26 @@ onMounted(() => {
   })
 })
 </script>
+<style scoped>
+/* Transisi untuk dropdown search */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.3s ease-out;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>
 <template>
-  <!-- <SuccessNotification v-if="isSuccessOpen" @close="isSuccessOpen = false" /> -->
+  <SuccessNotification
+    v-if="showSuccessModal && selectedDestination"
+    @close="handleSuccessModalClose"
+    :destination-slug="selectedDestination.slug"
+  />
+
   <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
     <div class="relative w-full h-124 xs:h-[380px] rounded-3xl mt-10 md:mt-16">
       <img :src="mainImage" alt="" class="object-cover w-full h-full rounded-3xl overflow-hidden" />
@@ -202,31 +258,36 @@ onMounted(() => {
                   placeholder="Search & select your destination..."
                 />
               </div>
-              <div v-if="displayedSearchResults.length > 0 || isSearching" class="w-full px-1.5">
-                <div class="w-full h-[1px] bg-neu-200"></div>
-                <div class="py-4 flex gap-4 flex-col">
-                  <div
-                    v-for="destination in displayedSearchResults"
-                    :key="destination.id"
-                    @click="selectDestination(destination)"
-                    class="flex items-center cursor-pointer gap-3 px-3 py-1.5 transition duration-300 hover:bg-[#EFF6F2] rounded-2xl"
-                  >
-                    <img
-                      :src="destination.primary_image_url || 'https://placehold.co/60x60'"
-                      class="object-cover size-15 rounded-xl"
-                    />
-                    <div class="flex flex-col gap-1.5">
-                      <h3 class="text-sm font-semibold">{{ destination.name }}</h3>
-                      <div class="flex gap-1 items-center">
-                        <Location class="size-4" />
-                        <p class="text-xs font-medium text-neu-600">
-                          {{ destination.address.district }}, {{ destination.address.regency }}
-                        </p>
+              <Transition name="dropdown">
+                <div
+                  v-show="displayedSearchResults.length > 0 || isSearching"
+                  class="w-full px-1.5"
+                >
+                  <div class="w-full h-[1px] bg-neu-200"></div>
+                  <div class="py-4 flex gap-4 flex-col">
+                    <div
+                      v-for="destination in displayedSearchResults"
+                      :key="destination.id"
+                      @click="selectDestination(destination)"
+                      class="flex items-center cursor-pointer gap-3 px-3 py-1.5 transition duration-300 hover:bg-[#EFF6F2] rounded-2xl"
+                    >
+                      <img
+                        :src="destination.primary_image_url || 'https://placehold.co/60x60'"
+                        class="object-cover size-15 rounded-xl"
+                      />
+                      <div class="flex flex-col gap-1.5">
+                        <h3 class="text-sm font-semibold">{{ destination.name }}</h3>
+                        <div class="flex gap-1 items-center">
+                          <Location class="size-4" />
+                          <p class="text-xs font-medium text-neu-600">
+                            {{ destination.address.district }}, {{ destination.address.regency }}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </Transition>
             </div>
           </div>
         </div>
@@ -390,14 +451,17 @@ onMounted(() => {
 
         <button
           type="submit"
-          :disabled="!selectedDestination"
-          class="text-neu-50 px-6 text-base sm:text-lg py-4 font-medium rounded-full"
+          :disabled="!selectedDestination || isSubmitting"
+          class="text-neu-50 px-6 text-base sm:text-lg gap-1 flex items-center justify-center py-4 font-medium rounded-full"
           :class="{
             'bg-pr-200': !selectedDestination,
-            'bg-pr-500 hover:bg-pr-300': selectedDestination,
+            'bg-pr-500 cursor-pointer hover:bg-pr-400': selectedDestination || !isSubmitting,
+            'bg-pr-400 cursor-wait': isSubmitting,
           }"
         >
-          Post My Review
+          <Spinner v-if="isSubmitting" />
+
+          <span>{{ isSubmitting ? 'Posting Your Review...' : 'Post My Review' }}</span>
         </button>
 
         <div class="text-center block lg:hidden mt-12">
