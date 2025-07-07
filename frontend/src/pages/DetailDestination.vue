@@ -32,6 +32,48 @@ const reviews = computed(() => reviewStore.reviews)
 const reviewSummary = computed(() => reviewStore.reviewSummary)
 const isLoadingReviews = computed(() => reviewStore.isLoading)
 
+const activeFilters = ref({
+  rating: null,
+  search: '',
+  month: null, // Tambahkan state untuk filter bulan
+})
+
+function fetchReviews() {
+  if (destination.value) {
+    const params = {}
+    if (activeFilters.value.rating) params.rating = activeFilters.value.rating
+    if (activeFilters.value.search) params.search = activeFilters.value.search
+    if (activeFilters.value.month) params.month = activeFilters.value.month // Tambahkan parameter bulan
+
+    reviewStore.fetchReviewsByDestination(destination.value.id, params)
+  }
+}
+
+function toggleRatingFilter(stars) {
+  activeFilters.value.rating = activeFilters.value.rating === stars ? null : stars
+}
+
+// Fungsi untuk menangani klik pada filter bulan
+function toggleMonthFilter(monthValue) {
+  activeFilters.value.month = activeFilters.value.month === monthValue ? null : monthValue
+}
+
+// Fungsi untuk membersihkan semua filter
+function clearAllFilters() {
+  activeFilters.value.rating = null
+  activeFilters.value.search = ''
+  activeFilters.value.month = null
+}
+
+// Watcher utama untuk reaktivitas
+watch(
+  activeFilters,
+  () => {
+    fetchReviews()
+  },
+  { deep: true },
+)
+
 onActivated(() => {
   useWishlistStore().fetchWishlist()
 })
@@ -41,9 +83,7 @@ onMounted(() => {
   if (slug) {
     destinationStore.fetchDestinationBySlug(slug).then(() => {
       // Setelah data destinasi ada, ambil reviewnya berdasarkan ID
-      if (destination.value) {
-        reviewStore.fetchReviewsByDestination(destination.value.id)
-      }
+      fetchReviews()
     })
   }
 })
@@ -72,89 +112,19 @@ const googleMapsEmbedUrl = computed(() => {
   return ''
 })
 
-const searchTerm = ref('')
-
-const ratingOptions = ref([
-  { stars: 5, count: 140 },
-  { stars: 4, count: 60 },
-  { stars: 3, count: 40 },
-  { stars: 2, count: 80 }, // Data count dari contoh Anda tidak urut, saya biarkan
-  { stars: 1, count: 90 },
-])
-const selectedRatings = ref([]) // Array untuk menyimpan rating yang dipilih (multi-select)
-// Jika single-select: const selectedRating = ref(null);
-
 const monthOptions = ref([
-  { label: 'January', value: '01' },
-  { label: 'February', value: '02' },
-  { label: 'March', value: '03' },
-  { label: 'April', value: '04' },
-  { label: 'May', value: '05' },
-  { label: 'June', value: '06' },
-  { label: 'July', value: '07' },
-  { label: 'August', value: '08' },
-  { label: 'September', value: '09' },
-  { label: 'October', value: '10' },
-  { label: 'November', value: '11' },
-  { label: 'December', value: '12' },
-])
-const selectedMonths = ref([]) // Array untuk menyimpan bulan yang dipilih (multi-select)
-// Jika single-select: const selectedMonth = ref(null);
-
-// Emits untuk memberi tahu parent component tentang perubahan filter
-const emit = defineEmits(['filters-updated', 'search-updated'])
-
-const handleSearch = () => {
-  console.log('Searching for:', searchTerm.value)
-  emit('search-updated', searchTerm.value)
-}
-
-// Watch searchTerm untuk live search (opsional)
-watch(searchTerm, (newValue) => {
-  console.log('Live search:', newValue)
-  emit('search-updated', newValue)
-})
-
-const toggleRatingFilter = (stars) => {
-  const index = selectedRatings.value.indexOf(stars)
-  if (index > -1) {
-    selectedRatings.value.splice(index, 1) // Hapus jika sudah ada (deselect)
-  } else {
-    selectedRatings.value.push(stars) // Tambah jika belum ada (select)
-    // Jika single select:
-    // selectedRating.value = selectedRating.value === stars ? null : stars;
-  }
-  emitFilters()
-}
-
-const toggleMonthFilter = (monthValue) => {
-  const index = selectedMonths.value.indexOf(monthValue)
-  if (index > -1) {
-    selectedMonths.value.splice(index, 1)
-  } else {
-    selectedMonths.value.push(monthValue)
-    // Jika single select:
-    // selectedMonth.value = selectedMonth.value === monthValue ? null : monthValue;
-  }
-  emitFilters()
-}
-
-const emitFilters = () => {
-  const currentFilters = {
-    ratings: [...selectedRatings.value],
-    months: [...selectedMonths.value],
-  }
-  console.log('Filters updated:', currentFilters)
-  emit('filters-updated', currentFilters)
-}
-
-// Data contoh, Anda bisa menggantinya dengan data dinamis dari API
-const reviewData = ref([
-  { stars: 5.0, reviews: 140, percentage: 80 }, // Perkiraan persentase dari gambar
-  { stars: 4.0, reviews: 60, percentage: 55 },
-  { stars: 3.0, reviews: 40, percentage: 40 },
-  { stars: 2.0, reviews: 80, percentage: 30 },
-  { stars: 1.0, reviews: 90, percentage: 25 }, // Persentase 1.0 terlihat lebih rendah dari 2.0 di gambar
+  { label: 'Jan', value: 1 },
+  { label: 'Feb', value: 2 },
+  { label: 'Mar', value: 3 },
+  { label: 'Apr', value: 4 },
+  { label: 'May', value: 5 },
+  { label: 'Jun', value: 6 },
+  { label: 'Jul', value: 7 },
+  { label: 'Aug', value: 8 },
+  { label: 'Sep', value: 9 },
+  { label: 'Oct', value: 10 },
+  { label: 'Nov', value: 11 },
+  { label: 'Dec', value: 12 },
 ])
 </script>
 <style scoped>
@@ -472,16 +442,16 @@ const reviewData = ref([
           <div class="space-y-6">
             <!-- Search Form -->
             <form
-              @submit.prevent="handleSearch"
+              @submit.prevent
               class="max-w-[640px] w-full flex h-[48px] items-center justify-between rounded-full outline-1 outline-neu-200 p-1.5"
             >
               <div class="wrapper gap-2 ps-1.5 flex items-center w-full">
                 <Search class="size-5 text-neu-500" />
                 <input
-                  v-model="searchTerm"
+                  v-model="activeFilters.search"
                   type="text"
                   class="w-full text-xs md:text-sm leading-5 placeholder:text-neu-500 focus:outline-none bg-transparent"
-                  placeholder="Search reviews..."
+                  placeholder="Search reviews by keyword..."
                   aria-label="Search reviews"
                 />
               </div>
@@ -506,21 +476,18 @@ const reviewData = ref([
                     aria-labelledby="rating-filter-label"
                   >
                     <button
-                      v-for="ratingOption in ratingOptions"
-                      :key="ratingOption.stars"
-                      @click="toggleRatingFilter(ratingOption.stars)"
+                      v-for="ratingValue in 5"
+                      :key="`filter-rating-${ratingValue}`"
+                      @click="toggleRatingFilter(ratingValue)"
                       :class="[
                         'px-2 w-fit sm:px-4 text-sm sm:text-base border-[1.6px] gap-2 py-2 rounded-full font-medium items-center flex transition-colors duration-150',
-                        selectedRatings.includes(ratingOption.stars)
+                        activeFilters.rating === ratingValue
                           ? ' border-neu-800'
                           : 'border-neu-200 hover:border-neu-400',
                       ]"
-                      :aria-pressed="selectedRatings.includes(ratingOption.stars)"
                     >
-                      <StarRatingDisplay :rating="ratingOption.stars" />
-                      <span class="tabular-nums text-sm sm:text-base"
-                        >({{ ratingOption.count }})</span
-                      >
+                      <StarRatingDisplay :rating="ratingValue" />
+                      <span class="tabular-nums text-sm sm:text-base">({{ ratingValue }})</span>
                     </button>
                   </div>
                 </div>
@@ -539,11 +506,10 @@ const reviewData = ref([
                       @click="toggleMonthFilter(month.value)"
                       :class="[
                         'px-3 w-fit sm:px-4 text-sm sm:text-base border-[1.6px] font-medium py-2 rounded-full items-center flex transition-colors duration-150 ',
-                        selectedMonths.includes(month.value)
+                        activeFilters.month === month.value
                           ? 'border-neu-800'
                           : 'border-neu-200 hover:border-neu-400',
                       ]"
-                      :aria-pressed="selectedMonths.includes(month.value)"
                     >
                       {{ month.label }}
                     </button>

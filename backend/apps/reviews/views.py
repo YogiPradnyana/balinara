@@ -1,9 +1,11 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, filters
 from rest_framework.response import Response
 from .models import Review, TemporaryReviewImage
+from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Avg, Count
 from .serializers import ReviewSerializer, TemporaryReviewImageSerializer
 from .permissions import IsOwnerOrReadOnly
+from .filters import ReviewFilter
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -11,6 +13,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_class = ReviewFilter
+    search_fields = ['comment']
 
     def get_queryset(self):
         # Filter review berdasarkan destinasi jika parameter destination_id ada di URL
