@@ -190,3 +190,47 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(password)
         user.save(update_fields=['password', 'updated_at'])
         return user
+
+class AdminUserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        # Disesuaikan: Hapus 'first_name' dan 'last_name' dari fields
+        fields = ['id', 'username', 'email', 'phone', 'is_staff', 'is_active'] # Ganti phone_number menjadi phone
+        read_only_fields = ['id'] # ID tidak boleh diubah
+
+    # Opsional: Tambahkan validasi kustom jika diperlukan
+    def validate_email(self, value):
+        # Pastikan email unik saat update, kecuali untuk instance yang sedang diedit
+        if self.instance and User.objects.filter(email=value).exclude(id=self.instance.id).exists():
+            raise serializers.ValidationError("Email ini sudah digunakan oleh pengguna lain.")
+        return value
+
+    def update(self, instance, validated_data):
+        # Disesuaikan: Hapus update untuk first_name dan last_name
+        instance.username = validated_data.get('username', instance.username)
+        instance.email = validated_data.get('email', instance.email)
+        instance.phone = validated_data.get('phone', instance.phone) # Ganti phone_number menjadi phone
+        instance.is_active = validated_data.get('is_active', instance.is_active)
+        instance.is_staff = validated_data.get('is_staff', instance.is_staff)
+        instance.save()
+        return instance
+
+class AdminSetPasswordSerializer(serializers.Serializer):
+    new_password = serializers.CharField(required=True, write_only=True, style={
+                                         'input_type': 'password'})
+    new_password2 = serializers.CharField(required=True, write_only=True, style={
+                                          'input_type': 'password'}, label="Confirm new password")
+
+    def validate(self, data):
+        # Validasi kecocokan password tetap ada
+        if data.get('new_password') != data.get('new_password2'):
+            raise serializers.ValidationError(
+                {"new_password2": "New password fields didn't match."})
+        return data
+
+    def save(self):
+        user = self.context['user'] # User yang akan diubah password-nya
+        password = self.validated_data['new_password']
+        user.set_password(password)
+        user.save(update_fields=['password']) # Sesuaikan jika model User Anda tidak punya updated_at
+        return user
