@@ -2,8 +2,10 @@
 // --- IMPORTS ---
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
+import { RouterLink } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore'; // <--- Impor useAuthStore
 
-// --- Impor Ikon ---
+// --- Impor Ikon (tidak berubah) ---
 import ArrowRight from '@/components/icons/ArrowRight.vue';
 import ArrowRight2Bold from '@/components/icons/ArrowRight2Bold.vue';
 import Edit from '@/components/icons/Edit.vue';
@@ -20,9 +22,13 @@ const totalUsers = ref(0);
 const nextPageUrl = ref(null);
 const previousPageUrl = ref(null);
 const currentPage = ref(1);
-const pageSize = ref(10); // Sesuaikan jika PAGE_SIZE di Django berbeda
+const pageSize = ref(10);
 
-// --- COMPUTED PROPERTIES ---
+// --- Dapatkan data user yang sedang login ---
+const authStore = useAuthStore();
+const currentUserId = computed(() => authStore.currentUser?.id); // ID user yang sedang login
+
+// --- COMPUTED PROPERTIES (tidak berubah) ---
 const startEntry = computed(() => {
   if (totalUsers.value === 0) return 0;
   return (currentPage.value - 1) * pageSize.value + 1;
@@ -34,19 +40,11 @@ const endEntry = computed(() => {
 });
 
 
-// ===================================================================
-// PENTING: PASTIKAN URL INI SUDAH 100% BENAR SESUAI DENGAN urls.py DJANGO ANDA
-// Berdasarkan diskusi terakhir kita, ini adalah URL yang benar untuk Anda.
-// ===================================================================
 const API_BASE_URL = 'http://localhost:8000/api/users/';
 
 
-// --- LOGIKA API LANGSUNG DI DALAM KOMPONEN ---
+// --- LOGIKA API LANGSUNG DI DALAM KOMPONEN (tidak berubah) ---
 
-/**
- * Mengambil daftar pengguna dari server.
- * @param {string} [url=API_BASE_URL] - URL untuk di-fetch, bisa untuk paginasi.
- */
 const fetchUsers = async (url = API_BASE_URL) => {
   isLoading.value = true;
   error.value = null;
@@ -57,9 +55,7 @@ const fetchUsers = async (url = API_BASE_URL) => {
     }
 
     const response = await axios.get(url, {
-      headers: { 
-        'Authorization': `Token ${token}` 
-      }
+      headers: { 'Authorization': `Token ${token}` }
     });
 
     if (response.data && Array.isArray(response.data.results)) {
@@ -74,16 +70,22 @@ const fetchUsers = async (url = API_BASE_URL) => {
       throw new Error('Format data dari server tidak sesuai.');
     }
   } catch (err) {
-    if (err.response) {
-      if (err.response.status === 403) {
-        error.value = 'Izin Ditolak. Pastikan Anda adalah Admin.';
-      } else if (err.response.status === 404) {
-        error.value = 'Endpoint Tidak Ditemukan. Periksa URL API.';
+    if (axios.isAxiosError(err)) {
+      if (err.response) {
+        if (err.response.status === 403) {
+          error.value = 'Izin Ditolak. Pastikan Anda adalah Admin.';
+        } else if (err.response.status === 404) {
+          error.value = 'Endpoint Tidak Ditemukan. Periksa URL API.';
+        } else if (err.response.status === 401) {
+          error.value = 'Tidak Terautentikasi. Silakan login.';
+        } else {
+          error.value = `Gagal memuat data: Error ${err.response.status}.`;
+        }
       } else {
-        error.value = `Gagal memuat data: Error ${err.response.status}.`;
+        error.value = 'Kesalahan Jaringan atau Server tidak merespons.';
       }
     } else {
-      error.value = 'Kesalahan Jaringan atau Server tidak merespons.';
+      error.value = 'Terjadi kesalahan tidak terduga.';
     }
     console.error('Error saat fetchUsers:', err);
   } finally {
@@ -91,11 +93,6 @@ const fetchUsers = async (url = API_BASE_URL) => {
   }
 }
 
-/**
- * Menghapus pengguna berdasarkan ID.
- * @param {number | string} userId - ID dari pengguna yang akan dihapus.
- * @param {string} username - Nama pengguna untuk pesan konfirmasi.
- */
 const deleteUser = async (userId, username) => {
   const isConfirmed = window.confirm(`Apakah Anda yakin ingin menghapus pengguna "${username}"?`);
   if (!isConfirmed) return;
@@ -109,25 +106,29 @@ const deleteUser = async (userId, username) => {
 
     // Mengirim permintaan DELETE langsung dari komponen
     await axios.delete(`${API_BASE_URL}${userId}/`, {
-      headers: { 
-        'Authorization': `Token ${token}` 
-      }
+      headers: { 'Authorization': `Token ${token}` }
     });
 
     alert(`Pengguna "${username}" berhasil dihapus.`);
-    
-    // Refresh data. Jika ini halaman terakhir dan jadi kosong, mungkin perlu logika tambahan,
-    // tapi untuk sekarang kita refresh halaman saat ini atau halaman pertama.
-    fetchUsers(); 
+
+    if (users.value.length === 1 && currentPage.value > 1) {
+        fetchUsers(`${API_BASE_URL}?page=${currentPage.value - 1}`);
+    } else {
+        fetchUsers(API_BASE_URL + (currentPage.value > 1 ? `?page=${currentPage.value}` : ''));
+    }
 
   } catch (err) {
-    alert('Gagal menghapus pengguna.');
+    let errorMessage = 'Gagal menghapus pengguna.';
+    if (axios.isAxiosError(err) && err.response && err.response.data) {
+        errorMessage += ` Detail: ${JSON.stringify(err.response.data)}`;
+    }
+    alert(errorMessage);
     console.error('Error saat deleteUser:', err);
   }
 };
 
 
-// --- LIFECYCLE HOOK ---
+// --- LIFECYCLE HOOK (tidak berubah) ---
 onMounted(() => {
   fetchUsers();
 });
@@ -169,8 +170,8 @@ onMounted(() => {
               <tbody>
                 <tr v-if="isLoading"><td colspan="6" class="p-4 text-center text-neu-700">Memuat data...</td></tr>
                 <tr v-else-if="error"><td colspan="6" class="p-4 text-center text-red-500">{{ error }}</td></tr>
-                <tr v-else-if="users.length === 0"><td colspan="6" class="p-4 text-center text-neu-700">Tidak ada data pengguna.</td></tr>
-                
+                <tr v-else-if="users.length === 0 && !isLoading && !error"><td colspan="6" class="p-4 text-center text-neu-700">Tidak ada data pengguna.</td></tr>
+
                 <template v-else>
                   <tr v-for="(user, index) in users" :key="user.id" class="text-sm text-neu-700 border-b border-neu-100">
                     <td class="p-4 text-neu-900">{{ startEntry + index }}</td>
@@ -179,9 +180,23 @@ onMounted(() => {
                     <td class="p-4">{{ user.phone || '-' }}</td>
                     <td class="p-4">{{ user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : '-' }}</td>
                     <td class="p-4 flex gap-3">
-                      <button title="Edit" class="flex items-center justify-center p-2 rounded-md bg-[#FACA15] hover:bg-yellow-500"><Edit class="size-5 text-neu-900" /></button>
+                      <RouterLink
+                        v-if="user.id === currentUserId"
+                        :to="{ name: 'AdminUserEdit', params: { id: user.id } }"
+                        title="Edit" class="flex items-center justify-center p-2 rounded-md bg-[#FACA15] hover:bg-yellow-500">
+                        <Edit class="size-5 text-neu-900" />
+                      </RouterLink>
+                      <button
+                        v-else
+                        title="Edit (Tidak Diizinkan)"
+                        class="flex items-center justify-center p-2 rounded-md bg-gray-300 cursor-not-allowed"
+                        disabled
+                      >
+                        <Edit class="size-5 text-gray-500" />
+                      </button>
+
                       <button title="Detail" class="flex items-center justify-center p-2 rounded-md bg-[#295F98] hover:bg-blue-800"><Show class="size-5 text-white" /></button>
-                      
+
                       <button @click="deleteUser(user.id, user.username)" title="Delete" class="flex items-center justify-center p-2 rounded-md bg-[#E02424] hover:bg-red-700">
                         <TrashCan class="size-5 text-white" />
                       </button>
@@ -192,7 +207,7 @@ onMounted(() => {
             </table>
           </div>
         </div>
-        
+
         <div class="flex justify-between items-center gap-3 flex-wrap mt-3" v-if="!isLoading && users.length > 0">
           <div class="text-sm text-neu-600">
             Showing <span class="font-medium">{{ startEntry }}</span> to <span class="font-medium">{{ endEntry }}</span> of <span class="font-medium">{{ totalUsers }}</span> Entries

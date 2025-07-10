@@ -9,10 +9,11 @@ from .serializers import UserCreateSerializer
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from .models import User
+from .permissions import CanEditOnlyNonSuperusersOrSelf, CanSetPasswordOnlyForNonSuperusersOrSelf
 from django.contrib.auth import get_user_model # <-- Tambahkan ini
 from .serializers import (
     UserRegistrationSerializer, UserLoginSerializer, UserDetailSerializer,
-    UserProfileUpdateSerializer, ChangePasswordSerializer,
+    UserProfileUpdateSerializer, ChangePasswordSerializer, AdminUserUpdateSerializer,  AdminSetPasswordSerializer
 )
 
 User = get_user_model()
@@ -124,46 +125,75 @@ class AdminUserPagination(PageNumberPagination):
     max_page_size = 200
 
 
-class UserManagementViewSet(viewsets.ModelViewSet):
+class UserManagementViewSet(viewsets.ModelViewSet): # Menggunakan ModelViewSet
     """
-    ViewSet ini menangani semua operasi CRUD untuk manajemen pengguna oleh Admin.
-    Secara otomatis menyediakan fungsi:
-    - list() -> GET /
-    - retrieve() -> GET /{id}/
-    - create() -> POST /
-    - update() -> PUT /{id}/
-    - partial_update() -> PATCH /{id}/
-    - destroy() -> DELETE /{id}/  <-- INI UNTUK FUNGSI HAPUS
+    ViewSet ini menangani operasi CRUD untuk manajemen pengguna oleh Admin.
     """
     queryset = User.objects.all().order_by('email')
-    serializer_class = UserDetailSerializer
-    permission_classes = [permissions.IsAdminUser]  # Hanya admin yang bisa akses
-    pagination_class = AdminUserPagination  # Terapkan paginasi
+    permission_classes = [permissions.IsAdminUser]
+    pagination_class = AdminUserPagination
 
+    def get_serializer_class(self):
+        """
+        Mengembalikan serializer class yang berbeda berdasarkan aksi (action).
+        """
+        if self.action in ['list', 'retrieve']:
+            return UserDetailSerializer
+        elif self.action in ['update', 'partial_update']:
+            return AdminUserUpdateSerializer
+        # Jika Anda ingin create juga di ViewSet ini (bukan hanya via create-admin/), bisa tambahkan:
+        # elif self.action == 'create':
+        #     return UserCreateSerializer
+        return super().get_serializer_class()
+
+    def get_serializer_context(self):
+        return {'request': self.request}
+
+    # Metode `list` dengan debugging prints (opsional, bisa dihapus)
     def list(self, request, *args, **kwargs):
         print("--- 1. SERVER: Menerima permintaan GET untuk daftar pengguna ---")
-        queryset = self.get_queryset()
+        queryset = self.filter_queryset(self.get_queryset())
         print(f"--- 2. SERVER: Query ke database berhasil, ditemukan {queryset.count()} total pengguna ---")
-        
+
         page = self.paginate_queryset(queryset)
         if page is not None:
             print(f"--- 3. SERVER: Paginasi berhasil, akan memproses {len(page)} pengguna untuk halaman ini ---")
             serializer = self.get_serializer(page, many=True)
             print("--- 4. SERVER: MEMULAI PROSES SERIALISASI (mengubah data ke JSON) ---")
-            
-            # Baris ini adalah tempat di mana proses berat terjadi
-            serialized_data = serializer.data 
-            
+            serialized_data = serializer.data
             print("--- 5. SERVER: PROSES SERIALISASI BERHASIL! ---")
             return self.get_paginated_response(serialized_data)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
-    def get_serializer_context(self):
-        return {'request': self.request}
     
 class UserCreateAPIView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserCreateSerializer
     permission_classes = [AllowAny] 
+
+
+class AdminSetUserPasswordView(generics.GenericAPIView): # <-- UBAH DI SINI
+    queryset = User.objects.all()
+    serializer_class = AdminSetPasswordSerializer
+    permission_classes = [CanSetPasswordOnlyForNonSuperusersOrSelf]
+    lookup_field = 'pk'
+
+    def get_object(self):
+        # Mengambil objek user berdasarkan PK dari URL
+        return self.queryset.get(pk=self.kwargs[self.lookup_field])
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['user'] = self.get_object() # Penting: Meneruskan objek user ke serializer
+        return context
+
+    # KOREKSI: Menambahkan metode post() secara eksplisit
+    def post(self, request, *args, **kwargs): # <-- TAMBAHKAN METODE POST INI
+        self.object = self.get_object() # Dapatkan objek user yang akan diubah password-nya
+
+        serializer = self.get_serializer(data=request.data, context={'user': self.object})
+        serializer.is_valid(raise_exception=True)
+        serializer.save() # Memanggil save di serializer
+
+        return Response({"message": "Password updated successfully by admin."}, status=status.HTTP_200_OK)
