@@ -36,6 +36,7 @@ urlpatterns = [
     path('api/reviews/',
          include('apps.reviews.urls', namespace='reviews_api')),
     path('api/wishlists/', include('apps.wishlists.urls')),
+    path('api/', include('apps.suggestions.urls')),
 ]
 
 if settings.DEBUG:

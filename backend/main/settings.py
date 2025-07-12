@@ -80,6 +80,7 @@ INSTALLED_APPS = [
     'apps.destinations.apps.DestinationsConfig',
     'apps.reviews.apps.ReviewsConfig',
     'apps.wishlists.apps.WishlistsConfig',
+    'apps.suggestions.apps.SuggestionsConfig',
 ]
 
 MIDDLEWARE = [
