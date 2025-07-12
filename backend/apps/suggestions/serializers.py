@@ -46,7 +46,7 @@ class SuggestionSerializer(serializers.ModelSerializer):
             'photos',         # Untuk menampilkan daftar foto (read-only)
         ]
         # Membuat beberapa field hanya bisa dibaca (read-only)
-        read_only_fields = ['suggester', 'status', 'created_at']
+        read_only_fields = ['suggester', 'created_at']
 
     def create(self, validated_data):
         """

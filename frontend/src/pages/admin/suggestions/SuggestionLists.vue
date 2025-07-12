@@ -1,52 +1,85 @@
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useSuggestionStore } from '@/stores/suggestionStore'
+import { RouterLink } from 'vue-router'
+import { debounce } from 'lodash-es'
+
+// Impor ikon Anda
 import ArrowRight from '@/components/icons/ArrowRight.vue'
-import ArrowRight2Bold from '@/components/icons/ArrowRight2Bold.vue'
-import Edit from '@/components/icons/Edit.vue'
-import Plus from '@/components/icons/Plus.vue'
-import Search from '@/components/icons/Search.vue'
 import Show from '@/components/icons/Show.vue'
 import TrashCan from '@/components/icons/TrashCan.vue'
+import Search from '@/components/icons/Search.vue'
+import ArrowRight2Bold from '@/components/icons/ArrowRight2Bold.vue'
+
+const suggestionStore = useSuggestionStore()
+
 const tabs = ref([
-  { id: 'all', label: 'All' },
-  { id: 'pending', label: 'Pending' },
-  { id: 'approved', label: 'Approved' },
-  { id: 'rejected', label: 'Rejected' },
+  { id: 'all', label: 'All', value: '' },
+  { id: 'pending', label: 'Pending', value: 'pending' },
+  { id: 'approved', label: 'Approved', value: 'approved' },
+  { id: 'rejected', label: 'Rejected', value: 'rejected' },
 ])
 
 const activeTab = ref('pending')
-const tabRefs = ref({})
+const searchQuery = ref('')
+const currentPage = ref(1)
+
+// Computed property untuk akses data lebih mudah
+const suggestions = computed(() => suggestionStore.adminSuggestions)
+const pagination = computed(() => suggestionStore.pagination)
+const currentParams = computed(() => {
+    const params = { page: currentPage.value, search: searchQuery.value }
+    const activeTabObject = tabs.value.find(t => t.id === activeTab.value)
+    if (activeTabObject && activeTabObject.value) {
+        params.status = activeTabObject.value
+    }
+    return params
+})
+
+// Fungsi utama untuk memuat data
+const loadSuggestions = () => {
+  suggestionStore.fetchAdminSuggestions(currentParams.value)
+}
+
+// Panggil saat pertama kali dimuat
+onMounted(loadSuggestions)
+
+// Awasi perubahan pada filter dan panggil ulang data
+watch(activeTab, () => {
+  currentPage.value = 1
+  loadSuggestions()
+})
+// Gunakan debounce untuk search agar tidak memanggil API di setiap ketikan
+watch(searchQuery, debounce(() => {
+    currentPage.value = 1
+    loadSuggestions()
+}, 500))
 
 const setActiveTab = (tabId) => {
   activeTab.value = tabId
 }
 
-const underlineStyle = computed(() => {
-  const activeEl = tabRefs.value[activeTab.value]
-  if (activeEl) {
-    return {
-      left: `${activeEl.offsetLeft}px`,
-      width: `${activeEl.offsetWidth}px`,
+const changePage = (direction) => {
+    if (direction === 'next' && pagination.value.next) {
+        currentPage.value++;
+    } else if (direction === 'prev' && pagination.value.previous) {
+        currentPage.value--;
     }
-  }
-  return { left: '0px', width: '0px' }
-})
-
-const updateUnderline = async () => {
-  await nextTick()
-  if (!tabRefs.value[activeTab.value]) {
-    await nextTick()
-  }
+    loadSuggestions();
 }
 
-onMounted(() => {
-  updateUnderline()
-})
-
-watch(activeTab, () => {
-  updateUnderline()
-})
+const handleDelete = async (id, name) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus saran untuk "${name}"?`)) {
+        try {
+            await suggestionStore.deleteSuggestion(id, currentParams.value);
+            // Data akan di-refresh otomatis oleh action di store
+        } catch (error) {
+            alert("Gagal menghapus data.");
+        }
+    }
+}
 </script>
+
 <template>
   <div class="space-y-6">
     <div class="flex justify-between gap-3 flex-wrap">
@@ -58,129 +91,99 @@ watch(activeTab, () => {
       </div>
     </div>
 
-    <div class="flex flex-col rounded-3xl border border-neu-100">
-      <div class="flex flex-col p-4">
-        <div class="flex justify-between sm:items-center flex-col sm:flex-row gap-4">
-          <div
-            class="border border-neu-100 gap-2 px-2.5 order-2 sm:order-1 py-2 flex items-center w-full sm:w-1/2 rounded-full"
-          >
-            <Search class="size-6" />
-            <input
-              type="text"
-              class="w-full text-xs md:text-sm leading-5 placeholder:text-neu-500 focus:outline-none"
-              placeholder="Search something..."
-            />
-          </div>
+    <div class="flex flex-col rounded-3xl border border-neu-100 p-4">
+      <div class="flex justify-between sm:items-center flex-col sm:flex-row gap-4">
+        <div class="border border-neu-100 gap-2 px-2.5 order-2 sm:order-1 py-2 flex items-center w-full sm:w-1/2 rounded-full">
+          <Search class="size-6" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="w-full text-xs md:text-sm focus:outline-none"
+            placeholder="Cari nama tempat, traveler, atau alamat..."
+          />
         </div>
+      </div>
 
-        <div class="mt-4">
-          <div class="relative flex overflow-x-auto">
-            <!-- Tab List -->
-            <div
-              class="flex items-center space-x-2 sm:space-x-4 border-b border-gray-200"
-              role="tablist"
-              aria-label="Status Tabs"
-            >
-              <button
-                v-for="tab in tabs"
-                :key="tab.id"
-                :ref="(el) => (tabRefs[tab.id] = el)"
-                @click="setActiveTab(tab.id)"
-                :class="[
-                  'pb-2 sm:pb-3 px-2 cursor-pointer text-sm sm:text-base font-medium focus:outline-none transition-colors duration-300 ease-in-out',
-                  activeTab === tab.id
-                    ? 'text-pr-500 border-pr-600'
-                    : 'text-neu-500 hover:text-neu-700',
-                ]"
-                role="tab"
-                :aria-selected="activeTab === tab.id"
-                :aria-controls="`tabpanel-${tab.id}`"
-              >
-                {{ tab.label }}
-              </button>
-            </div>
-
-            <!-- Animated Underline -->
-            <div
-              class="absolute bottom-0 h-0.5 bg-pr-500 transition-all duration-300 ease-in-out"
-              :style="underlineStyle"
-            ></div>
-          </div>
-
-          <!-- Tab Panels (Konten untuk setiap tab) - Opsional -->
-          <div class="mt-4">
-            <div
+      <div class="mt-4">
+        <div class="border-b border-gray-200">
+          <nav class="-mb-px flex space-x-4 overflow-x-auto" aria-label="Tabs">
+            <button
               v-for="tab in tabs"
-              :key="`panel-${tab.id}`"
-              :id="`tabpanel-${tab.id}`"
-              role="tabpanel"
-              :aria-labelledby="tab.id"
+              :key="tab.id"
+              @click="setActiveTab(tab.id)"
+              :class="[
+                activeTab === tab.id
+                  ? 'border-pr-500 text-pr-600'
+                  : 'border-transparent text-neu-500 hover:text-neu-700 hover:border-gray-300',
+                'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+              ]"
             >
-              <div v-if="activeTab === tab.id">
-                <div class="mt-4 overflow-hidden border border-neu-100 rounded-2xl">
-                  <div class="max-w-full overflow-x-auto">
-                    <table class="min-w-180 w-full">
-                      <thead class="bg-pr-500 text-xs text-white">
-                        <tr>
-                          <th class="p-4 text-start font-semibold w-12">NO</th>
-                          <th class="p-4 text-start font-semibold">NAME</th>
-                          <th class="p-4 text-start font-semibold">TRAVELER NAME</th>
-                          <th class="p-4 text-start font-semibold">CATEGORY</th>
-                          <th colspan="2" class="p-4 text-start font-semibold">ADDRESS</th>
-                          <th class="p-4 text-start font-semibold">ACTION</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr class="text-sm text-neu-700 border-b border-neu-100">
-                          <td class="p-4 text-neu-900">1</td>
-                          <td class="p-4 text-neu-900 font-semibold">Tanah Lot</td>
-                          <td class="p-4">Udin Surudin</td>
-                          <td class="p-4">Beach</td>
-                          <td colspan="2" class="p-4">
-                            Beraban, Kecamatan Kediri, Kabupaten Tabanan
-                          </td>
-                          <td class="p-4 flex gap-3">
-                            <RouterLink
-                              :to="{ name: 'AdminSuggestionDetail', params: { id: 1 } }"
-                              class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#214B78] bg-[#295F98]"
-                            >
-                              <Show class="size-5 text-neu-50" />
-                            </RouterLink>
-                            <button
-                              type="button"
-                              class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#B71A1A] bg-[#E02424]"
-                            >
-                              <TrashCan class="size-5 text-neu-50" />
-                            </button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                <div class="flex justify-between items-center gap-3 flex-wrap mt-3">
-                  <div class="text-sm text-neu-600">
-                    Showing <span class="font-medium text-neu-900">1</span> to
-                    <span class="font-medium text-neu-900">1</span> of
-                    <span class="font-medium text-neu-900">10</span> Entries
-                  </div>
-                  <div class="flex items-center rounded-[8px] overflow-hidden">
-                    <div
-                      class="flex bg-neu-100 text-neu-300 gap-2 h-8 px-3 items-center font-semibold"
-                    >
-                      <ArrowRight2Bold class="size-4 scale-x-[-1]" />Prev
-                    </div>
-                    <div
-                      class="flex bg-neu-100 gap-2 h-8 px-3 cursor-pointer items-center font-semibold"
-                    >
-                      Next<ArrowRight2Bold class="size-4" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+              {{ tab.label }}
+            </button>
+          </nav>
         </div>
+
+        <div class="mt-4 overflow-hidden">
+            <div v-if="suggestionStore.isLoading" class="text-center p-8">Memuat data...</div>
+            <div v-else-if="suggestionStore.error" class="text-center p-8 text-red-500">Gagal memuat data.</div>
+            <div v-else-if="!suggestions || suggestions.length === 0" class="text-center p-8 text-gray-500">Tidak ada data untuk ditampilkan.</div>
+            <div v-else class="max-w-full overflow-x-auto">
+              <table class="min-w-full w-full">
+                <thead class="bg-pr-500 text-xs text-white">
+                  <tr>
+                    <th class="p-4 text-start font-semibold">NO</th>
+                    <th class="p-4 text-start font-semibold">NAME</th>
+                    <th class="p-4 text-start font-semibold">TRAVELER NAME</th>
+                    <th class="p-4 text-start font-semibold">CATEGORY</th>
+                    <th class="p-4 text-start font-semibold">ADDRESS</th>
+                    <th class="p-4 text-start font-semibold">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(suggestion, index) in suggestions" :key="suggestion.id" class="text-sm text-neu-700 border-b border-neu-100">
+                    <td class="p-4 text-neu-900">{{ (currentPage - 1) * 10 + index + 1 }}</td>
+                    <td class="p-4 text-neu-900 font-semibold">{{ suggestion.name }}</td>
+                    <td class="p-4">{{ suggestion.suggester_username }}</td>
+                    <td class="p-4">{{ suggestion.category_name }}</td>
+                    <td class="p-4">{{ suggestion.regency }}</td>
+                    <td class="p-4 flex gap-3">
+                      <RouterLink
+                        :to="{ name: 'AdminSuggestionDetail', params: { id: suggestion.id } }"
+                        class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#214B78] bg-[#295F98]"
+                      >
+                        <Show class="size-5 text-neu-50" />
+                      </RouterLink>
+                      <button
+                        @click="handleDelete(suggestion.id, suggestion.name)"
+                        type="button"
+                        class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#B71A1A] bg-[#E02424]"
+                      >
+                        <TrashCan class="size-5 text-neu-50" />
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        <div v-if="!suggestionStore.isLoading && suggestions && suggestions.length > 0" class="flex justify-between items-center gap-3 flex-wrap mt-3">
+            <div class="text-sm text-neu-600">
+                Menampilkan <span class="font-medium text-neu-900">{{ (currentPage - 1) * 10 + 1 }}</span> sampai
+                <span class="font-medium text-neu-900">{{ Math.min(currentPage * 10, pagination.count) }}</span> dari
+                <span class="font-medium text-neu-900">{{ pagination.count }}</span> Entri
+            </div>
+            <div class="flex items-center rounded-[8px] overflow-hidden">
+                <button @click="changePage('prev')" :disabled="!pagination.previous" class="flex bg-neu-100 text-neu-700 disabled:text-neu-300 gap-2 h-8 px-3 items-center font-semibold">
+                    <ArrowRight2Bold class="size-4 scale-x-[-1]" />Prev
+                </button>
+                <button @click="changePage('next')" :disabled="!pagination.next" class="flex bg-neu-100 text-neu-700 disabled:text-neu-300 gap-2 h-8 px-3 items-center font-semibold">
+                    Next<ArrowRight2Bold class="size-4" />
+                </button>
+            </div>
+        </div>
+
       </div>
     </div>
   </div>

@@ -8,12 +8,11 @@ const apiClient = axios.create({
 })
 
 // =================================================================
-// Request Interceptor (Versi Baru yang Lebih Sederhana dan Kuat)
+// Request Interceptor ini SEKARANG HANYA BERTUGAS MENAMBAHKAN TOKEN
 // =================================================================
 apiClient.interceptors.request.use(
   (config) => {
     // Langsung baca token dari localStorage.
-    // Ini lebih aman dan menghindari masalah timing dengan Pinia.
     const token = localStorage.getItem('userToken')
 
     // Jika token ada, tambahkan ke header Authorization.
@@ -21,34 +20,26 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Token ${token}`
     }
     
-    // Kembalikan konfigurasi yang sudah diubah untuk melanjutkan request.
+    // Kembalikan konfigurasi untuk melanjutkan request.
     return config
   },
   (error) => {
-    // Jika ada error saat persiapan request, lemparkan.
     return Promise.reject(error)
   },
 )
 
 // =================================================================
 // Response Interceptor Anda sudah bagus, jadi kita biarkan seperti ini.
-// Ini berguna untuk menangani error secara global.
 // =================================================================
 apiClient.interceptors.response.use(
   (response) => {
-    // Setiap status code yang ada di rentang 2xx akan memicu fungsi ini
     return response
   },
   async (error) => {
-    // Setiap status code yang ada di luar rentang 2xx akan memicu fungsi ini
     const originalRequest = error.config
-
-    // Contoh: Penanganan error 401 Unauthorized (token tidak valid/kadaluarsa)
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true // Tandai request agar tidak di-retry terus menerus
-
+      originalRequest._retry = true
       try {
-        // Coba dapatkan authStore untuk memanggil action logout
         const { useAuthStore } = await import('@/stores/authStore')
         const authStore = useAuthStore()
         console.warn('Token tidak valid atau kadaluarsa. Melakukan logout...')
