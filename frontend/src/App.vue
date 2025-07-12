@@ -2,6 +2,20 @@
 import { RouterView } from 'vue-router'
 import { Toaster } from 'vue-sonner'
 import 'vue-sonner/style.css'
+
+// --- PERUBAHAN DIMULAI DI SINI ---
+import { onMounted } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
+
+// Inisialisasi auth store
+const authStore = useAuthStore()
+
+// Saat komponen App pertama kali dimuat (setelah refresh atau kunjungan pertama),
+// jalankan fungsi untuk memeriksa status otentikasi dari localStorage.
+onMounted(() => {
+  authStore.checkAuthStatus()
+})
+// --- AKHIR DARI PERUBAHAN ---
 </script>
 
 <template>
@@ -15,25 +29,16 @@ import 'vue-sonner/style.css'
 /* ... style global Anda yang lain ... */
 
 /* === KUSTOMISASI VUE-SONNER === */
-
-/* Menargetkan semua ikon di dalam toast sukses */
-/* Atribut [data-type="success"] akan muncul jika Anda menggunakan `richColors` */
 [data-sonner-toast][data-type='success'] [data-icon] {
-  color: #5cce74; /* Ganti dengan warna hijau yang Anda inginkan, misal: Tailwind's Emerald 400 */
+  color: #5cce74;
 }
-
-/* Menargetkan semua ikon di dalam toast error */
 [data-sonner-toast][data-type='error'] [data-icon] {
-  color: #f87171; /* Ganti dengan warna merah yang Anda inginkan, misal: Tailwind's Red 400 */
+  color: #f87171;
 }
-
-/* Menargetkan semua ikon di dalam toast info */
 [data-sonner-toast][data-type='info'] [data-icon] {
-  color: #60a5fa; /* Ganti dengan warna biru yang Anda inginkan */
+  color: #60a5fa;
 }
-
-/* Menargetkan semua ikon di dalam toast warning */
-[data-sonner-toast][data-t-warning] [data-icon] {
-  color: #facc15; /* Ganti dengan warna kuning yang Anda inginkan */
+[data-t-warning] [data-icon] {
+  color: #facc15;
 }
 </style>
