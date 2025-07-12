@@ -1,30 +1,57 @@
 import { defineStore } from 'pinia';
-
-// 1. Impor instance axios terpusat Anda
-import apiClient from '@/api/axiosInstance';
-
-// 2. Definisikan path API sebagai konstanta agar mudah diubah
-const SUGGESTIONS_API_PATH = '/suggestions/';
+import suggestionService from '@/services/suggestionService'; // Menggunakan service yang sudah dibuat
 
 export const useSuggestionStore = defineStore('suggestion', {
-  // Store ini tidak perlu 'state' atau 'getters' karena hanya bertugas mengirim data.
-  // Semua data form dikelola secara lokal di dalam komponen SuggestSpot.vue.
-
-  // 3. 'Actions' berisi semua fungsi yang bisa dipanggil dari komponen
+  state: () => ({
+    mySuggestions: [], // Untuk menyimpan daftar saran milik user
+    isLoading: false,
+    error: null,
+  }),
+  getters: {
+    allMySuggestions: (state) => state.mySuggestions,
+  },
   actions: {
     /**
-     * Mengirim data suggestion baru ke backend.
-     * @param {FormData} formData - Objek FormData yang berisi semua isian form, termasuk file.
-     * @returns {Promise} - Mengembalikan promise dari panggilan API.
+     * Mengambil riwayat saran dari API dan menyimpannya ke state.
      */
-    createSuggestion(formData) {
-      // Mengirim request POST ke alamat: /api/suggestions/
-      // Header 'Content-Type': 'multipart/form-data' penting untuk upload file.
-      return apiClient.post(SUGGESTIONS_API_PATH, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+    async fetchMySuggestions() {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await suggestionService.getMySuggestions();
+        
+        // =================================================================
+        // PERUBAHAN KUNCI ADA DI SINI
+        // DRF mengirim data dalam format paginasi, jadi kita ambil array dari 'results'.
+        // =================================================================
+        this.mySuggestions = response.data.results;
+
+      } catch (err) {
+        this.error = err.response?.data || 'Failed to fetch suggestions.';
+        console.error("Error fetching my suggestions:", err);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * Membuat suggestion baru melalui service.
+     * @param {FormData} formData
+     */
+    async createSuggestion(formData) {
+      // Fungsi ini hanya melempar promise, loading/error dihandle di komponen
+      try {
+        const response = await suggestionService.create(formData);
+        // Setelah berhasil membuat, kita bisa langsung tambahkan ke daftar
+        // agar UI terupdate tanpa perlu refresh halaman.
+        if (response.data) {
+          this.mySuggestions.unshift(response.data); // unshift() menambah ke awal array
+        }
+        return response;
+      } catch (error) {
+        // Lemparkan error agar komponen form bisa menanganinya
+        throw error;
+      }
     },
   },
 });

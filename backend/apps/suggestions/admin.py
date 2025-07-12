@@ -110,7 +110,7 @@ def approve_suggestion(modeladmin, request, queryset):
 class SuggestionAdmin(admin.ModelAdmin):
     """Konfigurasi tampilan admin untuk model Suggestion."""
     list_display = ('name', 'status', 'regency', 'created_at')
-    list_filter = ('status', 'regency')
+    list_filter = ('status', 'regency', 'suggester')
     search_fields = ('name', 'descriptions', 'regency')
     readonly_fields = ('created_at',)
     inlines = [SuggestionPhotoInline]
