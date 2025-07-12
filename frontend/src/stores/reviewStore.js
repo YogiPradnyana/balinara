@@ -11,6 +11,11 @@ export const useReviewStore = defineStore('review', {
       average_rating: 0,
       rating_distribution: [],
     },
+    pagination: {
+      count: 0,
+      next: null,
+      previous: null,
+    },
     isLoading: false,
     error: null,
   }),
@@ -29,21 +34,25 @@ export const useReviewStore = defineStore('review', {
       }
     },
 
-    async fetchReviewsByDestination(destinationId) {
+    async fetchReviewsByDestination(destinationId, filters = {}) {
       if (!destinationId) return
       this.isLoading = true
       this.error = null
       try {
         const response = await apiClient.get('/reviews/', {
-          params: { destination_id: destinationId },
+          params: { destination: destinationId, ...filters },
         })
 
         if (response.data) {
-          this.reviews = response.data.reviews || []
-          this.reviewSummary = response.data.summary || {}
+          this.reviews = response.data.results || response.data || []
+          this.pagination.count = response.data.count || 0
+          this.pagination.next = response.data.next || null
+          this.pagination.previous = response.data.previous || null
+          if (response.data.summary) {
+            this.reviewSummary = response.data.summary || {}
+          }
         } else {
           this.reviews = []
-          this.reviewSummary = {}
         }
       } catch (err) {
         this.error = err

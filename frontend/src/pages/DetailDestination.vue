@@ -30,20 +30,37 @@ const error = computed(() => destinationStore.error)
 
 const reviews = computed(() => reviewStore.reviews)
 const reviewSummary = computed(() => reviewStore.reviewSummary)
+const reviewPagination = computed(() => reviewStore.pagination)
 const isLoadingReviews = computed(() => reviewStore.isLoading)
 
 const activeFilters = ref({
   rating: null,
   search: '',
-  month: null, // Tambahkan state untuk filter bulan
+  month: null,
+  page: 1,
 })
+
+const monthOptions = ref([
+  { label: 'Jan', value: 1 },
+  { label: 'Feb', value: 2 },
+  { label: 'Mar', value: 3 },
+  { label: 'Apr', value: 4 },
+  { label: 'May', value: 5 },
+  { label: 'Jun', value: 6 },
+  { label: 'Jul', value: 7 },
+  { label: 'Aug', value: 8 },
+  { label: 'Sep', value: 9 },
+  { label: 'Oct', value: 10 },
+  { label: 'Nov', value: 11 },
+  { label: 'Dec', value: 12 },
+])
 
 function fetchReviews() {
   if (destination.value) {
-    const params = {}
+    const params = { page: activeFilters.value.page }
     if (activeFilters.value.rating) params.rating = activeFilters.value.rating
     if (activeFilters.value.search) params.search = activeFilters.value.search
-    if (activeFilters.value.month) params.month = activeFilters.value.month // Tambahkan parameter bulan
+    if (activeFilters.value.month) params.month = activeFilters.value.month
 
     reviewStore.fetchReviewsByDestination(destination.value.id, params)
   }
@@ -65,27 +82,40 @@ function clearAllFilters() {
   activeFilters.value.month = null
 }
 
-// Watcher utama untuk reaktivitas
+const isFilterActive = computed(() => {
+  return !!(activeFilters.value.rating || activeFilters.value.search || activeFilters.value.month)
+})
+
+function goToPage(page) {
+  if (page) {
+    activeFilters.value.page = page
+  }
+}
+
+let debounceTimeout
 watch(
   activeFilters,
   () => {
-    fetchReviews()
+    clearTimeout(debounceTimeout)
+    debounceTimeout = setTimeout(() => {
+      fetchReviews()
+    }, 300)
   },
   { deep: true },
 )
 
-onActivated(() => {
-  useWishlistStore().fetchWishlist()
-})
-
 onMounted(() => {
+  activeFilters.value.page = parseInt(route.query.page) || 1
   const slug = route.params.slug
   if (slug) {
     destinationStore.fetchDestinationBySlug(slug).then(() => {
-      // Setelah data destinasi ada, ambil reviewnya berdasarkan ID
       fetchReviews()
     })
   }
+})
+
+onActivated(() => {
+  useWishlistStore().fetchWishlist()
 })
 
 const hasTicketInfo = computed(() => {
@@ -111,21 +141,6 @@ const googleMapsEmbedUrl = computed(() => {
   }
   return ''
 })
-
-const monthOptions = ref([
-  { label: 'Jan', value: 1 },
-  { label: 'Feb', value: 2 },
-  { label: 'Mar', value: 3 },
-  { label: 'Apr', value: 4 },
-  { label: 'May', value: 5 },
-  { label: 'Jun', value: 6 },
-  { label: 'Jul', value: 7 },
-  { label: 'Aug', value: 8 },
-  { label: 'Sep', value: 9 },
-  { label: 'Oct', value: 10 },
-  { label: 'Nov', value: 11 },
-  { label: 'Dec', value: 12 },
-])
 </script>
 <style scoped>
 .tabular-nums {
@@ -480,7 +495,7 @@ const monthOptions = ref([
                       :key="`filter-rating-${ratingValue}`"
                       @click="toggleRatingFilter(ratingValue)"
                       :class="[
-                        'px-2 w-fit sm:px-4 text-sm sm:text-base border-[1.6px] gap-2 py-2 rounded-full font-medium items-center flex transition-colors duration-150',
+                        'px-2 w-fit cursor-pointer sm:px-4 text-sm sm:text-base border-[1.6px] gap-2 py-2 rounded-full font-medium items-center flex transition-colors duration-150',
                         activeFilters.rating === ratingValue
                           ? ' border-neu-800'
                           : 'border-neu-200 hover:border-neu-400',
@@ -505,7 +520,7 @@ const monthOptions = ref([
                       :key="month.value"
                       @click="toggleMonthFilter(month.value)"
                       :class="[
-                        'px-3 w-fit sm:px-4 text-sm sm:text-base border-[1.6px] font-medium py-2 rounded-full items-center flex transition-colors duration-150 ',
+                        'px-3 w-fit sm:px-4 cursor-pointer text-sm sm:text-base border-[1.6px] font-medium py-2 rounded-full items-center flex transition-colors duration-150 ',
                         activeFilters.month === month.value
                           ? 'border-neu-800'
                           : 'border-neu-200 hover:border-neu-400',
@@ -515,6 +530,13 @@ const monthOptions = ref([
                     </button>
                   </div>
                 </div>
+                <button
+                  v-if="activeFilters.rating || activeFilters.month || activeFilters.search"
+                  @click="clearAllFilters"
+                  class="px-3 w-fit sm:px-4 cursor-pointer py-2 flex text-sm lg:text-base gap-2 items-center justify-center font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
+                >
+                  Clear All Filters
+                </button>
               </div>
             </div>
           </div>
@@ -567,7 +589,34 @@ const monthOptions = ref([
             v-if="!isLoadingReviews && reviews.length === 0"
             class="text-center py-10 text-neu-500"
           >
-            Be the first to write a review for this destination!
+            <p v-if="isFilterActive">No reviews found matching your filter.</p>
+            <p v-else>Be the first to write a review for this destination!</p>
+          </div>
+          <div class="flex-1 flex flex-col gap-8">
+            <div
+              v-if="!isLoadingReviews && reviewPagination.count > 1"
+              class="mt-8 flex justify-center items-center space-x-2"
+            >
+              <button
+                @click="goToPage(reviewPagination.previous ? activeFilters.page - 1 : null)"
+                v-if="!reviewPagination.previous"
+                class="px-4 py-2 border rounded-md"
+              >
+                &larr;
+              </button>
+
+              <span class="text-sm text-gray-700">
+                Page {{ activeFilters.page }} of {{ Math.ceil(reviewPagination.count / 10) || 1 }}
+              </span>
+
+              <button
+                @click="goToPage(reviewPagination.next ? activeFilters.page + 1 : null)"
+                v-if="!reviewPagination.next"
+                class="px-4 py-2 border rounded-md"
+              >
+                &rarr;
+              </button>
+            </div>
           </div>
         </div>
       </div>

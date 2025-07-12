@@ -15,14 +15,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = ReviewFilter
-    search_fields = ['comment']
-
-    def get_queryset(self):
-        # Filter review berdasarkan destinasi jika parameter destination_id ada di URL
-        destination_id = self.request.query_params.get('destination_id')
-        if destination_id:
-            return self.queryset.filter(destination_id=destination_id)
-        return self.queryset.none()  # Jangan tampilkan semua review jika tidak ada filter
+    search_fields = ['comment', 'user__username']
 
     def perform_create(self, serializer):
         # Set user secara otomatis berdasarkan user yang sedang login
@@ -30,38 +23,47 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def list(self, request, *args, **kwargs):
         """
-        Ganti metode list default untuk membuat struktur respons kustom.
-        """
-        # 1. Dapatkan queryset yang sudah difilter berdasarkan destinasi
+         Ganti metode list default untuk membuat struktur respons kustom
+         DAN menerapkan semua filter yang ada.
+         """
         queryset = self.get_queryset()
 
-        # 2. Hitung data untuk summary
+        filtered_queryset = self.filter_queryset(queryset)
+
         summary = {
-            'total_reviews': queryset.count(),
-            'average_rating': queryset.aggregate(avg=Avg('rating'))['avg'] or 0,
+            'total_reviews': filtered_queryset.count(),
+            'average_rating': filtered_queryset.aggregate(avg=Avg('rating'))['avg'] or 0,
             'rating_distribution': []
         }
 
-        # Hitung distribusi rating (bintang 1 sampai 5)
         distribution = queryset.values('rating').annotate(
             count=Count('rating')).order_by('-rating')
+        total_for_percentage = queryset.count()
         distribution_map = {item['rating']: item['count']
                             for item in distribution}
 
         for i in range(5, 0, -1):
             count = distribution_map.get(i, 0)
-            percentage = (
-                count / summary['total_reviews'] * 100) if summary['total_reviews'] > 0 else 0
+            percentage = (count / total_for_percentage *
+                          100) if total_for_percentage > 0 else 0
             summary['rating_distribution'].append({
                 'rating': i,
                 'count': count,
                 'percentage': round(percentage)
             })
 
-        # 3. Ambil review-nya (tidak perlu paginasi untuk daftar pendek ini)
-        reviews_serializer = self.get_serializer(queryset, many=True)
+        page = self.paginate_queryset(filtered_queryset)
 
-        # 4. Gabungkan semuanya dalam satu respons
+        if page is not None:
+            reviews_serializer = self.get_serializer(page, many=True)
+            paginated_response = self.get_paginated_response(
+                reviews_serializer.data)
+
+            paginated_response.data['summary'] = summary
+            return paginated_response
+
+        reviews_serializer = self.get_serializer(filtered_queryset, many=True)
+
         custom_data = {
             'summary': summary,
             'reviews': reviews_serializer.data
