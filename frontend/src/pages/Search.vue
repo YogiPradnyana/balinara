@@ -143,12 +143,15 @@ function formatAddress(address) {
   const parts = [address.district, address.regency]
   return parts.filter((part) => part).join(', ')
 }
+
 const viewDestinationDetail = (slug) => {
   router.push({ name: 'DetailDestination', params: { slug: slug } })
 }
+
 onMounted(() => {
   if (categoryStore.allCategories.length === 0) categoryStore.fetchCategories()
 })
+
 onActivated(() => {
   useWishlistStore().fetchWishlist()
 })

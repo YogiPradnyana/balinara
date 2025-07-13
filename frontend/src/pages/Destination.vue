@@ -9,10 +9,18 @@ import Location from '@/components/icons/Location.vue'
 import Penjor from '@/components/icons/Penjor.vue'
 import Search from '@/components/icons/Search.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useDestinationStore } from '@/stores/destinationStore'
+import { ref, computed, onMounted, onActivated } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
+import WishlistButton from '@/components/WishlistButton.vue'
+import { useWishlistStore } from '@/stores/wishlistStore'
 
 const router = useRouter()
+const destinationStore = useDestinationStore()
+
+// const heroDestination = ref(null) // Untuk section hero paling atas
+const featuredDestinations = ref([]) // Untuk section "Begin Your Exploration"
+const mountainDestinations = ref([]) // Untuk section "Majestic Peaks"
 
 const searchTerm = ref('')
 
@@ -25,10 +33,16 @@ function performSearch() {
     })
   } else {
     router.push({
-      name: 'Search', // Kembali ke halaman daftar destinasi jika tidak ada teks
+      name: 'Search',
     })
   }
 }
+
+const clickedRegencyId = ref('')
+const tooltipText = ref('')
+const tooltipVisible = ref(false)
+const tooltipX = ref(0)
+const tooltipY = ref(0)
 
 const regenciesData = {
   badung: {
@@ -95,25 +109,26 @@ const regenciesData = {
   },
 }
 
-//  State untuk interaktivitas
-const clickedRegencyId = ref('')
-const tooltipText = ref('')
-const tooltipVisible = ref(false)
-const tooltipX = ref(0)
-const tooltipY = ref(0)
+onMounted(() => {
+  // // Ambil 1 destinasi dengan rating tertinggi untuk Hero Section
+  // destinationStore.fetchDestinations({ ordering: '-average_rating', page_size: 1 }).then(() => {
+  //   heroDestination.value = destinationStore.destinations[0]
+  // })
+  // Ambil 4 destinasi terbaru untuk "Exploration" section
+  destinationStore.fetchDestinations({ ordering: '-created_at', page_size: 4 }).then(() => {
+    featuredDestinations.value = destinationStore.destinations
+  })
+  // Ambil 4 destinasi dengan kategori "Mountain"
+  destinationStore.fetchDestinations({ category: 'mountain', page_size: 6 }).then(() => {
+    mountainDestinations.value = destinationStore.destinations
+  })
+})
 
-const isLoadingLocation = ref(true) // State untuk menampilkan loading
-const errorMessage = ref('') // Untuk menampilkan pesan error
-
-//  Computed property untuk menampilkan data aktif
 const activeRegency = computed(() => {
-  // Jika tidak ada yang diklik, tampilkan data default (Badung)
   return regenciesData[clickedRegencyId.value] || ''
 })
 
-//  Event Handlers
 function handleRegencyHover(regency) {
-  // 'regency' adalah object { id: 'badung', name: 'Badung' } dari event
   tooltipText.value = regency.name
   tooltipVisible.value = true
 }
@@ -128,11 +143,13 @@ function handleRegencyLeave() {
 }
 
 function updateTooltipPosition(event) {
-  // event adalah mouse event asli
-  // Kita tambahkan sedikit offset agar tooltip tidak pas di bawah kursor
   tooltipX.value = event.clientX + 15
   tooltipY.value = event.clientY + 15
 }
+
+onActivated(() => {
+  useWishlistStore().fetchWishlist()
+})
 </script>
 
 <template>
@@ -179,12 +196,13 @@ function updateTooltipPosition(event) {
       <div class="relative overflow-hidden w-full h-56 md:h-64 lg:h-[380px] rounded-3xl">
         <img :src="mainImage" alt="" class="object-cover w-full h-full" />
         <div class="flex flex-col justify-between absolute bottom-0 top-0 left-0 p-4 md:p-6">
-          <div
+          <RouterLink
+            :to="{ name: 'DetailDestination', params: { slug: 'tirta-empul' } }"
             class="px-4 py-2.5 flex gap-1.5 items-center w-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900"
           >
-            Tirta Empul Temple
+            Tirta Empul
             <ArrowUpRight class="size-4" />
-          </div>
+          </RouterLink>
           <p class="text-[8px] md:text-[10px] text-neu-50">Photo by unsplash</p>
         </div>
       </div>
@@ -209,27 +227,34 @@ function updateTooltipPosition(event) {
             Begin your exploration of incredible destinations, from serene beaches to majestic
             mountains.
           </p>
-          <div class="p-4 flex items-center w-fit h-fit justify-center bg-pr-500 rounded-full">
+          <RouterLink
+            :to="{ name: 'Search' }"
+            class="p-4 flex items-center w-fit h-fit justify-center bg-pr-500 rounded-full"
+          >
             <ArrowUpRight class="size-5 sm:size-6 lg:size-9 text-neu-50" />
-          </div>
+          </RouterLink>
         </div>
       </div>
       <div class="mt-5">
         <div class="flex flex-col gap-8">
           <div class="flex flex-col xl:flex-row gap-8">
-            <div v-for="i in 2" :key="i" class="flex gap-3 sm:gap-5 items-center w-full">
-              <div class="relative overflow-hidden size-32 xs:size-36 md:size-45 rounded-3xl">
+            <div
+              v-for="destination in featuredDestinations.slice(0, 2)"
+              :key="destination.id"
+              class="flex gap-3 sm:gap-5 items-center w-full"
+            >
+              <div
+                class="relative overflow-hidden size-32 xs:size-36 md:size-45 rounded-3xl border border-neu-100"
+              >
                 <img
-                  src="@/assets/images/tirta-empul-temple.webp"
-                  alt="Tirta Empul"
+                  :src="destination.primary_image_url || 'https://placehold.co/180x180'"
+                  :alt="destination.name"
                   class="object-cover w-full h-full"
                 />
                 <div
                   class="flex flex-col justify-between items-end absolute bottom-0 top-0 left-0 right-0 p-3"
                 >
-                  <div class="p-2 flex items-center justify-center bg-sur-50 rounded-full w-fit">
-                    <Heart class="size-6 text-neu-900" />
-                  </div>
+                  <WishlistButton :destination-id="destination.id" :is-icon="true" />
                   <p class="text-[8px] w-full text-start md:text-[10px] text-neu-50">
                     Photo by unsplash
                   </p>
@@ -240,11 +265,11 @@ function updateTooltipPosition(event) {
                 <div class="flex justify-between">
                   <div>
                     <h3 class="font-semibold text-base md:text-lg line-clamp-1">
-                      Tirta Empul Temple
+                      {{ destination.name }}
                     </h3>
                     <div class="gap-1 md:mt-1 font-medium text-xs md:text-sm items-center flex">
                       <Location class="size-4 md:size-4.5" /><span class="line-clamp-1"
-                        >Tampaksiring, Gianyar</span
+                        >{{ destination.address.district }}, {{ destination.address.regency }}</span
                       >
                     </div>
                   </div>
@@ -252,39 +277,42 @@ function updateTooltipPosition(event) {
                     class="py-1 px-2 sm:px-2.5 flex items-center border border-neu-200 justify-center w-fit h-fit font-medium text-xs sm:text-sm gap-1 bg-sur-50 rounded-full"
                   >
                     <StarFilled class="size-4 md:size-4.5" />
-                    4.8
+                    {{ parseFloat(destination.average_rating).toFixed(1) }}
                   </div>
                 </div>
 
                 <p class="text-xs md:text-sm text-neu-600 mt-2 md:mt-3 line-clamp-2">
-                  Tirta Empul is a sacred temple in Bali with natural spring water baths, believed
-                  to have purifying and spiritual benefits.
+                  {{ destination.description }}
                 </p>
 
-                <button
-                  type="button"
+                <RouterLink
+                  :to="{ name: 'DetailDestination', params: { slug: destination.slug } }"
                   class="px-6 py-2 mt-3 md:mt-6 flex gap-2 w-fit items-center justify-center text-xs md:text-sm font-medium bg-pr-500 rounded-full text-neu-50"
                 >
                   View More
-                </button>
+                </RouterLink>
               </div>
             </div>
           </div>
           <div class="hidden xl:block mx-auto w-3/4 h-[1px] bg-neu-100"></div>
           <div class="flex flex-col xl:flex-row gap-8">
-            <div v-for="i in 2" :key="i" class="flex gap-3 sm:gap-5 items-center w-full">
-              <div class="relative overflow-hidden size-32 xs:size-36 md:size-45 rounded-3xl">
+            <div
+              v-for="destination in featuredDestinations.slice(2, 4)"
+              :key="destination.id"
+              class="flex gap-3 sm:gap-5 items-center w-full"
+            >
+              <div
+                class="relative overflow-hidden size-32 xs:size-36 md:size-45 rounded-3xl border border-neu-100"
+              >
                 <img
-                  src="@/assets/images/tirta-empul-temple.webp"
-                  alt="Tirta Empul"
+                  :src="destination.primary_image_url || 'https://placehold.co/180x180'"
+                  :alt="destination.name"
                   class="object-cover w-full h-full"
                 />
                 <div
                   class="flex flex-col justify-between items-end absolute bottom-0 top-0 left-0 right-0 p-3"
                 >
-                  <div class="p-2 flex items-center justify-center bg-sur-50 rounded-full w-fit">
-                    <Heart class="size-6 text-neu-900" />
-                  </div>
+                  <WishlistButton :destination-id="destination.id" :is-icon="true" />
                   <p class="text-[8px] w-full text-start md:text-[10px] text-neu-50">
                     Photo by unsplash
                   </p>
@@ -295,11 +323,11 @@ function updateTooltipPosition(event) {
                 <div class="flex justify-between">
                   <div>
                     <h3 class="font-semibold text-base md:text-lg line-clamp-1">
-                      Tirta Empul Temple
+                      {{ destination.name }}
                     </h3>
                     <div class="gap-1 md:mt-1 font-medium text-xs md:text-sm items-center flex">
                       <Location class="size-4 md:size-4.5" /><span class="line-clamp-1"
-                        >Tampaksiring, Gianyar</span
+                        >{{ destination.address.district }}, {{ destination.address.regency }}</span
                       >
                     </div>
                   </div>
@@ -307,28 +335,26 @@ function updateTooltipPosition(event) {
                     class="py-1 px-2 sm:px-2.5 flex items-center border border-neu-200 justify-center w-fit h-fit font-medium text-xs sm:text-sm gap-1 bg-sur-50 rounded-full"
                   >
                     <StarFilled class="size-4 md:size-4.5" />
-                    4.8
+                    {{ parseFloat(destination.average_rating).toFixed(1) }}
                   </div>
                 </div>
 
                 <p class="text-xs md:text-sm text-neu-600 mt-2 md:mt-3 line-clamp-2">
-                  Tirta Empul is a sacred temple in Bali with natural spring water baths, believed
-                  to have purifying and spiritual benefits.
+                  {{ destination.description }}
                 </p>
 
-                <button
-                  type="button"
+                <RouterLink
+                  :to="{ name: 'DetailDestination', params: { slug: destination.slug } }"
                   class="px-6 py-2 mt-3 md:mt-6 flex gap-2 w-fit items-center justify-center text-xs md:text-sm font-medium bg-pr-500 rounded-full text-neu-50"
                 >
                   View More
-                </button>
+                </RouterLink>
               </div>
             </div>
           </div>
         </div>
       </div>
     </section>
-    <!-- Regency Section -->
     <section class="mt-24 md:mt-30 flex-col flex gap-3">
       <div
         class="px-4 text-pr-500 py-2 flex gap-2 w-fit items-center justify-center text-sm sm:text-base font-medium outline-pr-500 outline rounded-full"
@@ -348,9 +374,12 @@ function updateTooltipPosition(event) {
             Explore local favorites and hidden treasures waiting to be discovered in every Bali
             district.
           </p>
-          <div class="p-4 flex items-center w-fit h-fit justify-center bg-pr-500 rounded-full">
+          <RouterLink
+            :to="{ name: 'Search' }"
+            class="p-4 flex items-center w-fit h-fit justify-center bg-pr-500 rounded-full"
+          >
             <ArrowUpRight class="size-5 sm:size-6 lg:size-9 text-neu-50" />
-          </div>
+          </RouterLink>
         </div>
       </div>
       <div
@@ -418,53 +447,61 @@ function updateTooltipPosition(event) {
             Embark on an unforgettable journey to Bali's majestic mountains, where breathtaking
             panoramic views and serene natural beauty await every explorer.
           </p>
-          <div
+          <RouterLink
+            :to="{ name: 'Search', query: { search: 'mountain' } }"
             class="cursor-pointer w-fit whitespace-nowrap flex px-5.5 py-2 gap-1 items-center justify-center text-sm sm:text-base font-medium bg-pr-500 rounded-full text-white"
           >
             View All
             <ArrowRight2 class="min-w-6" />
-          </div>
+          </RouterLink>
         </div>
       </div>
 
       <div class="flex gap-6 mt-8 w-fit">
-        <div v-for="i in 4" :key="i" class="overflow-hidden w-80 sm:w-[340px] h-fit group">
-          <div class="relative h-fit w-full">
+        <div
+          v-for="destination in mountainDestinations"
+          :key="destination.id"
+          class="overflow-hidden w-80 sm:w-[340px] h-fit group"
+        >
+          <RouterLink
+            :to="{ name: 'DetailDestination', params: { slug: destination.slug } }"
+            class="relative h-fit w-full"
+          >
             <img
-              src="@/assets/images/mount-agung.webp"
-              alt="Ubud Village"
+              :src="destination.primary_image_url || 'https://placehold.co/340x240'"
+              :alt="destination.name"
               class="object-cover w-full h-52 sm:h-60 rounded-3xl transition-transform duration-500 ease-in-out"
             />
             <div
               class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
             >
-              <div class="flex items-center justify-between w-full">
+              <div class="flex justify-between w-full">
                 <div
-                  class="py-1 px-2.5 flex items-center justify-center font-medium text-sm gap-1 bg-sur-50 rounded-full"
+                  class="py-1 px-2.5 h-fit flex items-center justify-center font-medium text-sm gap-1 bg-sur-50 rounded-full"
                 >
                   <StarFilled class="size-4 md:size-4.5" />
-                  4.8
+                  {{ parseFloat(destination.average_rating).toFixed(1) }}
                 </div>
-                <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
-                  <Heart class="size-5 md:size-6 text-neu-900" />
-                </div>
+                <WishlistButton :destination-id="destination.id" :is-icon="true" />
               </div>
               <div class="flex justify-between items-end w-full">
-                <div
-                  class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
+                <RouterLink
+                  :to="{ name: 'DetailDestination', params: { slug: destination.slug } }"
+                  class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center cursor-pointer text-xs md:text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
                 >
-                  Mount Agung
+                  {{ destination.name }}
                   <ArrowUpRight class="size-4" />
-                </div>
+                </RouterLink>
                 <p class="text-[8px] md:text-[10px] text-neu-50">Photo by unsplash</p>
               </div>
             </div>
-          </div>
+          </RouterLink>
           <div class="w-full px-2 mt-2 sm:mt-4">
-            <h3 class="text-base sm:text-lg leading-7 text-neu-900 font-semibold">Mount Agung</h3>
+            <h3 class="text-base sm:text-lg leading-7 text-neu-900 font-semibold">
+              {{ destination.name }}
+            </h3>
             <p class="text-sm sm:text-base text-neu-600 mt-1 line-clamp-2 whitespace-normal">
-              Mount Agung is Bali's highest and most sacred mountain, presenting a challenging trek
-              with stunning vistas and significant spiritual importance to the Balinese people.
+              {{ destination.description }}
             </p>
           </div>
         </div>
@@ -489,12 +526,13 @@ function updateTooltipPosition(event) {
             Share your hidden Bali treasures! Help us uncover amazing off-the-beaten-path
             destinations for everyone to explore.
           </p>
-          <button
+          <RouterLink
+            :to="{ name: 'SuggestSpot' }"
             type="button"
             class="px-6 py-2 mt-6 flex text-sm md:text-base items-center justify-center font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
           >
             Let's Share
-          </button>
+          </RouterLink>
         </div>
         <div class="relative hidden xl:block w-[600px] h-[504px]">
           <div
@@ -510,12 +548,13 @@ function updateTooltipPosition(event) {
                 class="flex flex-col justify-between absolute bottom-0 right-0 top-0 left-0 p-4 md:p-6"
               >
                 <div class="flex justify-between flex-1 flex-col">
-                  <div
+                  <RouterLink
+                    :to="{ name: 'DetailDestination', params: { slug: 'monkey-forest' } }"
                     class="px-4 py-2.5 flex gap-1.5 items-center w-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900"
                   >
                     Monkey Forest
                     <ArrowUpRight class="size-4" />
-                  </div>
+                  </RouterLink>
                   <p class="text-[8px] md:text-[10px] text-neu-50">Photo by unsplash</p>
                 </div>
               </div>
@@ -526,7 +565,7 @@ function updateTooltipPosition(event) {
           >
             <div class="relative w-full h-full">
               <img
-                src="@/assets/images/monkey-forest.webp"
+                src="@/assets/images/diamond-beach.webp"
                 alt="Ubud Village"
                 class="object-cover w-full h-full"
               />
@@ -537,12 +576,13 @@ function updateTooltipPosition(event) {
                   <p class="text-[8px] flex-1 text-end md:text-[10px] text-neu-50">
                     Photo by unsplash
                   </p>
-                  <div
+                  <RouterLink
+                    :to="{ name: 'DetailDestination', params: { slug: 'diamond-beach' } }"
                     class="px-4 py-2.5 flex gap-1.5 items-center w-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900"
                   >
-                    Monkey Forest
+                    Diamond Beach
                     <ArrowUpRight class="size-4" />
-                  </div>
+                  </RouterLink>
                 </div>
               </div>
             </div>

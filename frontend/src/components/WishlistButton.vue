@@ -37,14 +37,14 @@ const toggleWishlist = () => {
   <button
     v-if="isIcon"
     @click.prevent.stop="toggleWishlist"
-    class="p-2 flex items-center justify-center cursor-pointer bg-sur-50 rounded-full z-10"
+    class="p-2 sm:p-2.5 flex items-center justify-center cursor-pointer bg-sur-50 rounded-full z-10"
     aria-label="Toggle Wishlist"
   >
     <HeartFilled
       v-if="wishlistStore.isWishlisted(props.destinationId)"
-      class="size-5 text-neu-900"
+      class="size-5 sm:size-6 text-neu-900"
     />
-    <HeartOutline v-else class="size-5 text-neu-900" />
+    <HeartOutline v-else class="size-5 sm:size-6 text-neu-900" />
   </button>
   <button
     v-else

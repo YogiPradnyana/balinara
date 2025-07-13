@@ -8,9 +8,18 @@ import AI from '@/components/icons/AI.vue'
 import Send from '@/components/icons/Send.vue'
 import DoubleQuotes from '@/components/icons/DoubleQuotes.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
-import { useRouter } from 'vue-router'
-import { ref } from 'vue'
+import { useDestinationStore } from '@/stores/destinationStore'
+import { ref, onMounted, onActivated } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
+import WishlistButton from '@/components/WishlistButton.vue'
+import { useWishlistStore } from '@/stores/wishlistStore'
+
 const router = useRouter()
+const destinationStore = useDestinationStore()
+
+// const heroDestination = ref(null) // Untuk section hero paling atas
+const populerDestinations = ref([]) // Untuk section "Begin Your Exploration"
+const mountainDestinations = ref([])
 
 const searchTerm = ref('')
 
@@ -26,6 +35,19 @@ function performSearch() {
     })
   }
 }
+
+onMounted(() => {
+  destinationStore.fetchDestinations({ ordering: '-average_rating', page_size: 6 }).then(() => {
+    populerDestinations.value = destinationStore.destinations
+  })
+  destinationStore.fetchDestinations({ category: 'mountain', page_size: 6 }).then(() => {
+    mountainDestinations.value = destinationStore.destinations
+  })
+})
+
+onActivated(() => {
+  useWishlistStore().fetchWishlist()
+})
 </script>
 
 <template>
@@ -63,12 +85,13 @@ function performSearch() {
       <div class="relative overflow-hidden w-full h-56 md:h-64 lg:h-[380px] rounded-3xl">
         <img :src="heroImage" alt="Ubud Village" class="object-cover w-full h-full" />
         <div class="flex flex-col justify-between absolute bottom-0 top-0 left-0 p-4 md:p-6">
-          <div
+          <RouterLink
+            :to="{ name: 'DetailDestination', params: { slug: 'ubud-village' } }"
             class="px-4 py-2.5 flex gap-1.5 items-center w-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900"
           >
             Ubud Village
             <ArrowUpRight class="size-4" />
-          </div>
+          </RouterLink>
           <p class="text-[8px] md:text-[10px] text-neu-50">Photo by unsplash</p>
         </div>
       </div>
@@ -93,47 +116,50 @@ function performSearch() {
             Find your perfect Bali escape — explore beaches, temples, mountains, and local treasures
             effortlessly.
           </p>
-          <div class="p-4 flex items-center w-fit h-fit justify-center bg-pr-500 rounded-full">
+          <RouterLink
+            :to="{ name: 'Search' }"
+            class="p-4 flex items-center w-fit h-fit justify-center bg-pr-500 rounded-full"
+          >
             <ArrowUpRight class="size-5 sm:size-6 lg:size-9 text-neu-50" />
-          </div>
+          </RouterLink>
         </div>
       </div>
       <div class="mt-8 whitespace-nowrap">
         <div class="flex gap-8 w-fit">
           <div
-            v-for="i in 4"
-            :key="i"
+            v-for="destination in populerDestinations"
+            :key="destination.id"
             class="overflow-hidden w-66 md:w-[340px] h-90 md:h-[460px] rounded-4xl group"
           >
             <div
               class="relative h-full w-full sm:group-hover:h-86 transition-all duration-500 ease-in-out"
             >
               <img
-                src="@/assets/images/ulun-danu-beratan.webp"
-                alt="Ubud Village"
+                :src="destination.primary_image_url || 'https://placehold.co/180x180'"
+                :alt="destination.name"
                 class="object-cover w-full h-full rounded-4xl transition-transform duration-500 ease-in-out"
               />
               <div
                 class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
               >
-                <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
-                  <Heart class="size-5 md:size-6 text-neu-900" />
-                </div>
+                <WishlistButton :destination-id="destination.id" :is-icon="true" />
                 <div class="flex justify-between items-end w-full">
-                  <div
+                  <RouterLink
+                    :to="{ name: 'DetailDestination', params: { slug: destination.slug } }"
                     class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
                   >
-                    Ulun Danu Beratan
+                    {{ destination.name }}
                     <ArrowUpRight class="size-4" />
-                  </div>
+                  </RouterLink>
                   <p class="text-[8px] md:text-[10px] text-neu-50">Photo by unsplash</p>
                 </div>
               </div>
               <div class="sm:static w-full px-2">
-                <h3 class="text-lg mt-4 leading-7 text-neu-900 font-semibold">Ulun Danu Beratan</h3>
+                <h3 class="text-lg mt-4 leading-7 text-neu-900 font-semibold">
+                  {{ destination.name }}
+                </h3>
                 <p class="text-neu-600 mt-1 line-clamp-2 whitespace-normal">
-                  Ulun Danu Beratan is a stunning Balinese Hindu temple located on Lake Beratan,
-                  appearing to float.
+                  {{ destination.description }}
                 </p>
               </div>
             </div>
@@ -155,12 +181,13 @@ function performSearch() {
             class="object-cover w-full h-full"
           />
           <div class="flex flex-col justify-between absolute bottom-0 top-0 left-0 p-6">
-            <div
+            <RouterLink
+              :to="{ name: 'DetailDestination', params: { slug: 'jatiluwih' } }"
               class="px-4 py-2.5 flex gap-1.5 items-center w-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900"
             >
               Jatiluwih
               <ArrowUpRight class="size-4" />
-            </div>
+            </RouterLink>
             <p class="text-[8px] md:text-[10px] text-neu-50">Photo by jatiluwih.id</p>
           </div>
         </div>
@@ -174,12 +201,12 @@ function performSearch() {
             Share your favorite Bali spot and help fellow travelers discover unique places off the
             beaten path.
           </p>
-          <button
-            type="button"
+          <RouterLink
+            :to="{ name: 'SuggestSpot' }"
             class="px-6 py-2 mt-6 flex text-sm md:text-base items-center justify-center font-medium leading-6 bg-neu-900 rounded-full text-neu-50"
           >
             Let's Share
-          </button>
+          </RouterLink>
         </div>
       </div>
     </section>
@@ -275,12 +302,12 @@ function performSearch() {
             Explore honest Bali reviews from real travelers and inspire others by sharing your own
             unforgettable island adventures and tips.
           </p>
-          <button
-            type="button"
+          <RouterLink
+            :to="{ name: 'WriteReview' }"
             class="px-6 py-2 mt-6 flex text-sm md:text-base items-center justify-center font-medium leading-6 bg-pr-500 rounded-full text-neu-50"
           >
             Review & Inspire
-          </button>
+          </RouterLink>
         </div>
         <div
           class="relative overflow-hidden w-full xl:w-7/12 h-64 sm:h-72 md:h-80 lg:h-[420px] rounded-3xl"
@@ -294,12 +321,13 @@ function performSearch() {
             class="flex flex-col justify-between absolute bottom-0 right-0 top-0 left-0 p-4 md:p-6"
           >
             <div class="flex justify-between items-start">
-              <div
+              <RouterLink
+                :to="{ name: 'DetailDestination', params: { slug: 'monkey-forest' } }"
                 class="px-4 py-2.5 flex gap-1.5 items-center w-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900"
               >
                 Monkey Forest
                 <ArrowUpRight class="size-4" />
-              </div>
+              </RouterLink>
               <p class="text-[8px] md:text-[10px] text-neu-50">Photo by unsplash</p>
             </div>
             <div
