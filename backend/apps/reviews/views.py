@@ -55,19 +55,18 @@ class ReviewViewSet(viewsets.ModelViewSet):
          Ganti metode list default untuk membuat struktur respons kustom
          DAN menerapkan semua filter yang ada.
          """
-        queryset = self.get_queryset()
 
-        filtered_queryset = self.filter_queryset(queryset)
+        queryset = self.filter_queryset(self.get_queryset())
 
         summary = {
-            'total_reviews': filtered_queryset.count(),
-            'average_rating': filtered_queryset.aggregate(avg=Avg('rating'))['avg'] or 0,
+            'total_reviews': queryset.count(),
+            'average_rating': queryset.aggregate(avg=Avg('rating'))['avg'] or 0,
             'rating_distribution': []
         }
 
-        distribution = filtered_queryset.values('rating').annotate(
+        distribution = queryset.values('rating').annotate(
             count=Count('rating')).order_by('-rating')
-        total_for_percentage = filtered_queryset.count()
+        total_for_percentage = queryset.count()
         distribution_map = {item['rating']: item['count']
                             for item in distribution}
 
@@ -81,7 +80,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 'percentage': round(percentage)
             })
 
-        page = self.paginate_queryset(filtered_queryset)
+        page = self.paginate_queryset(queryset)
 
         if page is not None:
             reviews_serializer = self.get_serializer(page, many=True)
@@ -91,7 +90,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
             paginated_response.data['summary'] = summary
             return paginated_response
 
-        reviews_serializer = self.get_serializer(filtered_queryset, many=True)
+        reviews_serializer = self.get_serializer(queryset, many=True)
 
         custom_data = {
             'summary': summary,

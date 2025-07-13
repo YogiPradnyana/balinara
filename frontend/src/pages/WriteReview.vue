@@ -26,7 +26,7 @@ const selectedDestination = ref(null)
 
 // State untuk form review
 const reviewData = ref({
-  destination: null, // Akan diisi dengan ID destinasi
+  destination_id: null,
   rating: 0,
   comment: '',
   image_ids: [],
@@ -80,9 +80,10 @@ watch(searchTerm, (newQuery) => {
 // Fungsi yang berjalan saat pengguna memilih destinasi dari hasil pencarian
 function selectDestination(destination) {
   selectedDestination.value = destination
-  reviewData.value.destination = destination.id
+  reviewData.value.destination_id = destination.id
   searchTerm.value = destination.name // Isi search bar dengan nama destinasi
   isSearchFocused.value = false // Tutup dropdown hasil pencarian
+  console.log('Selected destination:', selectedDestination.value)
 }
 
 // Fungsi untuk memberikan rating bintang
@@ -125,7 +126,7 @@ async function handleSubmit() {
   }
 
   // 2. Cek apakah destinasi sudah dipilih
-  if (!reviewData.value.destination) {
+  if (!reviewData.value.destination_id) {
     showNotification('error', 'Please select a destination first.')
     return
   }

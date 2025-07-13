@@ -2,10 +2,12 @@
 
 import { defineStore } from 'pinia'
 import apiClient from '@/api/axiosInstance'
+import { useAuthStore } from './authStore'
 
 export const useReviewStore = defineStore('review', {
   state: () => ({
     reviews: [],
+    myReviews: [],
     reviewSummary: {
       total_reviews: 0,
       average_rating: 0,
@@ -20,6 +22,27 @@ export const useReviewStore = defineStore('review', {
     error: null,
   }),
   actions: {
+    async fetchMyReviews() {
+      const authStore = useAuthStore()
+      if (!authStore.currentUser?.id) return // Jangan lakukan apa-apa jika user tidak login
+
+      this.isLoading = true
+      this.error = null
+      try {
+        const response = await apiClient.get('/reviews/', {
+          params: { user: authStore.currentUser.id }, // Kirim ID user sebagai parameter
+        })
+        // Karena endpoint ini menggunakan paginasi, data ada di dalam 'results'
+        this.myReviews = response.data.results || []
+        console.log(this.myReviews)
+      } catch (err) {
+        this.error = err
+        console.error('Gagal mengambil ulasan saya:', err)
+      } finally {
+        this.isLoading = false
+      }
+    },
+
     async uploadTemporaryReviewImage(file) {
       const formData = new FormData()
       formData.append('image', file)

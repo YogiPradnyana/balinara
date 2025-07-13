@@ -622,7 +622,7 @@ const googleMapsEmbedUrl = computed(() => {
                 <StarFilled class="size-4.5 sm:size-5 flex sm:hidden" />
               </div>
             </div>
-            <p class="text-sm sm:text-base text-neu-600">
+            <p class="text-sm sm:text-base text-neu-600 whitespace-pre-wrap">
               {{ review.comment }}
             </p>
             <div class="flex gap-2" v-if="review.images && review.images.length > 0">
@@ -663,7 +663,7 @@ const googleMapsEmbedUrl = computed(() => {
                     @click="goToPage(page)"
                     class="size-[41.6px] rounded-full text-sm font-medium transition-colors"
                     :class="
-                      page === activeFilters.page ? 'bg-neu-900 text-white' : 'hover:bg-gray-200'
+                      page === activeFilters.page ? 'bg-pr-900 text-white' : 'hover:bg-gray-200'
                     "
                     :aria-current="page === activeFilters.page ? 'page' : undefined"
                   >

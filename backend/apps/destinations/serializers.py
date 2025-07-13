@@ -42,6 +42,29 @@ class DestinationImageSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Image size cannot exceed 5MB.")
         return value
 
+
+class DestinationSimpleSerializer(serializers.ModelSerializer):
+    """
+    Serializer ringkas untuk menampilkan data destinasi di dalam review.
+    """
+    address = AddressSerializer(read_only=True)
+    primary_image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Destination
+        fields = ['id', 'slug', 'name', 'primary_image_url', 'address']
+
+    def get_primary_image_url(self, obj):
+        # Logika ini untuk mendapatkan gambar utama
+        request = self.context.get('request')
+        primary_image = obj.images.filter(is_primary=True).first()
+        if not primary_image:
+            primary_image = obj.images.order_by('uploaded_at').first()
+        if primary_image and hasattr(primary_image.image, 'url'):
+            return request.build_absolute_uri(primary_image.image.url) if request else primary_image.image.url
+        return None
+
+
 # --- Serializer untuk Daftar Destinasi (Ringkas) ---
 
 

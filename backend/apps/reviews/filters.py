@@ -13,6 +13,8 @@ class ReviewFilter(django_filters.FilterSet):
     month = django_filters.NumberFilter(
         field_name='created_at', lookup_expr='month')
 
+    user = django_filters.NumberFilter(field_name='user_id')
+
     class Meta:
         model = Review
-        fields = ['destination', 'rating', 'month']
+        fields = ['destination', 'rating', 'month', 'user']

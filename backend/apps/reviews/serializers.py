@@ -1,6 +1,7 @@
 from rest_framework import serializers
 # Asumsi Anda punya serializer user sederhana
 from apps.users.serializers import UserSimpleSerializer
+from apps.destinations.serializers import DestinationSimpleSerializer
 from apps.destinations.models import Destination
 from .models import Review, ReviewImage, TemporaryReviewImage
 import os
@@ -23,9 +24,13 @@ class TemporaryReviewImageSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = UserSimpleSerializer(read_only=True)
-    destination = serializers.PrimaryKeyRelatedField(
+    destination = DestinationSimpleSerializer(read_only=True)
+
+    destination_id = serializers.PrimaryKeyRelatedField(
         queryset=Destination.objects.all(),
-        write_only=True
+        source='destination',
+        write_only=True,
+        label="Destination ID"
     )
 
     images = ReviewImageSerializer(many=True, read_only=True)
@@ -36,7 +41,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        fields = ['id', 'user', 'destination', 'rating',
+        fields = ['id', 'user', 'destination', 'destination_id', 'rating',
                   'comment', 'created_at', 'images', 'image_ids']
         read_only_fields = ['id', 'user', 'created_at', 'images']
 
