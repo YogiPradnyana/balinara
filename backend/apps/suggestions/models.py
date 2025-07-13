@@ -3,6 +3,7 @@
 from django.db import models
 from django.conf import settings  # <-- 1. Impor settings untuk merujuk ke model User
 from apps.common.models import Category, Facility
+import uuid 
 
 class Suggestion(models.Model):
     STATUS_CHOICES = [
@@ -51,3 +52,11 @@ class SuggestionPhoto(models.Model):
 
     def __str__(self):
         return f"Photo for suggestion: {self.suggestion.name}"
+
+class TemporarySuggestionPhoto(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    image = models.ImageField(upload_to='suggestions/temp/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.id)
