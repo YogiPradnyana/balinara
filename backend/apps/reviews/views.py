@@ -17,9 +17,38 @@ class ReviewViewSet(viewsets.ModelViewSet):
     filterset_class = ReviewFilter
     search_fields = ['comment', 'user__username']
 
+    def _update_destination_ratings(self, destination):
+        """Fungsi helper untuk menghitung ulang dan menyimpan rating destinasi."""
+        # Ambil ulang objek dari DB untuk memastikan data konsisten
+        destination.refresh_from_db()
+
+        aggregates = destination.reviews.aggregate(
+            average_rating=Avg('rating'),
+            total_reviews=Count('id')
+        )
+
+        destination.average_rating = aggregates['average_rating'] or 0
+        destination.total_reviews = aggregates['total_reviews'] or 0
+        destination.save(update_fields=['average_rating', 'total_reviews'])
+
     def perform_create(self, serializer):
-        # Set user secara otomatis berdasarkan user yang sedang login
-        serializer.save(user=self.request.user)
+        """Dijalankan setelah review baru berhasil divalidasi."""
+        # Simpan review baru dan hubungkan dengan user yang sedang login
+        review = serializer.save(user=self.request.user)
+
+        # Panggil fungsi helper untuk langsung menghitung ulang dan memperbarui rating
+        self._update_destination_ratings(review.destination)
+
+    def perform_destroy(self, instance):
+        """Dijalankan sebelum sebuah review dihapus."""
+        # Simpan referensi ke destinasi sebelum review dihapus
+        destination = instance.destination
+
+        # Hapus reviewnya
+        instance.delete()
+
+        # Panggil fungsi helper untuk update rating setelah dihapus
+        self._update_destination_ratings(destination)
 
     def list(self, request, *args, **kwargs):
         """
@@ -36,9 +65,9 @@ class ReviewViewSet(viewsets.ModelViewSet):
             'rating_distribution': []
         }
 
-        distribution = queryset.values('rating').annotate(
+        distribution = filtered_queryset.values('rating').annotate(
             count=Count('rating')).order_by('-rating')
-        total_for_percentage = queryset.count()
+        total_for_percentage = filtered_queryset.count()
         distribution_map = {item['rating']: item['count']
                             for item in distribution}
 

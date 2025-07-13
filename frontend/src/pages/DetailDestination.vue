@@ -19,6 +19,7 @@ import WishlistButton from '@/components/WishlistButton.vue'
 import { useWishlistStore } from '@/stores/wishlistStore'
 import { useReviewStore } from '@/stores/reviewStore'
 import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
+import ArrowRight from '@/components/icons/ArrowRight.vue'
 
 const route = useRoute()
 const destinationStore = useDestinationStore()
@@ -91,6 +92,52 @@ function goToPage(page) {
     activeFilters.value.page = page
   }
 }
+
+const currentItemStart = computed(() => {
+  if (reviewPagination.value.count === 0) return 0
+  return (activeFilters.value.page - 1) * 10 + 1 // Asumsi 10 item per halaman
+})
+
+const currentItemEnd = computed(() => {
+  const end = activeFilters.value.page * 10
+  // Pastikan tidak melebihi jumlah total review
+  return Math.min(end, reviewPagination.value.count)
+})
+
+const totalPages = computed(() => {
+  if (!reviewPagination.value.count) return 1
+  return Math.ceil(reviewPagination.value.count / 10) // Asumsi 10 item per halaman
+})
+
+const paginationRange = computed(() => {
+  const current = activeFilters.value.page
+  const total = totalPages.value
+  const range = []
+  const rangeWithDots = []
+  let l
+
+  // Tentukan rentang nomor halaman yang akan ditampilkan di sekitar halaman saat ini
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - 2 && i <= current + 2)) {
+      range.push(i)
+    }
+  }
+
+  // Tambahkan '...' jika ada jeda antar nomor halaman
+  for (let i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1)
+      } else if (i - l > 2) {
+        rangeWithDots.push('...')
+      }
+    }
+    rangeWithDots.push(i)
+    l = i
+  }
+
+  return rangeWithDots
+})
 
 let debounceTimeout
 watch(
@@ -246,10 +293,12 @@ const googleMapsEmbedUrl = computed(() => {
             </div>
 
             <div class="flex gap-1 items-center mt-2">
-              <span class="font-bold">{{ parseFloat(destination.average_rating).toFixed(1) }}</span>
+              <span class="font-bold">{{
+                parseFloat(reviewSummary.average_rating).toFixed(1)
+              }}</span>
 
-              <StarRatingDisplay :rating="destination.average_rating" />
-              ({{ destination.total_reviews }} reviews)
+              <StarRatingDisplay :rating="reviewSummary.average_rating" />
+              ({{ reviewSummary.total_reviews }} reviews)
             </div>
 
             <p class="mt-4 sm:mt-6 text-neu-600 text-sm sm:text-base">
@@ -411,7 +460,7 @@ const googleMapsEmbedUrl = computed(() => {
               </div>
             </div>
 
-            <div class="space-y-2">
+            <div v-if="reviewSummary.total_reviews > 0" class="space-y-2">
               <div
                 v-for="item in reviewSummary.rating_distribution"
                 :key="item.rating"
@@ -541,12 +590,12 @@ const googleMapsEmbedUrl = computed(() => {
             </div>
           </div>
           <div
-            class="pb-6 space-y-4 border-b border-neu-100"
+            class="pb-6 space-y-1 border-b border-neu-100"
             v-for="review in reviews"
             :key="review.id"
           >
             <div class="flex justify-between">
-              <div class="gap-2 min-w-fit flex items-center">
+              <div class="gap-2 mb-2 min-w-fit flex items-center">
                 <img
                   :src="review.user.image_url || defaultAvatar"
                   alt="User Profile"
@@ -581,7 +630,7 @@ const googleMapsEmbedUrl = computed(() => {
                 v-for="img in review.images"
                 :key="img.id"
                 :src="img.image"
-                class="size-16 sm:size-20 rounded-lg sm:rounded-xl border border-neu-200 object-cover cursor-pointer"
+                class="size-16 sm:size-24 rounded-lg sm:rounded-xl border border-neu-200 object-cover cursor-pointer"
               />
             </div>
           </div>
@@ -592,30 +641,48 @@ const googleMapsEmbedUrl = computed(() => {
             <p v-if="isFilterActive">No reviews found matching your filter.</p>
             <p v-else>Be the first to write a review for this destination!</p>
           </div>
-          <div class="flex-1 flex flex-col gap-8">
-            <div
-              v-if="!isLoadingReviews && reviewPagination.count > 1"
-              class="mt-8 flex justify-center items-center space-x-2"
-            >
-              <button
-                @click="goToPage(reviewPagination.previous ? activeFilters.page - 1 : null)"
-                v-if="!reviewPagination.previous"
-                class="px-4 py-2 border rounded-md"
+          <div class="flex justify-end">
+            <div class="items-center flex flex-col gap-4">
+              <div
+                v-if="!isLoadingReviews && reviewPagination.count > 1"
+                class="mt-8 flex justify-center items-center space-x-4"
               >
-                &larr;
-              </button>
+                <button
+                  @click="goToPage(reviewPagination.previous ? activeFilters.page - 1 : null)"
+                  v-if="reviewPagination.previous"
+                  class="p-2 border border-neu-900 rounded-full hover:bg-neu-100 cursor-pointer"
+                >
+                  <ArrowLeft class="text-neu-900 size-6" />
+                </button>
 
-              <span class="text-sm text-gray-700">
-                Page {{ activeFilters.page }} of {{ Math.ceil(reviewPagination.count / 10) || 1 }}
-              </span>
+                <template v-for="(page, index) in paginationRange" :key="`page-${index}`">
+                  <span v-if="page === '...'" class="px-2 py-1 text-sm text-neu-500">...</span>
 
-              <button
-                @click="goToPage(reviewPagination.next ? activeFilters.page + 1 : null)"
-                v-if="!reviewPagination.next"
-                class="px-4 py-2 border rounded-md"
-              >
-                &rarr;
-              </button>
+                  <button
+                    v-else
+                    @click="goToPage(page)"
+                    class="size-[41.6px] rounded-full text-sm font-medium transition-colors"
+                    :class="
+                      page === activeFilters.page ? 'bg-neu-900 text-white' : 'hover:bg-gray-200'
+                    "
+                    :aria-current="page === activeFilters.page ? 'page' : undefined"
+                  >
+                    {{ page }}
+                  </button>
+                </template>
+
+                <button
+                  @click="goToPage(reviewPagination.next ? activeFilters.page + 1 : null)"
+                  v-if="reviewPagination.next"
+                  class="p-2 border border-neu-900 rounded-full hover:bg-neu-100 cursor-pointer"
+                >
+                  <ArrowRight class="text-neu-900 size-6" />
+                </button>
+              </div>
+              <p class="text-sm text-neu-900">
+                Showing results {{ currentItemStart }}-{{ currentItemEnd }} of
+                {{ reviewPagination.count }}
+              </p>
             </div>
           </div>
         </div>
