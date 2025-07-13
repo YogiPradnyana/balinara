@@ -68,6 +68,8 @@ function updateRouterQuery() {
   if (filters.value.ordering) newQuery.ordering = filters.value.ordering
   if (filters.value.page > 1) newQuery.page = filters.value.page
 
+  console.log('2. Mengubah URL dengan query:', newQuery)
+
   // Ganti URL tanpa memicu navigasi ulang halaman penuh
   router.push({ query: newQuery })
 }
@@ -78,6 +80,7 @@ let debounceTimeout
 watch(
   () => route.query,
   (newQuery) => {
+    console.log('3. Watcher URL Terpicu! Query baru:', newQuery)
     // 1. Sinkronkan state `filters` agar UI (checkbox, dll) cocok dengan URL
     filters.value.search = newQuery.search || ''
     filters.value.category = newQuery.category ? newQuery.category.split(',') : []
@@ -86,6 +89,7 @@ watch(
     filters.value.ordering = newQuery.ordering || '-average_rating'
     filters.value.page = parseInt(newQuery.page) || 1
 
+    console.log('4. Mengambil data dari API dengan parameter:', newQuery)
     // 2. Panggil API dengan parameter dari URL yang baru
     destinationStore.fetchDestinations(newQuery)
   },
@@ -119,6 +123,12 @@ const toggleFilterSelection = (type, value) => {
     // Karena regency diubah jadi checkbox, logikanya disamakan
     selectedArray.push(value) // Check
   }
+
+  console.log(
+    '1. Aksi Filter UI:',
+    `Tipe=${type}, Nilai=${value}. State filters sekarang:`,
+    JSON.stringify(filters.value),
+  )
 
   filters.value.page = 1
   updateRouterQuery()

@@ -10,10 +10,17 @@ import Penjor from '@/components/icons/Penjor.vue'
 import Search from '@/components/icons/Search.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
 import { useDestinationStore } from '@/stores/destinationStore'
-import { ref, computed, onMounted, onActivated } from 'vue'
+import { ref, computed, onMounted, onActivated, nextTick } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import WishlistButton from '@/components/WishlistButton.vue'
 import { useWishlistStore } from '@/stores/wishlistStore'
+import { gsap } from 'gsap'
+import { Draggable } from 'gsap/Draggable'
+
+// Daftarkan plugin GSAP
+gsap.registerPlugin(Draggable)
+const mountainContainerRef = ref(null)
+const mountainProxyRef = ref(null)
 
 const router = useRouter()
 const destinationStore = useDestinationStore()
@@ -111,16 +118,29 @@ const regenciesData = {
 
 onMounted(() => {
   // // Ambil 1 destinasi dengan rating tertinggi untuk Hero Section
-  // destinationStore.fetchDestinations({ ordering: '-average_rating', page_size: 1 }).then(() => {
-  //   heroDestination.value = destinationStore.destinations[0]
+  // destinationStore.fetchDestinations({ ordering: '-average_rating', page_size: 1 }).then((data) => {
+  //   heroDestination.value = data[0]
   // })
   // Ambil 4 destinasi terbaru untuk "Exploration" section
-  destinationStore.fetchDestinations({ ordering: '-created_at', page_size: 4 }).then(() => {
-    featuredDestinations.value = destinationStore.destinations
+  destinationStore.fetchDestinations({ ordering: '-created_at', page_size: 4 }).then((data) => {
+    featuredDestinations.value = data
   })
   // Ambil 4 destinasi dengan kategori "Mountain"
-  destinationStore.fetchDestinations({ category: 'mountain', page_size: 6 }).then(() => {
-    mountainDestinations.value = destinationStore.destinations
+  destinationStore.fetchDestinations({ category: 'mountain', page_size: 6 }).then(async (data) => {
+    mountainDestinations.value = data
+
+    await nextTick()
+
+    // Inisialisasi Draggable untuk Mountain Section
+    if (mountainProxyRef.value && mountainContainerRef.value) {
+      Draggable.create(mountainProxyRef.value, {
+        type: 'x',
+        bounds: mountainContainerRef.value,
+        inertia: true,
+        edgeResistance: 0.65,
+        dragClickables: false,
+      })
+    }
   })
 })
 
@@ -457,52 +477,51 @@ onActivated(() => {
         </div>
       </div>
 
-      <div class="flex gap-6 mt-8 w-fit">
-        <div
-          v-for="destination in mountainDestinations"
-          :key="destination.id"
-          class="overflow-hidden w-80 sm:w-[340px] h-fit group"
-        >
-          <RouterLink
-            :to="{ name: 'DetailDestination', params: { slug: destination.slug } }"
-            class="relative h-fit w-full"
+      <div ref="mountainContainerRef" class="mt-8 cursor-grab">
+        <div ref="mountainProxyRef" class="flex gap-6 w-max">
+          <div
+            v-for="destination in mountainDestinations"
+            :key="destination.id"
+            class="overflow-hidden w-80 sm:w-[340px] h-fit group"
           >
-            <img
-              :src="destination.primary_image_url || 'https://placehold.co/340x240'"
-              :alt="destination.name"
-              class="object-cover w-full h-52 sm:h-60 rounded-3xl transition-transform duration-500 ease-in-out"
-            />
-            <div
-              class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
-            >
-              <div class="flex justify-between w-full">
-                <div
-                  class="py-1 px-2.5 h-fit flex items-center justify-center font-medium text-sm gap-1 bg-sur-50 rounded-full"
-                >
-                  <StarFilled class="size-4 md:size-4.5" />
-                  {{ parseFloat(destination.average_rating).toFixed(1) }}
+            <div class="relative h-fit w-full">
+              <img
+                :src="destination.primary_image_url || 'https://placehold.co/340x240'"
+                :alt="destination.name"
+                class="object-cover w-full h-52 sm:h-60 rounded-3xl transition-transform duration-500 ease-in-out"
+              />
+              <div
+                class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
+              >
+                <div class="flex justify-between w-full">
+                  <div
+                    class="py-1 px-2.5 h-fit flex items-center justify-center font-medium text-sm gap-1 bg-sur-50 rounded-full"
+                  >
+                    <StarFilled class="size-4 md:size-4.5" />
+                    {{ parseFloat(destination.average_rating).toFixed(1) }}
+                  </div>
+                  <WishlistButton :destination-id="destination.id" :is-icon="true" />
                 </div>
-                <WishlistButton :destination-id="destination.id" :is-icon="true" />
-              </div>
-              <div class="flex justify-between items-end w-full">
-                <RouterLink
-                  :to="{ name: 'DetailDestination', params: { slug: destination.slug } }"
-                  class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center cursor-pointer text-xs md:text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
-                >
-                  {{ destination.name }}
-                  <ArrowUpRight class="size-4" />
-                </RouterLink>
-                <p class="text-[8px] md:text-[10px] text-neu-50">Photo by unsplash</p>
+                <div class="flex justify-between items-end w-full">
+                  <RouterLink
+                    :to="{ name: 'DetailDestination', params: { slug: destination.slug } }"
+                    class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center cursor-pointer text-xs md:text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
+                  >
+                    {{ destination.name }}
+                    <ArrowUpRight class="size-4" />
+                  </RouterLink>
+                  <p class="text-[8px] md:text-[10px] text-neu-50">Photo by unsplash</p>
+                </div>
               </div>
             </div>
-          </RouterLink>
-          <div class="w-full px-2 mt-2 sm:mt-4">
-            <h3 class="text-base sm:text-lg leading-7 text-neu-900 font-semibold">
-              {{ destination.name }}
-            </h3>
-            <p class="text-sm sm:text-base text-neu-600 mt-1 line-clamp-2 whitespace-normal">
-              {{ destination.description }}
-            </p>
+            <div class="w-full px-2 mt-2 sm:mt-4">
+              <h3 class="text-base sm:text-lg leading-7 text-neu-900 font-semibold">
+                {{ destination.name }}
+              </h3>
+              <p class="text-sm sm:text-base text-neu-600 mt-1 line-clamp-2 whitespace-normal">
+                {{ destination.description }}
+              </p>
+            </div>
           </div>
         </div>
       </div>

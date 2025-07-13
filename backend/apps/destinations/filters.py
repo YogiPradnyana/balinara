@@ -10,7 +10,6 @@ class CommaSeparatedCharFilter(django_filters.BaseInFilter, django_filters.CharF
 
 
 class DestinationFilter(django_filters.FilterSet):
-    # ==================== AWAL MODIFIKASI ====================
     # Gunakan nama yang lebih pendek dan jelas untuk parameter URL
     # Backend akan mencari 'category' di URL, contoh: ?category=pura,pantai
     category = CommaSeparatedCharFilter(
@@ -28,7 +27,11 @@ class DestinationFilter(django_filters.FilterSet):
     min_rating = django_filters.NumberFilter(
         field_name="average_rating", lookup_expr='gte'
     )
-    # ==================== AKHIR MODIFIKASI ===================
+
+    exclude_slug = django_filters.CharFilter(
+        field_name='slug',
+        exclude=True
+    )
 
     class Meta:
         model = Destination

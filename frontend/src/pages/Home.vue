@@ -9,10 +9,17 @@ import Send from '@/components/icons/Send.vue'
 import DoubleQuotes from '@/components/icons/DoubleQuotes.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
 import { useDestinationStore } from '@/stores/destinationStore'
-import { ref, onMounted, onActivated } from 'vue'
+import { ref, onMounted, onActivated, nextTick } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import WishlistButton from '@/components/WishlistButton.vue'
 import { useWishlistStore } from '@/stores/wishlistStore'
+import { gsap } from 'gsap'
+import { Draggable } from 'gsap/Draggable'
+
+gsap.registerPlugin(Draggable)
+
+const containerRef = ref(null)
+const proxyRef = ref(null)
 
 const router = useRouter()
 const destinationStore = useDestinationStore()
@@ -36,13 +43,29 @@ function performSearch() {
   }
 }
 
-onMounted(() => {
-  destinationStore.fetchDestinations({ ordering: '-average_rating', page_size: 6 }).then(() => {
-    populerDestinations.value = destinationStore.destinations
-  })
-  destinationStore.fetchDestinations({ category: 'mountain', page_size: 6 }).then(() => {
-    mountainDestinations.value = destinationStore.destinations
-  })
+onMounted(async () => {
+  try {
+    const data = await destinationStore.fetchDestinations({
+      ordering: '-average_rating',
+      page_size: 6,
+    })
+
+    populerDestinations.value = data
+
+    await nextTick()
+
+    if (proxyRef.value && containerRef.value) {
+      Draggable.create(proxyRef.value, {
+        type: 'x',
+        bounds: containerRef.value,
+        inertia: true,
+        edgeResistance: 0.65,
+        dragClickables: false,
+      })
+    }
+  } catch (error) {
+    console.error('Gagal saat onMounted:', error)
+  }
 })
 
 onActivated(() => {
@@ -124,8 +147,8 @@ onActivated(() => {
           </RouterLink>
         </div>
       </div>
-      <div class="mt-8 whitespace-nowrap">
-        <div class="flex gap-8 w-fit">
+      <div ref="containerRef" class="mt-8 cursor-grab">
+        <div ref="proxyRef" class="flex gap-8 w-max">
           <div
             v-for="destination in populerDestinations"
             :key="destination.id"

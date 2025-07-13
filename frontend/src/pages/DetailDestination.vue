@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed, onMounted, onActivated } from 'vue'
+import { ref, watch, computed, onMounted, onActivated, nextTick } from 'vue'
 import ArrowLeft from '@/components/icons/ArrowLeft.vue'
 import ArrowRight2 from '@/components/icons/ArrowRight2.vue'
 import ArrowUpRight from '@/components/icons/ArrowUpRight.vue'
@@ -20,6 +20,13 @@ import { useWishlistStore } from '@/stores/wishlistStore'
 import { useReviewStore } from '@/stores/reviewStore'
 import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
 import ArrowRight from '@/components/icons/ArrowRight.vue'
+import { gsap } from 'gsap'
+import { Draggable } from 'gsap/Draggable'
+
+// Daftarkan plugin GSAP
+gsap.registerPlugin(Draggable)
+const containerRef = ref(null)
+const proxyRef = ref(null)
 
 const route = useRoute()
 const destinationStore = useDestinationStore()
@@ -28,6 +35,9 @@ const reviewStore = useReviewStore()
 const destination = computed(() => destinationStore.currentDestination)
 const isLoading = computed(() => destinationStore.isLoadingDetail)
 const error = computed(() => destinationStore.error)
+
+const relatedDestinations = ref([])
+const isLoadingRelated = ref(true)
 
 const reviews = computed(() => reviewStore.reviews)
 const reviewSummary = computed(() => reviewStore.reviewSummary)
@@ -160,6 +170,43 @@ onMounted(() => {
     })
   }
 })
+
+watch(
+  destination,
+  (newDestination) => {
+    // Jika data destinasi baru sudah ada (tidak null)
+    if (newDestination && newDestination.categories) {
+      // 1. Ambil semua slug kategori dari destinasi saat ini
+      const categorySlugs = newDestination.categories.map((cat) => cat.slug).join(',')
+
+      // 2. Siapkan parameter untuk API call
+      const params = {
+        category: categorySlugs, // Filter berdasarkan kategori yang sama
+        exclude_slug: newDestination.slug, // Kecualikan destinasi saat ini
+        page_size: 6, // Ambil hingga 6 destinasi terkait
+      }
+
+      // 3. Panggil action untuk mengambil data
+      isLoadingRelated.value = true
+      destinationStore.fetchDestinations(params).then(async (data) => {
+        relatedDestinations.value = data
+        isLoadingRelated.value = false
+
+        // 4. Tunggu DOM diperbarui, lalu inisialisasi GSAP Draggable
+        await nextTick()
+        if (proxyRef.value && containerRef.value) {
+          Draggable.create(proxyRef.value, {
+            type: 'x',
+            bounds: containerRef.value,
+            inertia: true,
+            edgeResistance: 0.65,
+          })
+        }
+      })
+    }
+  },
+  { immediate: true },
+)
 
 onActivated(() => {
   useWishlistStore().fetchWishlist()
@@ -690,7 +737,7 @@ const googleMapsEmbedUrl = computed(() => {
     </section>
 
     <!-- Explores -->
-    <section class="mt-24 sm:mt-30">
+    <section v-if="relatedDestinations.length > 0" class="mt-24 sm:mt-30">
       <div
         class="px-4 text-pr-500 py-2 flex gap-2 w-fit items-center justify-center text-sm sm:text-base font-medium outline-pr-500 outline rounded-full"
       >
@@ -706,54 +753,61 @@ const googleMapsEmbedUrl = computed(() => {
             Let the magic of Bali lead you to new places. Keep scrolling, keep exploring — your next
             adventure is just a click away.
           </p>
-          <div
+          <RouterLink
+            :to="{ name: 'Search' }"
             class="cursor-pointer w-fit whitespace-nowrap flex px-5.5 py-2 gap-1 items-center justify-center text-sm sm:text-base font-medium bg-pr-500 rounded-full text-white"
           >
             View All
             <ArrowRight2 class="min-w-6" />
-          </div>
+          </RouterLink>
         </div>
       </div>
 
-      <div class="flex gap-6 mt-8 w-fit">
-        <div v-for="i in 4" :key="i" class="overflow-hidden w-80 sm:w-[340px] h-fit group">
-          <div class="relative h-fit w-full">
-            <img
-              src="@/assets/images/mount-agung.webp"
-              alt="Ubud Village"
-              class="object-cover w-full h-52 sm:h-60 rounded-3xl transition-transform duration-500 ease-in-out"
-            />
-            <div
-              class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
-            >
-              <div class="flex items-center justify-between w-full">
-                <div
-                  class="py-1 px-2.5 flex items-center justify-center font-medium text-sm gap-1 bg-sur-50 rounded-full"
-                >
-                  <StarFilled class="size-4 md:size-4.5" />
-                  4.8
+      <div ref="containerRef" class="cursor-grab">
+        <div ref="proxyRef" class="flex gap-6 mt-8 w-max">
+          <div
+            v-for="related in relatedDestinations"
+            :key="related.id"
+            class="overflow-hidden w-80 sm:w-[340px] h-fit group flex-shrink-0"
+          >
+            <div class="relative h-fit w-full">
+              <img
+                :src="related.primary_image_url"
+                :alt="related.name"
+                class="object-cover w-full h-52 sm:h-60 rounded-3xl transition-transform duration-500 ease-in-out"
+              />
+              <div
+                class="flex flex-col justify-between absolute inset-0 items-end p-3 transition-opacity duration-500 ease-in-out"
+              >
+                <div class="flex items-center justify-between w-full">
+                  <div
+                    class="py-1 px-2.5 flex items-center justify-center font-medium text-sm gap-1 bg-sur-50 rounded-full"
+                  >
+                    <StarFilled class="size-4 md:size-4.5" />
+                    {{ parseFloat(related.average_rating).toFixed(1) }}
+                  </div>
+                  <WishlistButton :destination-id="related.id" :is-icon="true" />
                 </div>
-                <div class="p-2.5 flex items-center justify-center bg-sur-50 rounded-full">
-                  <Heart class="size-5 md:size-6 text-neu-900" />
+                <div class="flex justify-between items-end w-full">
+                  <RouterLink
+                    :to="{ name: 'DetailDestination', params: { slug: related.slug } }"
+                    class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
+                  >
+                    {{ related.name }}
+                    <ArrowUpRight class="size-4" />
+                  </RouterLink>
+                  <p class="text-[8px] md:text-[10px] text-neu-50">Photo by unsplash</p>
                 </div>
-              </div>
-              <div class="flex justify-between items-end w-full">
-                <div
-                  class="px-4 py-2.5 flex gap-1.5 items-center w-fit h-fit justify-center text-xs md:text-sm bg-sur-50 rounded-full text-neu-900 transition-all duration-500 ease-in-out"
-                >
-                  Mount Agung
-                  <ArrowUpRight class="size-4" />
-                </div>
-                <p class="text-[8px] md:text-[10px] text-neu-50">Photo by unsplash</p>
               </div>
             </div>
-          </div>
-          <div class="w-full px-2 mt-2 sm:mt-4">
-            <h3 class="text-base sm:text-lg leading-7 text-neu-900 font-semibold">Mount Agung</h3>
-            <p class="text-sm sm:text-base text-neu-600 mt-1 line-clamp-2 whitespace-normal">
-              Mount Agung is Bali's highest and most sacred mountain, presenting a challenging trek
-              with stunning vistas and significant spiritual importance to the Balinese people.
-            </p>
+            <div class="w-full px-2 mt-2 sm:mt-4">
+              <h3 class="text-base sm:text-lg leading-7 text-neu-900 font-semibold">
+                {{ related.name }}
+              </h3>
+              <p class="text-sm sm:text-base text-neu-600 mt-1 line-clamp-2 whitespace-normal">
+                {{ related.description }}
+              </p>
+            </div>
           </div>
         </div>
       </div>

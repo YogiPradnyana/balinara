@@ -16,6 +16,7 @@
     "@vueuse/core": "^13.5.0",
     "axios": "^1.9.0",
     "flowbite": "^3.1.2",
+    "gsap": "^3.13.0",
     "leaflet": "^1.9.4",
     "lodash-es": "^4.17.21",
     "pinia": "^3.0.1",

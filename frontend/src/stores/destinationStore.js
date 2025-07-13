@@ -41,19 +41,21 @@ export const useDestinationStore = defineStore('destination', {
 
       try {
         const response = await apiClient.get(DESTINATIONS_API_PATH, { params: queryParams })
-        if (response.data && typeof response.data.results !== 'undefined') {
-          this.destinations = response.data.results
-          this.pagination.count = response.data.count
-          this.pagination.next = response.data.next
-          this.pagination.previous = response.data.previous
-          // Update currentPage berdasarkan params atau dari respons jika ada
-
-          if (queryParams.page) this.pagination.currentPage = queryParams.page
-        } else {
-          /* ... handle respons non-paginasi ... */
+        if (queryParams.page) {
+          if (response.data && typeof response.data.results !== 'undefined') {
+            this.destinations = response.data.results
+            this.pagination.count = response.data.count
+            this.pagination.next = response.data.next
+            this.pagination.previous = response.data.previous
+            this.pagination.currentPage = queryParams.page
+          }
         }
+
+        return response.data.results || []
       } catch (err) {
-        /* ... handle error ... */
+        this.error = err
+        console.error('Failed to fetch destinations:', err)
+        return []
       } finally {
         this.isLoadingList = false
       }
