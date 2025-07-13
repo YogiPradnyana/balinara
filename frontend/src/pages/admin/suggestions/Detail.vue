@@ -1,15 +1,19 @@
 <script setup>
-// ... semua impor Anda tetap sama ...
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useSuggestionStore } from '@/stores/suggestionStore'
 import { showNotification } from '@/services/notificationService'
+
+// Impor ikon
 import ArrowDown from '@/components/icons/ArrowDown.vue'
 import ArrowRight from '@/components/icons/ArrowRight.vue'
+
+// Impor komponen peta dan CSS Leaflet
 import "leaflet/dist/leaflet.css";
 import { LMap, LTileLayer, LMarker } from "@vue-leaflet/vue-leaflet";
 import { icon } from 'leaflet';
 
+// Fix untuk ikon marker default Leaflet
 const defaultIcon = icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
@@ -23,6 +27,7 @@ const suggestionStore = useSuggestionStore()
 
 const isSaving = ref(false)
 const selectedStatus = ref('')
+
 const suggestion = computed(() => suggestionStore.suggestionDetail)
 
 const mapCoordinates = computed(() => {
@@ -85,6 +90,7 @@ const handleUpdateStatus = async () => {
     
     <div v-else-if="suggestion">
         <form @submit.prevent="handleUpdateStatus" class="flex flex-col lg:flex-row gap-6 lg:gap-8">
+            <!-- Kolom Kiri -->
             <div class="p-4 w-full lg:w-1/2 xl:w-2/3 border border-neu-100 flex flex-col gap-6 rounded-3xl">
                 <div class="flex flex-col gap-3">
                     <label class="text-base font-semibold">Name</label>
@@ -114,11 +120,15 @@ const handleUpdateStatus = async () => {
                     <textarea :value="suggestion.descriptions" rows="7" disabled class="px-3 py-3 text-sm border bg-gray-100 rounded-3xl"></textarea>
                 </div>
                 
+                <!-- ================================================================= -->
+                <!-- PERBAIKAN UTAMA ADA DI SINI -->
+                <!-- Menggunakan 'suggestion.facilities_details' sebagai sumber data -->
+                <!-- ================================================================= -->
                 <div class="flex flex-col gap-3">
                     <label class="text-base font-semibold">Facilities</label>
-                    <ul v-if="suggestion.facilities && suggestion.facilities.length > 0" class="flex flex-wrap text-sm sm:text-base gap-3 sm:gap-4">
+                    <ul v-if="suggestion.facilities_details && suggestion.facilities_details.length > 0" class="flex flex-wrap text-sm sm:text-base gap-3 sm:gap-4">
                         <li
-                            v-for="facility in suggestion.facilities"
+                            v-for="facility in suggestion.facilities_details"
                             :key="facility.id"
                             class="bg-gray-100 text-gray-800 font-medium items-center px-4 py-2 rounded-full flex"
                         >
@@ -127,6 +137,8 @@ const handleUpdateStatus = async () => {
                     </ul>
                     <p v-else class="text-sm text-gray-500">No facilities listed.</p>
                 </div>
+                <!-- ================================================================= -->
+
                 <div class="flex flex-col gap-3">
                     <label class="text-base font-semibold">Photos</label>
                     <div class="flex flex-wrap gap-4">
@@ -137,6 +149,7 @@ const handleUpdateStatus = async () => {
                 </div>
             </div>
 
+            <!-- Kolom Kanan (Address, Map, dll) -->
             <div class="p-4 w-full flex flex-col gap-6 lg:w-1/2 xl:w-1/3 border h-fit border-neu-100 rounded-3xl">
                 <div class="flex flex-col gap-3">
                     <label class="text-base font-semibold">Map Location</label>
