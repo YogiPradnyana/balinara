@@ -1,11 +1,13 @@
 <script setup>
-import { onMounted, computed } from 'vue';
+// --- IMPORTS ---
+import { onMounted, computed, h } from 'vue'; // 1. Impor 'h' dari vue
 import { RouterLink } from 'vue-router';
 import { useAuthStore } from '@/stores/authStore';
-import { useUserStore } from '@/stores/userStore';     // <-- Gunakan userStore
-import { useModalStore } from '@/stores/modalStore';   // <-- Gunakan modalStore
+import { useUserStore } from '@/stores/userStore';
+import { showConfirmationToast, dismissCurrentConfirmationToast } from '@/services/notificationService'; // 2. Impor helper notifikasi
+import ConfirmationToast from '@/components/ConfirmationToast.vue'; // 3. Impor komponen toast kustom Anda
 
-// Impor Ikon
+// --- Impor Ikon ---
 import ArrowRight from '@/components/icons/ArrowRight.vue';
 import ArrowRight2Bold from '@/components/icons/ArrowRight2Bold.vue';
 import Edit from '@/components/icons/Edit.vue';
@@ -14,27 +16,41 @@ import Search from '@/components/icons/Search.vue';
 import Show from '@/components/icons/Show.vue';
 import TrashCan from '@/components/icons/TrashCan.vue';
 
-// Inisialisasi semua store
+// --- STATE MANAGEMENT ---
 const authStore = useAuthStore();
 const userStore = useUserStore();
-const modalStore = useModalStore();
 
-// ID user yang sedang login untuk perbandingan
 const currentUserId = computed(() => authStore.currentUser?.id);
 
-// Ambil data saat komponen dimuat
+// --- LIFECYCLE HOOK ---
 onMounted(() => {
   userStore.fetchUsers();
 });
 
-// Fungsi ini SEKARANG HANYA MEMBUKA MODAL
+// =================================================================
+// PERUBAHAN UTAMA ADA DI FUNGSI INI
+// Mengikuti pola yang sama seperti di CategoryLists.vue
+// =================================================================
 const confirmDelete = (user) => {
-  modalStore.openModal({
-    title: 'Konfirmasi Penghapusan',
-    message: `Apakah Anda yakin ingin menghapus pengguna "${user.username}"? Tindakan ini tidak dapat dibatalkan.`,
-    // Berikan fungsi yang akan dijalankan saat admin mengklik "Ya, Hapus"
-    onConfirm: () => userStore.deleteUser(user.id) 
-  });
+  // Fungsi yang akan dijalankan jika admin menekan "Yes, Sure"
+  const handleConfirm = () => {
+    dismissCurrentConfirmationToast(); // Tutup toast dulu
+    userStore.deleteUser(user.id); // Jalankan aksi hapus
+  };
+
+  // Fungsi yang akan dijalankan jika admin menekan "Cancel"
+  const handleCancel = () => {
+    dismissCurrentConfirmationToast();
+  };
+
+  // Menampilkan toast dengan komponen kustom Anda
+  showConfirmationToast(
+    h(ConfirmationToast, {
+      message: `Are you sure you want to delete user "${user.username}"? This cannot be undone.`,
+      onConfirm: handleConfirm,
+      onCancel: handleCancel,
+    })
+  );
 };
 </script>
 
