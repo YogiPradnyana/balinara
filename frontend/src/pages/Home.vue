@@ -8,6 +8,24 @@ import AI from '@/components/icons/AI.vue'
 import Send from '@/components/icons/Send.vue'
 import DoubleQuotes from '@/components/icons/DoubleQuotes.vue'
 import StarFilled from '@/components/icons/StarFilled.vue'
+import { useRouter } from 'vue-router'
+import { ref } from 'vue'
+const router = useRouter()
+
+const searchTerm = ref('')
+
+function performSearch() {
+  if (searchTerm.value.trim()) {
+    router.push({
+      name: 'Search',
+      query: { search: searchTerm.value },
+    })
+  } else {
+    router.push({
+      name: 'Search',
+    })
+  }
+}
 </script>
 
 <template>
@@ -23,12 +41,14 @@ import StarFilled from '@/components/icons/StarFilled.vue'
         </p>
       </div>
       <form
+        @submit.prevent="performSearch"
         class="max-w-[640px] w-full flex items-center justify-between rounded-full outline outline-neu-200 p-1.5"
       >
         <div class="wrapper gap-2 ps-1.5 flex items-center w-full">
           <Search />
           <input
             type="text"
+            v-model="searchTerm"
             class="w-full text-xs md:text-sm leading-5 placeholder:text-neu-500 focus:outline-none"
             placeholder="Search Destionations..."
           />

@@ -241,7 +241,7 @@ onMounted(async () => {
             <div
               ref="searchFormRef"
               @click="handleFormClick"
-              class="absolute w-full flex outline bg-sur-50 outline-neu-200 p-1.5"
+              class="absolute w-full flex outline bg-sur-50 z-50 outline-neu-200 p-1.5"
               :class="[
                 isSearchFocused
                   ? ' rounded-3xl flex-col'

@@ -8,6 +8,7 @@ export const useReviewStore = defineStore('review', {
   state: () => ({
     reviews: [],
     myReviews: [],
+    currentReview: null,
     reviewSummary: {
       total_reviews: 0,
       average_rating: 0,
@@ -40,6 +41,57 @@ export const useReviewStore = defineStore('review', {
         console.error('Gagal mengambil ulasan saya:', err)
       } finally {
         this.isLoading = false
+      }
+    },
+
+    async fetchAllReviews(params = {}) {
+      this.isLoading = true
+      this.error = null
+      try {
+        const response = await apiClient.get('/reviews/', { params })
+        this.reviews = response.data.results || []
+        this.pagination = {
+          count: response.data.count || 0,
+          next: response.data.next,
+          previous: response.data.previous,
+        }
+      } catch (err) {
+        console.error('Failed to fetch all reviews:', err)
+        this.error = err
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    // Action untuk mengambil detail satu review berdasarkan ID
+    async fetchReviewById(reviewId) {
+      this.isLoading = true
+      this.currentReview = null
+      try {
+        const response = await apiClient.get(`/reviews/${reviewId}/`)
+        this.currentReview = response.data
+      } catch (err) {
+        console.error(`Failed to fetch review ${reviewId}:`, err)
+        this.error = err
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    // Action untuk menghapus review
+    async deleteReview(reviewId) {
+      try {
+        await apiClient.delete(`/reviews/${reviewId}/`)
+        // Hapus review dari state lokal agar UI langsung update tanpa refresh
+        const index = this.reviews.findIndex((r) => r.id === reviewId)
+        if (index > -1) {
+          this.reviews.splice(index, 1)
+          this.pagination.count-- // Kurangi jumlah total
+        }
+        showNotification('success', 'Review has been deleted successfully.')
+      } catch (err) {
+        showNotification('error', 'Failed to delete the review.')
+        console.error(`Failed to delete review ${reviewId}:`, err)
       }
     },
 

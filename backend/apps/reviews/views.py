@@ -15,7 +15,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = ReviewFilter
-    search_fields = ['comment', 'user__username']
+    search_fields = ['comment', 'user__username', 'destination__name']
 
     def _update_destination_ratings(self, destination):
         """Fungsi helper untuk menghitung ulang dan menyimpan rating destinasi."""

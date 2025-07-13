@@ -19,7 +19,7 @@ const handleSidebar = () => {
 </script>
 <template>
   <div
-    class="sticky top-0 w-full z-99999 flex justify-between lg:justify-end items-center p-3.5 bg-sur-50 border-b border-neu-200"
+    class="sticky top-0 w-full z-50 flex justify-between lg:justify-end items-center p-3.5 bg-sur-50 border-b border-neu-200"
   >
     <div class="lg:hidden transform transition-transform duration-500 ease-in-out">
       <button

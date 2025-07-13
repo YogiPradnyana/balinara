@@ -4,9 +4,16 @@ import { Toaster } from 'vue-sonner'
 import 'vue-sonner/style.css'
 
 // --- PERUBAHAN DIMULAI DI SINI ---
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/authStore'
+import { useUiStore } from '@/stores/uiStore'
+import VueEasyLightbox from 'vue-easy-lightbox'
 
+const uiStore = useUiStore()
+
+const isLightboxVisible = computed(() => uiStore.isLightboxVisible)
+const lightboxImages = computed(() => uiStore.lightboxImages)
+const lightboxIndex = computed(() => uiStore.lightboxIndex)
 // Inisialisasi auth store
 const authStore = useAuthStore()
 
@@ -21,6 +28,12 @@ onMounted(() => {
 <template>
   <div class="antialiased">
     <Toaster position="top-right" :expand="true" />
+    <VueEasyLightbox
+      :visible="isLightboxVisible"
+      :imgs="lightboxImages"
+      :index="lightboxIndex"
+      @hide="uiStore.closeLightbox"
+    />
     <RouterView :key="$route.fullPath" />
   </div>
 </template>

@@ -8,26 +8,19 @@ import { useAuthStore } from '@/stores/authStore'
 import { useReviewStore } from '@/stores/reviewStore'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import VueEasyLightbox from 'vue-easy-lightbox'
+import { useUiStore } from '@/stores/uiStore'
 
 const authStore = useAuthStore()
 const reviewStore = useReviewStore()
 const router = useRouter()
+const uiStore = useUiStore()
 
 const myReviews = computed(() => reviewStore.myReviews)
 const isLoading = computed(() => reviewStore.isLoading)
-const isModalVisible = ref(false)
-const modalImages = ref([])
-const modalIndex = ref(0)
 
 function openImageModal(reviewImages, clickedImageIndex) {
-  modalImages.value = reviewImages.map((img) => img.image)
-  modalIndex.value = clickedImageIndex
-  isModalVisible.value = true
-}
-
-function closeImageModal() {
-  isModalVisible.value = false
+  const imageUrls = reviewImages.map((img) => img.image)
+  uiStore.openLightbox(imageUrls, clickedImageIndex)
 }
 
 onMounted(() => {
