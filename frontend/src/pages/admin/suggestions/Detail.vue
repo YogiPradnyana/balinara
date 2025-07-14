@@ -30,52 +30,42 @@ const selectedStatus = ref('')
 
 const suggestion = computed(() => suggestionStore.suggestionDetail)
 
-// Computed property untuk koordinat peta agar dinamis
 const mapCoordinates = computed(() => {
   if (suggestion.value && suggestion.value.latitude && suggestion.value.longitude) {
     return [suggestion.value.latitude, suggestion.value.longitude];
   }
-  // Koordinat default jika data tidak ada (misalnya, tengah Bali)
-  return [-8.409518, 115.188919]; 
+  return [-8.409518, 115.188919];
 });
 const mapZoom = computed(() => {
-    // Jika ada koordinat, zoom lebih dekat. Jika tidak, zoom lebih jauh.
     return (suggestion.value && suggestion.value.latitude) ? 14 : 8;
 })
 
-// Awasi perubahan pada data suggestion dari store, lalu update state lokal
 watch(suggestion, (newSuggestion) => {
   if (newSuggestion) {
     selectedStatus.value = newSuggestion.status
   }
 })
 
-// Ambil data detail saat halaman dimuat
 onMounted(() => {
   const suggestionId = route.params.id
   if (suggestionId && suggestionId !== 'undefined') {
     suggestionStore.fetchSuggestionDetail(suggestionId)
   } else {
-    console.error("ID Suggestion tidak ditemukan di URL.")
-    router.push({ name: 'AdminSuggestions' }) // Ganti dengan nama rute list admin Anda
+    router.push({ name: 'AdminSuggestions' })
   }
 })
 
-// Fungsi untuk menyimpan perubahan status
 const handleUpdateStatus = async () => {
-    // Tambahkan pengecekan yang lebih kuat di sini
     if (!suggestion.value || !suggestion.value.id) {
-        alert("Data detail belum dimuat dengan benar. Silakan refresh halaman dan coba lagi.");
-        return; // Hentikan fungsi jika data tidak ada
+        alert("Data detail belum dimuat dengan benar. Silakan refresh halaman.");
+        return;
     }
-
     isSaving.value = true
     try {
         await suggestionStore.updateSuggestionStatus(suggestion.value.id, selectedStatus.value)
         showNotification('success', 'Status suggestion berhasil diperbarui.')
     } catch (error) {
         showNotification('error', 'Gagal memperbarui status.')
-        console.error("Update status error object:", error);
     } finally {
         isSaving.value = false
     }
@@ -95,12 +85,11 @@ const handleUpdateStatus = async () => {
       </div>
     </div>
 
-    <div v-if="suggestionStore.isLoading && !suggestion" class="text-center py-10">Memuat data detail...</div>
-    <div v-else-if="suggestionStore.error" class="text-center py-10 text-red-500">Gagal memuat data. {{ suggestionStore.error }}</div>
+    <div v-if="suggestionStore.isLoading && !suggestion">Memuat data detail...</div>
+    <div v-else-if="suggestionStore.error" class="text-red-500">Gagal memuat data. {{ suggestionStore.error }}</div>
     
     <div v-else-if="suggestion">
         <form @submit.prevent="handleUpdateStatus" class="flex flex-col lg:flex-row gap-6 lg:gap-8">
-            <!-- Kolom Kiri -->
             <div class="p-4 w-full lg:w-1/2 xl:w-2/3 border border-neu-100 flex flex-col gap-6 rounded-3xl">
                 <div class="flex flex-col gap-3">
                     <label class="text-base font-semibold">Name</label>
@@ -121,13 +110,37 @@ const handleUpdateStatus = async () => {
                         <ArrowDown class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none"/>
                     </div>
                 </div>
+
                 <div class="flex flex-col gap-3">
-                    <label class="text-base font-semibold">Category</label>
-                    <input type="text" :value="suggestion.category_name" disabled class="px-3 py-3 text-sm border bg-gray-100 rounded-full"/>
+                    <label class="text-base font-semibold">Categories</label>
+                    <ul v-if="suggestion.categories_details && suggestion.categories_details.length > 0" class="flex flex-wrap text-sm sm:text-base gap-3 sm:gap-4">
+                        <li
+                            v-for="category in suggestion.categories_details"
+                            :key="category.id"
+                            class="bg-gray-100 text-gray-800 font-medium px-4 py-2 rounded-full"
+                        >
+                            {{ category.name }}
+                        </li>
+                    </ul>
+                    <p v-else class="text-sm text-gray-500">No categories selected.</p>
                 </div>
                 <div class="flex flex-col gap-3">
                     <label class="text-base font-semibold">Descriptions</label>
                     <textarea :value="suggestion.descriptions" rows="7" disabled class="px-3 py-3 text-sm border bg-gray-100 rounded-3xl"></textarea>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <label class="text-base font-semibold">Facilities</label>
+                    <ul v-if="suggestion.facilities_details && suggestion.facilities_details.length > 0" class="flex flex-wrap text-sm sm:text-base gap-3 sm:gap-4">
+                        <li
+                            v-for="facility in suggestion.facilities_details"
+                            :key="facility.id"
+                            class="bg-gray-100 text-gray-800 font-medium items-center px-4 py-2 rounded-full flex"
+                        >
+                            {{ facility.name }}
+                        </li>
+                    </ul>
+                    <p v-else class="text-sm text-gray-500">No facilities listed.</p>
                 </div>
                 <div class="flex flex-col gap-3">
                     <label class="text-base font-semibold">Photos</label>
@@ -139,7 +152,6 @@ const handleUpdateStatus = async () => {
                 </div>
             </div>
 
-            <!-- Kolom Kanan -->
             <div class="p-4 w-full flex flex-col gap-6 lg:w-1/2 xl:w-1/3 border h-fit border-neu-100 rounded-3xl">
                 <div class="flex flex-col gap-3">
                     <label class="text-base font-semibold">Map Location</label>

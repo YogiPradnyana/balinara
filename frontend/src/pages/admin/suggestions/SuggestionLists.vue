@@ -3,11 +3,15 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useSuggestionStore } from '@/stores/suggestionStore'
 import { RouterLink } from 'vue-router'
 import { debounce } from 'lodash-es'
+// showNotification dan ConfirmationToast tidak lagi diperlukan jika tombol hapus dihilangkan
+// import { showNotification } from '@/services/notificationService' 
+// import ConfirmationToast from '@/components/ConfirmationToast.vue' 
 
 // Impor ikon Anda
 import ArrowRight from '@/components/icons/ArrowRight.vue'
 import Show from '@/components/icons/Show.vue'
-import TrashCan from '@/components/icons/TrashCan.vue'
+// TrashCan tidak lagi diperlukan karena tombol hapus dihilangkan
+// import TrashCan from '@/components/icons/TrashCan.vue' 
 import Search from '@/components/icons/Search.vue'
 import ArrowRight2Bold from '@/components/icons/ArrowRight2Bold.vue'
 
@@ -20,36 +24,38 @@ const tabs = ref([
   { id: 'rejected', label: 'Rejected', value: 'rejected' },
 ])
 
-const activeTab = ref('pending')
+const activeTab = ref('all') // Ubah default tab menjadi 'all'
 const searchQuery = ref('')
 const currentPage = ref(1)
 
-// Computed property untuk akses data lebih mudah
 const suggestions = computed(() => suggestionStore.adminSuggestions)
 const pagination = computed(() => suggestionStore.pagination)
+
 const currentParams = computed(() => {
     const params = { page: currentPage.value, search: searchQuery.value }
     const activeTabObject = tabs.value.find(t => t.id === activeTab.value)
+    
     if (activeTabObject && activeTabObject.value) {
         params.status = activeTabObject.value
     }
     return params
 })
 
-// Fungsi utama untuk memuat data
 const loadSuggestions = () => {
+  console.log("Loading suggestions with params:", currentParams.value);
   suggestionStore.fetchAdminSuggestions(currentParams.value)
+  // Pastikan Anda memanggil action untuk hitungan sidebar di sini atau di App.vue/layout admin
+  // Jika tidak, angka di sidebar tidak akan update saat filter diubah di halaman ini.
+  suggestionStore.fetchAllSuggestionsForAdminCount(); 
 }
 
-// Panggil saat pertama kali dimuat
 onMounted(loadSuggestions)
 
-// Awasi perubahan pada filter dan panggil ulang data
 watch(activeTab, () => {
   currentPage.value = 1
   loadSuggestions()
 })
-// Gunakan debounce untuk search agar tidak memanggil API di setiap ketikan
+
 watch(searchQuery, debounce(() => {
     currentPage.value = 1
     loadSuggestions()
@@ -68,16 +74,28 @@ const changePage = (direction) => {
     loadSuggestions();
 }
 
-const handleDelete = async (id, name) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus saran untuk "${name}"?`)) {
-        try {
-            await suggestionStore.deleteSuggestion(id, currentParams.value);
-            // Data akan di-refresh otomatis oleh action di store
-        } catch (error) {
-            alert("Gagal menghapus data.");
-        }
-    }
-}
+// Fungsi handleDelete dihilangkan karena tombol hapus tidak ada lagi
+// const handleDelete = async (id, name) => {
+//     showNotification({
+//       component: ConfirmationToast,
+//       props: {
+//         message: `Apakah Anda yakin ingin menghapus saran untuk "${name}"?`,
+//         onConfirm: async () => {
+//           try {
+//             await suggestionStore.deleteSuggestion(id, currentParams.value);
+//             showNotification('success', `Saran "${name}" berhasil dihapus.`);
+//           } catch (error) {
+//             showNotification('error', `Gagal menghapus saran "${name}".`);
+//             console.error('Delete error:', error);
+//           }
+//         },
+//         onCancel: () => {
+//           showNotification('info', `Penghapusan saran "${name}" dibatalkan.`);
+//         },
+//       },
+//       duration: 0, 
+//     });
+// }
 </script>
 
 <template>
@@ -144,7 +162,12 @@ const handleDelete = async (id, name) => {
                     <td class="p-4 text-neu-900">{{ (currentPage - 1) * 10 + index + 1 }}</td>
                     <td class="p-4 text-neu-900 font-semibold">{{ suggestion.name }}</td>
                     <td class="p-4">{{ suggestion.suggester_username }}</td>
-                    <td class="p-4">{{ suggestion.category_name }}</td>
+                    <td class="p-4">
+                      <span v-if="suggestion.categories_details && suggestion.categories_details.length > 0">
+                        {{ suggestion.categories_details.map(c => c.name).join(', ') }}
+                      </span>
+                      <span v-else>-</span>
+                    </td>
                     <td class="p-4">{{ suggestion.regency }}</td>
                     <td class="p-4 flex gap-3">
                       <RouterLink
@@ -153,21 +176,13 @@ const handleDelete = async (id, name) => {
                       >
                         <Show class="size-5 text-neu-50" />
                       </RouterLink>
-                      <button
-                        @click="handleDelete(suggestion.id, suggestion.name)"
-                        type="button"
-                        class="flex items-center justify-center p-2 rounded-[6px] cursor-pointer hover:bg-[#B71A1A] bg-[#E02424]"
-                      >
-                        <TrashCan class="size-5 text-neu-50" />
-                      </button>
-                    </td>
+                      </td>
                   </tr>
                 </tbody>
               </table>
             </div>
         </div>
         
-        <!-- Pagination -->
         <div v-if="!suggestionStore.isLoading && suggestions && suggestions.length > 0" class="flex justify-between items-center gap-3 flex-wrap mt-3">
             <div class="text-sm text-neu-600">
                 Menampilkan <span class="font-medium text-neu-900">{{ (currentPage - 1) * 10 + 1 }}</span> sampai
@@ -186,5 +201,5 @@ const handleDelete = async (id, name) => {
 
       </div>
     </div>
-  </div>
+    </div>
 </template>

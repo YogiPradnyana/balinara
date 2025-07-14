@@ -1,71 +1,157 @@
 from rest_framework import serializers
-from .models import Suggestion, SuggestionPhoto
+from .models import Suggestion, SuggestionPhoto, TemporarySuggestionPhoto
+from apps.common.models import Facility, Category
 
-# Serializer kecil ini khusus untuk mengubah data setiap foto menjadi format JSON
+# Serializer kecil untuk data relasi (sudah bagus, hanya tambahkan CategorySerializer)
 class SuggestionPhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = SuggestionPhoto
         fields = ['id', 'image']
 
+class FacilitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Facility
+        fields = ['id', 'name']
 
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ['id', 'name'] # Pastikan ini mengembalikan ID dan nama kategori
+
+class TemporarySuggestionPhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TemporarySuggestionPhoto
+        fields = ['id', 'image']
+
+
+# =================================================================
+# PERBAIKAN UTAMA ADA DI DALAM SERIALIZER INI
+# =================================================================
 class SuggestionSerializer(serializers.ModelSerializer):
-    # Field ini untuk menampilkan data relasi (read-only)
-    # Ini akan berisi daftar objek foto yang sudah diformat oleh SuggestionPhotoSerializer
+    # Field untuk menampilkan data relasi (read-only)
     photos = SuggestionPhotoSerializer(many=True, read_only=True)
-    
-    # Field ini untuk menampilkan nama kategori, bukan hanya ID-nya
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    
-    # Field ini untuk menampilkan username pengusul
     suggester_username = serializers.CharField(source='suggester.username', read_only=True)
+    
+    # --- PERBAIKAN 1: Tambahkan CategorySerializer untuk output multiple categories ---
+    # Gunakan nama yang konsisten dengan frontend (categories_details)
+    categories_details = CategorySerializer(source='categories', many=True, read_only=True)
+
+    # Field untuk menampilkan detail fasilitas (sudah benar)
+    facilities_details = FacilitySerializer(source='facilities', many=True, read_only=True)
+
+    # Field untuk menerima daftar ID foto sementara dari frontend (sudah benar)
+    temp_photo_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        write_only=True,
+        required=False
+    )
+
+    # --- PERBAIKAN 2: Field untuk menerima daftar ID kategori dari frontend ---
+    # Ini adalah field write-only yang menerima array ID kategori
+    categories = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), # Pastikan queryset ini benar
+        many=True, # Penting untuk ManyToMany
+        write_only=True, # Hanya untuk input
+        required=False # Sesuaikan dengan kebutuhan validasi Anda
+    )
+
+    # --- PERBAIKAN 3: Field untuk menerima daftar ID fasilitas dari frontend ---
+    # Jika Anda ingin menerima ID fasilitas secara terpisah saat write (seperti categories)
+    # Ini sudah ada di `Meta.fields`, tapi kita perlu memastikan handlingnya di `create`/`update`
+    facilities = serializers.PrimaryKeyRelatedField(
+        queryset=Facility.objects.all(), # Pastikan queryset ini benar
+        many=True, # Penting untuk ManyToMany
+        write_only=True, # Hanya untuk input
+        required=False
+    )
+
 
     class Meta:
         model = Suggestion
-        # Daftar semua field dari model yang ingin kita kirim atau terima.
-        # 'suggester' tidak perlu ada di sini untuk 'create' karena diisi otomatis oleh view.
         fields = [
-            'id',
-            'name',
-            'category',       # Untuk menerima ID saat membuat (write)
-            'category_name',  # Untuk menampilkan nama saat membaca (read)
-            'descriptions',
-            'entrance_ticket_min',
-            'entrance_ticket_max',
-            'phone_number',
-            'email',
-            'street',
-            'sub_district',
-            'regency',
-            'latitude',
-            'longitude',
-            'facilities',     # Untuk menerima daftar ID fasilitas saat membuat (write)
-            'suggester',      # Untuk menampilkan ID user (read-only)
-            'suggester_username', # Untuk menampilkan username (read-only)
-            'status',
-            'created_at',
-            'photos',         # Untuk menampilkan daftar foto (read-only)
+            'id', 'name', 
+            # --- Perubahan di `fields`: Hapus 'category' dan 'category_name' ---
+            # Tambahkan 'categories_details' untuk output dan 'categories' untuk input
+            'categories', # Field write-only untuk menerima ID
+            'categories_details', # Field read-only untuk detail objek
+            
+            'descriptions', 'status',
+            'entrance_ticket_min', 'entrance_ticket_max', 'phone_number', 
+            'email', 'street', 'sub_district', 'regency', 'latitude', 'longitude', 
+            
+            'facilities', # Field write-only untuk menerima ID
+            'facilities_details', # Field read-only untuk detail objek (sudah benar)
+            
+            'suggester', 'suggester_username', 'created_at', 'photos',
+            'temp_photo_ids' # Hanya untuk write
         ]
-        # Membuat beberapa field hanya bisa dibaca (read-only)
         read_only_fields = ['suggester', 'created_at']
 
+
+    # --- PERBAIKAN 4: Pindahkan method 'create' dan 'update' ke luar dari 'Meta' ---
+    # dan pastikan indentasinya sejajar dengan 'class Meta'.
+    # Ini akan override metode create bawaan ModelSerializer.
     def create(self, validated_data):
-        """
-        Override method create untuk menangani relasi ManyToMany (facilities)
-        dan upload foto secara manual dari data request.
-        """
-        # Pisahkan data 'facilities' dari data utama
+        # Ambil dan hapus data relasi dari validated_data sebelum membuat objek utama
+        temp_photo_ids = validated_data.pop('temp_photo_ids', [])
         facilities_data = validated_data.pop('facilities', [])
-        
-        # Buat objek Suggestion terlebih dahulu
+        categories_data = validated_data.pop('categories', []) # Ambil data categories
+
+        # Buat objek Suggestion utama dengan sisa data
         suggestion = Suggestion.objects.create(**validated_data)
         
         # Atur relasi ManyToMany untuk facilities
-        suggestion.facilities.set(facilities_data)
+        if facilities_data: # Pastikan ada data sebelum mencoba set
+            suggestion.facilities.set(facilities_data)
 
-        # Ambil file foto dari context request yang dikirim oleh view
-        # dan buat objek SuggestionPhoto untuk setiap fotonya
-        photos_data = self.context['request'].FILES.getlist('uploaded_photos')
-        for photo_data in photos_data:
-            SuggestionPhoto.objects.create(suggestion=suggestion, image=photo_data)
+        # Atur relasi ManyToMany untuk categories
+        if categories_data: # Pastikan ada data sebelum mencoba set
+            suggestion.categories.set(categories_data)
+
+        # Cari foto sementara berdasarkan ID dan pindahkan ke foto permanen
+        temp_photos = TemporarySuggestionPhoto.objects.filter(id__in=temp_photo_ids)
+        for temp_photo in temp_photos:
+            SuggestionPhoto.objects.create(
+                suggestion=suggestion,
+                image=temp_photo.image # Ini akan menyalin file
+            )
+        # Hapus foto sementara setelah dipindahkan
+        temp_photos.delete()
             
         return suggestion
+
+    # Tambahkan metode update() untuk menangani pembaruan data yang terkait
+    def update(self, instance, validated_data):
+        # Ambil data relasi jika ada di validated_data
+        temp_photo_ids = validated_data.pop('temp_photo_ids', None)
+        facilities_data = validated_data.pop('facilities', None)
+        categories_data = validated_data.pop('categories', None)
+
+        # Update field-field biasa pada instance Suggestion
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save() # Simpan perubahan field biasa
+
+        # Update relasi ManyToMany untuk facilities
+        if facilities_data is not None:
+            instance.facilities.set(facilities_data)
+
+        # Update relasi ManyToMany untuk categories
+        if categories_data is not None:
+            instance.categories.set(categories_data)
+
+        # Tambahkan/hapus foto terkait jika temp_photo_ids diberikan
+        if temp_photo_ids is not None:
+            # Anda bisa memilih untuk menghapus semua foto lama dan menambahkan yang baru
+            # Atau, mengelola penambahan/penghapusan secara lebih granular.
+            # Contoh: Hapus semua foto suggestion yang ada dan tambahkan yang baru dari temp_photo_ids
+            instance.photos.all().delete() # Hapus semua foto suggestion yang ada
+            temp_photos = TemporarySuggestionPhoto.objects.filter(id__in=temp_photo_ids)
+            for temp_photo in temp_photos:
+                SuggestionPhoto.objects.create(
+                    suggestion=instance,
+                    image=temp_photo.image
+                )
+            temp_photos.delete() # Hapus foto sementara setelah dipindahkan
+
+        return instance

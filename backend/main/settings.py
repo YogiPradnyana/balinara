@@ -121,9 +121,9 @@ AUTH_USER_MODEL = 'users.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'balinara',       # ganti dengan nama database MySQL kamu
+        'NAME': 'balinara',      # ganti dengan nama database MySQL kamu
         'USER': 'root',           # sesuaikan user MySQL kamu
-        'PASSWORD': '',  # sesuaikan password MySQL kamu
+        'PASSWORD': '',   # sesuaikan password MySQL kamu
         'HOST': 'localhost',
         'PORT': '3306',
         'OPTIONS': {
@@ -140,15 +140,32 @@ CLOUDINARY_STORAGE = {
 }
 
 
+# =================================================================
+# PERBAIKAN CORS ADA DI SINI
+# =================================================================
+
 # CORS configuration
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",   # Ini adalah default URL untuk Vue.js dev server
-    "http://127.0.0.1:8080",
-    # Alternatif localhost untuk dev server Vue.js
-    # Tambahkan URL produksi aplikasi Vue.js Anda di sini jika sudah ada
-    # Contoh: "http://localhost:",
-
+    "http://127.0.0.1:5173",   # Alternatif localhost untuk dev server Vue.js
 ]
+
+# 1. TAMBAHKAN INI: Izinkan browser mengirim cookie atau token otentikasi.
+CORS_ALLOW_CREDENTIALS = True
+
+# 2. TAMBAHKAN INI: Izinkan header 'Content-Type' dan 'Authorization' dikirim oleh frontend.
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+# =================================================================
 
 
 # Password validation

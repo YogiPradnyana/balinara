@@ -3,6 +3,7 @@
 from django.db import models
 from django.conf import settings  # <-- 1. Impor settings untuk merujuk ke model User
 from apps.common.models import Category, Facility
+import uuid
 
 class Suggestion(models.Model):
     STATUS_CHOICES = [
@@ -11,9 +12,14 @@ class Suggestion(models.Model):
         ('rejected', 'Rejected'),
     ]
 
-    # Data dari form (tidak ada perubahan di sini)
+    # Data dari form
     name = models.CharField(max_length=255)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # --- PERBAIKAN 1: UBAH DARI ForeignKey KE ManyToManyField untuk Category ---
+    # Ini memungkinkan satu Suggestion memiliki banyak Category
+    categories = models.ManyToManyField(Category, blank=True, related_name='suggestions')
+    # Hapus baris 'category = models.ForeignKey(Category, ...)' yang lama
+    
     descriptions = models.TextField()
     entrance_ticket_min = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     entrance_ticket_max = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -24,24 +30,24 @@ class Suggestion(models.Model):
     regency = models.CharField(max_length=100, blank=True, null=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
-    facilities = models.ManyToManyField(Facility, blank=True)
+    facilities = models.ManyToManyField(Facility, blank=True, related_name='suggestions_with_facility') 
+    # Menambahkan related_name untuk fasilitas juga untuk kejelasan dan menghindari konflik jika ada model lain yang mereferensikan Facility
 
-    # 2. TAMBAHKAN FIELD INI UNTUK MENGHUBUNGKAN KE USER
+    # Hubungan ke User
     suggester = models.ForeignKey(
-    settings.AUTH_USER_MODEL,
-    on_delete=models.CASCADE,
-    related_name='suggestions',
-    verbose_name="Pengusul",
-    null=True, # <-- TAMBAHKAN INI
-    blank=True # <-- TAMBAHKAN INI JUGA
-)
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL, # <-- Lebih baik SET_NULL daripada CASCADE jika user dihapus
+        related_name='suggestions',
+        verbose_name="Pengusul",
+        null=True,
+        blank=True
+    )
 
     # Status untuk review admin
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        # Tampilkan nama pengusul jika ada
         suggester_name = self.suggester.username if self.suggester else "Anonymous"
         return f"{self.name} (by {suggester_name})"
 
@@ -51,3 +57,13 @@ class SuggestionPhoto(models.Model):
 
     def __str__(self):
         return f"Photo for suggestion: {self.suggestion.name}"
+
+# --- Model TemporarySuggestionPhoto (Sudah benar, pastikan ini ada di models.py Anda) ---
+# Ini adalah model yang dicari database saat error 1146
+class TemporarySuggestionPhoto(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    image = models.ImageField(upload_to='suggestions/temp/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.id)
