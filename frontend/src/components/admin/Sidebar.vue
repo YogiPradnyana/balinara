@@ -1,16 +1,40 @@
 <script setup>
-import Home from '@/components/icons/Home.vue'
-import MapPin from '@/components/icons/MapPin.vue'
-import Message from '@/components/icons/Message.vue'
-import OutlinedLocation from '@/components/icons/OutlinedLocation.vue'
-import Tag from '@/components/icons/Tag.vue'
-import Users from '@/components/icons/Users.vue'
-import Parking from '../icons/facilities/Parking.vue'
+import { ref, computed, onMounted } from 'vue'; // Tambahkan 'computed' dan 'onMounted'
+import { RouterLink } from 'vue-router'; // RouterLink sudah ada
+import { useSuggestionStore } from '@/stores/suggestionStore'; // Import useSuggestionStore
+
+// Impor ikon
+import Home from '@/components/icons/Home.vue';
+import MapPin from '@/components/icons/MapPin.vue';
+import Message from '@/components/icons/Message.vue';
+import OutlinedLocation from '@/components/icons/OutlinedLocation.vue';
+import Tag from '@/components/icons/Tag.vue';
+import Users from '@/components/icons/Users.vue';
+import Parking from '../icons/facilities/Parking.vue'; // Pastikan path ini benar
 
 const props = defineProps({
   isSidebarOpen: Boolean,
-})
+});
+
+// Inisialisasi store suggestion
+const suggestionStore = useSuggestionStore();
+
+// Computed property untuk menghitung jumlah suggestion yang pending
+const pendingSuggestionsCount = computed(() => {
+  // Menggunakan getter 'allSuggestionsForCounting' dari store
+  if (suggestionStore.allSuggestionsForCounting && Array.isArray(suggestionStore.allSuggestionsForCounting)) {
+    return suggestionStore.allSuggestionsForCounting.filter(s => s.status === 'pending').length;
+  }
+  return 0; // Default jika data belum dimuat
+});
+
+// Ketika komponen sidebar dimuat, ambil data suggestions untuk hitungan
+onMounted(() => {
+  // Panggil action di store untuk mendapatkan semua suggestions pending
+  suggestionStore.fetchAllSuggestionsForAdminCount();
+});
 </script>
+
 <template>
   <aside
     class="fixed top-0 left-0 z-999 min-w-64 mt-16 lg:mt-0 -translate-x-full lg:translate-x-0 flex flex-col gap-6 sm:gap-8 p-4 min-h-screen bg-sur-50 border-r border-neu-200 transition-all duration-300 ease-in-out"
@@ -108,9 +132,8 @@ const props = defineProps({
             />Suggested Spot</span
           ><span
             class="flex items-center text-neu-50 text-sm rounded-[6px] justify-center px-2 bg-pr-500"
-            >2</span
-          >
-        </RouterLink>
+            >{{ pendingSuggestionsCount }}</span
+          > </RouterLink>
       </div>
     </div>
   </aside>
