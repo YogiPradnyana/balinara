@@ -1,30 +1,30 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted } from 'vue'
 // Impor store dan service
-import { useCategoryStore } from '@/stores/categoryStore';
-import { useFacilityStore } from '@/stores/facilityStore';
-import { useSuggestionStore } from '@/stores/suggestionStore';
-import suggestionService from '@/services/suggestionService';
+import { useCategoryStore } from '@/stores/categoryStore'
+import { useFacilityStore } from '@/stores/facilityStore'
+import { useSuggestionStore } from '@/stores/suggestionStore'
+import suggestionService from '@/services/suggestionService'
 
 // Impor lain-lain
-import { showNotification } from '@/services/notificationService';
-import { useRouter } from 'vue-router';
-import "leaflet/dist/leaflet.css";
-import { LMap, LTileLayer, LMarker } from "@vue-leaflet/vue-leaflet";
-import { icon } from 'leaflet';
+import { showNotification } from '@/services/notificationService'
+import { useRouter } from 'vue-router'
+import 'leaflet/dist/leaflet.css'
+import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
+import { icon } from 'leaflet'
 
 // Impor ikon
-import Photo from '@/components/icons/Photo.vue';
-import Subtract from '@/components/icons/Subtract.vue';
+import Photo from '@/components/icons/Photo.vue'
+import Subtract from '@/components/icons/Subtract.vue'
 
 // --- Konfigurasi dan State ---
-const router = useRouter();
-const categoryStore = useCategoryStore();
-const facilityStore = useFacilityStore();
-const suggestionStore = useSuggestionStore();
+const router = useRouter()
+const categoryStore = useCategoryStore()
+const facilityStore = useFacilityStore()
+const suggestionStore = useSuggestionStore()
 
-const isLoading = ref(false);
-const isUploading = ref(false);
+const isLoading = ref(false)
+const isUploading = ref(false)
 
 const initialFormData = {
   name: '',
@@ -41,113 +41,116 @@ const initialFormData = {
   latitude: '',
   longitude: '',
   selectedFacilities: [],
-  temp_photo_ids: []
-};
-const formData = ref({ ...initialFormData });
+  temp_photo_ids: [],
+}
+const formData = ref({ ...initialFormData })
 
-const uploadedImages = ref([]);
-const minPhotosRequired = 3;
+const uploadedImages = ref([])
+const minPhotosRequired = 3
 
 // State Peta
-const zoom = ref(10);
-const mapCenter = ref([-8.65, 115.216667]);
-const markerLatLng = ref(null);
+const zoom = ref(10)
+const mapCenter = ref([-8.65, 115.216667])
+const markerLatLng = ref(null)
 const defaultIcon = icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-  iconSize: [25, 41], iconAnchor: [12, 41],
-});
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+})
 
 // --- State & Methods untuk Modal Foto ---
-const showPhotoModal = ref(false);
-const currentModalPhoto = ref(null);
+const showPhotoModal = ref(false)
+const currentModalPhoto = ref(null)
 
 function openPhotoModal(imageUrl) {
-  currentModalPhoto.value = imageUrl;
-  showPhotoModal.value = true;
+  currentModalPhoto.value = imageUrl
+  showPhotoModal.value = true
 }
 
 function closePhotoModal() {
-  showPhotoModal.value = false;
-  currentModalPhoto.value = null;
+  showPhotoModal.value = false
+  currentModalPhoto.value = null
 }
 
 // --- Lifecycle & Methods ---
 onMounted(() => {
-  categoryStore.fetchCategories();
-  facilityStore.fetchFacilities();
-});
+  categoryStore.fetchCategories()
+  facilityStore.fetchFacilities()
+})
 
 function handleMapClick(mapEvent) {
-  const { lat, lng } = mapEvent.latlng;
-  formData.value.latitude = lat.toFixed(6);
-  formData.value.longitude = lng.toFixed(6);
-  markerLatLng.value = [lat, lng];
+  const { lat, lng } = mapEvent.latlng
+  formData.value.latitude = lat.toFixed(6)
+  formData.value.longitude = lng.toFixed(6)
+  markerLatLng.value = [lat, lng]
 }
 
 async function handleFileChange(event) {
-  const files = Array.from(event.target.files);
-  isUploading.value = true;
+  const files = Array.from(event.target.files)
+  isUploading.value = true
   try {
     for (const file of files) {
       if (file.type.startsWith('image/')) {
-        const response = await suggestionService.uploadTemporaryImage(file);
-        formData.value.temp_photo_ids.push(response.data.id);
-        uploadedImages.value.push({ id: response.data.id, url: response.data.image });
+        const response = await suggestionService.uploadTemporaryImage(file)
+        formData.value.temp_photo_ids.push(response.data.id)
+        uploadedImages.value.push({ id: response.data.id, url: response.data.image })
       }
     }
   } catch (error) {
-    showNotification('error', 'Image upload failed.');
+    showNotification('error', 'Image upload failed.')
   } finally {
-    isUploading.value = false;
+    isUploading.value = false
   }
 }
 
 function removePhoto(index, photoId) {
-  uploadedImages.value.splice(index, 1);
-  formData.value.temp_photo_ids = formData.value.temp_photo_ids.filter(id => id !== photoId);
+  uploadedImages.value.splice(index, 1)
+  formData.value.temp_photo_ids = formData.value.temp_photo_ids.filter((id) => id !== photoId)
 }
 
 function resetForm() {
-  formData.value = { ...initialFormData };
-  uploadedImages.value = [];
-  markerLatLng.value = null;
+  formData.value = { ...initialFormData }
+  uploadedImages.value = []
+  markerLatLng.value = null
 }
 
 async function suggestSpot() {
-  isLoading.value = true;
-  const payload = { ...formData.value };
+  isLoading.value = true
+  const payload = { ...formData.value }
 
   // Mapping 'selectedFacilities' ke 'facilities' untuk payload
-  payload.facilities = payload.selectedFacilities;
-  delete payload.selectedFacilities;
+  payload.facilities = payload.selectedFacilities
+  delete payload.selectedFacilities
 
   // Mapping 'selectedCategories' ke 'categories' untuk payload
-  payload.categories = payload.selectedCategories;
-  delete payload.selectedCategories;
+  payload.categories = payload.selectedCategories
+  delete payload.selectedCategories
 
   try {
-    await suggestionStore.createSuggestion(payload);
-    showNotification('success', 'Thank you! Your suggestion has been received.');
-    resetForm();
+    await suggestionStore.createSuggestion(payload)
+    showNotification('success', 'Thank you! Your suggestion has been received.')
+    resetForm()
 
     // =================================================================
     // PASTIKAN NAMA RUTE DI SINI SAMA DENGAN DI router/index.js
     // =================================================================
-    router.push({ name: 'UserSuggestion' });
-
+    router.push({ name: 'UserSuggestion' })
   } catch (error) {
-    showNotification('error', 'Failed to submit suggestion. Please check the form.');
-    console.error('Submit suggestion error:', error);
+    showNotification('error', 'Failed to submit suggestion. Please check the form.')
+    console.error('Submit suggestion error:', error)
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
 }
 </script>
 
 <template>
   <div class="px-6 sm:px-16 lg:px-[140px] pb-24 md:pb-30">
-    <form class="flex flex-col lg:flex-row gap-6 lg:gap-16 mt-10 md:mt-16" @submit.prevent="suggestSpot">
+    <form
+      class="flex flex-col lg:flex-row gap-6 lg:gap-16 mt-10 md:mt-16"
+      @submit.prevent="suggestSpot"
+    >
       <div class="w-full md:w-3/4 lg:min-w-80 xl:min-w-120 flex flex-col gap-6">
         <h1 class="text-4xl sm:text-[42px] font-semibold leading-12 sm:leading-[62px] font-se">
           <span class="text-pr-500">Suggest a Spot</span> & Inspire Travelers!
@@ -155,16 +158,30 @@ async function suggestSpot() {
 
         <div class="flex flex-col gap-3">
           <label for="name" class="text-base md:text-lg font-semibold">Spot Name</label>
-          <input v-model="formData.name" type="text" id="name" placeholder="e.g., Hidden Gem Beach Club" class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full" required />
+          <input
+            v-model="formData.name"
+            type="text"
+            id="name"
+            placeholder="e.g., Hidden Gem Beach Club"
+            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+            required
+          />
         </div>
 
         <div class="flex flex-col gap-3">
           <label class="text-base md:text-lg font-semibold">Category</label>
           <div v-if="categoryStore.isLoading">Loading categories...</div>
           <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <label v-for="cat in categoryStore.allCategories" :key="cat.id"
-                   class="flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors"
-                   :class="formData.selectedCategories.includes(cat.id) ? 'bg-pr-50 border-pr-500 ring-2 ring-pr-200' : 'border-neu-200 hover:bg-gray-50'">
+            <label
+              v-for="cat in categoryStore.allCategories"
+              :key="cat.id"
+              class="flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors"
+              :class="
+                formData.selectedCategories.includes(cat.id)
+                  ? 'bg-pr-50 border-pr-500 ring-2 ring-pr-200'
+                  : 'border-neu-200 hover:bg-gray-50'
+              "
+            >
               <input
                 type="checkbox"
                 :value="cat.id"
@@ -178,35 +195,73 @@ async function suggestSpot() {
 
         <div class="flex flex-col gap-3">
           <label for="descriptions" class="text-base md:text-lg font-semibold">Description</label>
-          <textarea v-model="formData.descriptions" id="descriptions" rows="7" placeholder="Tell us what makes this place special..." class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-3xl" required></textarea>
+          <textarea
+            v-model="formData.descriptions"
+            id="descriptions"
+            rows="7"
+            placeholder="Tell us what makes this place special..."
+            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-3xl"
+            required
+          ></textarea>
         </div>
 
         <div class="flex flex-col gap-3">
           <label class="text-base md:text-lg font-semibold">Entrance Ticket Price Range</label>
           <div class="flex gap-2.5 items-center w-full">
-            <input v-model="formData.entrance_ticket_min" type="number" placeholder="e.g., 75000" class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full" />
+            <input
+              v-model="formData.entrance_ticket_min"
+              type="number"
+              placeholder="e.g., 75000"
+              class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
+            />
             <Subtract class="min-w-2" />
-            <input v-model="formData.entrance_ticket_max" type="number" placeholder="e.g., 120000" class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full" />
+            <input
+              v-model="formData.entrance_ticket_max"
+              type="number"
+              placeholder="e.g., 120000"
+              class="px-3 py-3 text-sm w-full border placeholder:text-neu-500 border-neu-200 rounded-full"
+            />
           </div>
         </div>
 
         <div class="flex flex-col gap-3">
           <h3 class="text-base md:text-lg font-semibold">Contact</h3>
           <label class="font-semibold">Phone Number</label>
-          <input v-model="formData.phone_number" type="text" placeholder="e.g., +62 812 3456 7890" class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full" />
+          <input
+            v-model="formData.phone_number"
+            type="text"
+            placeholder="e.g., +62 812 3456 7890"
+            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+          />
           <label class="font-semibold mt-1">Email</label>
-          <input v-model="formData.email" type="email" placeholder="e.g., info@spot.com" class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full" />
+          <input
+            v-model="formData.email"
+            type="email"
+            placeholder="e.g., info@spot.com"
+            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+          />
         </div>
       </div>
 
       <div class="w-full md:w-3/4 lg:w-full flex flex-col gap-6">
-
         <div class="flex flex-col gap-3">
           <label class="text-base md:text-lg font-semibold">Select Location on Map</label>
-          <p class="text-sm text-neu-700">Click on the map to automatically set the Latitude & Longitude.</p>
+          <p class="text-sm text-neu-700">
+            Click on the map to automatically set the Latitude & Longitude.
+          </p>
           <div class="w-full h-80 xl:h-[400px] rounded-3xl overflow-hidden border">
-            <l-map v-model:zoom="zoom" :center="mapCenter" @click="handleMapClick" style="height: 100%; width: 100%">
-              <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" layer-type="base" name="OpenStreetMap" attribution="&copy; <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a>"></l-tile-layer>
+            <l-map
+              v-model:zoom="zoom"
+              :center="mapCenter"
+              @click="handleMapClick"
+              style="height: 100%; width: 100%"
+            >
+              <l-tile-layer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                layer-type="base"
+                name="OpenStreetMap"
+                attribution="&copy; <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a>"
+              ></l-tile-layer>
               <l-marker v-if="markerLatLng" :lat-lng="markerLatLng" :icon="defaultIcon"></l-marker>
             </l-map>
           </div>
@@ -214,15 +269,33 @@ async function suggestSpot() {
 
         <div class="flex flex-col gap-3">
           <label for="street" class="text-base md:text-lg font-semibold">Street</label>
-          <input v-model="formData.street" type="text" id="street" placeholder="e.g., Jl. Pantai Kuta" class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full" />
+          <input
+            v-model="formData.street"
+            type="text"
+            id="street"
+            placeholder="e.g., Jl. Pantai Kuta"
+            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+          />
         </div>
         <div class="flex flex-col gap-3">
           <label for="sub-district" class="text-base md:text-lg font-semibold">Sub-district</label>
-          <input v-model="formData.sub_district" type="text" id="sub-district" placeholder="e.g., Kuta" class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full" />
+          <input
+            v-model="formData.sub_district"
+            type="text"
+            id="sub-district"
+            placeholder="e.g., Kuta"
+            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+          />
         </div>
         <div class="flex flex-col gap-3">
           <label for="regency" class="text-base md:text-lg font-semibold">Regency</label>
-          <input v-model="formData.regency" type="text" id="regency" placeholder="e.g., Badung" class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full" />
+          <input
+            v-model="formData.regency"
+            type="text"
+            id="regency"
+            placeholder="e.g., Badung"
+            class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+          />
         </div>
 
         <div class="flex flex-col gap-3">
@@ -230,11 +303,21 @@ async function suggestSpot() {
           <div class="flex gap-6">
             <div class="flex flex-col gap-3 w-1/2">
               <label class="font-semibold mt-1">Latitude</label>
-              <input v-model="formData.latitude" type="text" placeholder="Auto-filled from map" class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full" />
+              <input
+                v-model="formData.latitude"
+                type="text"
+                placeholder="Auto-filled from map"
+                class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+              />
             </div>
             <div class="flex flex-col gap-3 w-1/2">
               <label class="font-semibold mt-1">Longitude</label>
-              <input v-model="formData.longitude" type="text" placeholder="Auto-filled from map" class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full" />
+              <input
+                v-model="formData.longitude"
+                type="text"
+                placeholder="Auto-filled from map"
+                class="px-3 py-3 text-sm border placeholder:text-neu-500 border-neu-200 rounded-full"
+              />
             </div>
           </div>
         </div>
@@ -243,9 +326,16 @@ async function suggestSpot() {
           <label class="text-base md:text-lg font-semibold">Facilities</label>
           <div v-if="facilityStore.isLoading">Loading facilities...</div>
           <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <label v-for="fac in facilityStore.allFacilities" :key="fac.id"
-                   class="flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors"
-                   :class="formData.selectedFacilities.includes(fac.id) ? 'bg-pr-50 border-pr-500 ring-2 ring-pr-200' : 'border-neu-200 hover:bg-gray-50'">
+            <label
+              v-for="fac in facilityStore.allFacilities"
+              :key="fac.id"
+              class="flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-colors"
+              :class="
+                formData.selectedFacilities.includes(fac.id)
+                  ? 'bg-pr-50 border-pr-500 ring-2 ring-pr-200'
+                  : 'border-neu-200 hover:bg-gray-50'
+              "
+            >
               <input
                 type="checkbox"
                 :value="fac.id"
@@ -259,25 +349,54 @@ async function suggestSpot() {
 
         <div class="flex flex-col gap-3">
           <label class="text-base md:text-lg font-semibold">Photos</label>
-          <p class="text-sm text-neu-700">Upload at least {{ minPhotosRequired }} images for the destination.</p>
+          <p class="text-sm text-neu-700">
+            Upload at least {{ minPhotosRequired }} images for the destination.
+          </p>
           <div class="w-full">
-            <label for="photo-upload" class="flex flex-col items-center justify-center w-full h-40 border-[1.6px] border-dashed border-pr-500 rounded-3xl cursor-pointer bg-gray-100 hover:bg-gray-200 transition">
+            <label
+              for="photo-upload"
+              class="flex flex-col items-center justify-center w-full h-40 border-[1.6px] border-dashed border-pr-500 rounded-3xl cursor-pointer bg-gray-100 hover:bg-gray-200 transition"
+            >
               <span v-if="isUploading">Uploading...</span>
               <div v-else>
                 <Photo class="mx-auto mb-1" />
                 <p class="text-pr-500 font-medium text-sm mb-[2px]">Click to add photos</p>
                 <p class="text-neu-900 text-sm">or drag & drop</p>
               </div>
-              <input id="photo-upload" type="file" class="hidden" multiple @change="handleFileChange" accept="image/*" :disabled="isUploading" />
+              <input
+                id="photo-upload"
+                type="file"
+                class="hidden"
+                multiple
+                @change="handleFileChange"
+                accept="image/*"
+                :disabled="isUploading"
+              />
             </label>
           </div>
           <div v-if="uploadedImages.length > 0" class="mt-6">
-            <h3 class="text-base md:text-lg font-semibold">Current Gallery ({{ uploadedImages.length }} images)</h3>
+            <h3 class="text-base md:text-lg font-semibold">
+              Current Gallery ({{ uploadedImages.length }} images)
+            </h3>
+            {{ upl }}
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
               <div v-for="(image, index) in uploadedImages" :key="image.id" class="relative group">
-                <img :src="image.url" alt="Uploaded photo" class="w-full h-28 object-cover rounded-lg shadow-md cursor-pointer" @click="openPhotoModal(image.url)" />
-                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
-                  <button type="button" class="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" @click="removePhoto(index, image.id)">Remove</button>
+                <img
+                  :src="`http://127.0.0.1:8000${image.url}`"
+                  alt="Uploaded photo"
+                  class="w-full h-28 object-cover rounded-lg shadow-md cursor-pointer"
+                  @click="openPhotoModal(image.url)"
+                />
+                <div
+                  class="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center"
+                >
+                  <button
+                    type="button"
+                    class="px-3 py-1 bg-red-600 text-white text-xs font-bold rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    @click="removePhoto(index, image.id)"
+                  >
+                    Remove
+                  </button>
                 </div>
               </div>
             </div>
@@ -298,10 +417,21 @@ async function suggestSpot() {
     </form>
   </div>
 
-  <div v-if="showPhotoModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-75" @click.self="closePhotoModal">
+  <div
+    v-if="showPhotoModal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-75"
+    @click.self="closePhotoModal"
+  >
     <div class="relative max-w-4xl max-h-full overflow-auto rounded-lg shadow-xl" @click.stop>
-      <img :src="currentModalPhoto" alt="Full size photo" class="w-full h-auto max-h-[90vh] object-contain" />
-      <button class="absolute top-4 right-4 text-white text-3xl font-bold bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center" @click="closePhotoModal">
+      <img
+        :src="currentModalPhoto"
+        alt="Full size photo"
+        class="w-full h-auto max-h-[90vh] object-contain"
+      />
+      <button
+        class="absolute top-4 right-4 text-white text-3xl font-bold bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center"
+        @click="closePhotoModal"
+      >
         &times;
       </button>
     </div>
@@ -310,10 +440,12 @@ async function suggestSpot() {
 
 <style scoped>
 /* Optional: Gaya tambahan untuk transisi modal jika Anda ingin */
-.modal-enter-active, .modal-leave-active {
+.modal-enter-active,
+.modal-leave-active {
   transition: opacity 0.3s ease;
 }
-.modal-enter-from, .modal-leave-to {
+.modal-enter-from,
+.modal-leave-to {
   opacity: 0;
 }
 </style>

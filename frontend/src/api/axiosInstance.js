@@ -7,6 +7,7 @@ const apiClient = axios.create({
   baseURL: API_BASE_URL,
 })
 
+let isLoggingOut = false
 // =================================================================
 // Request Interceptor ini SEKARANG HANYA BERTUGAS MENAMBAHKAN TOKEN
 // =================================================================
@@ -19,7 +20,7 @@ apiClient.interceptors.request.use(
     if (token && config.headers) {
       config.headers.Authorization = `Token ${token}`
     }
-    
+
     // Kembalikan konfigurasi untuk melanjutkan request.
     return config
   },
@@ -37,8 +38,15 @@ apiClient.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url.includes('/logout/') &&
+      !isLoggingOut
+    ) {
       originalRequest._retry = true
+      isLoggingOut = true
       try {
         const { useAuthStore } = await import('@/stores/authStore')
         const authStore = useAuthStore()

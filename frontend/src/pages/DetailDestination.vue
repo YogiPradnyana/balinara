@@ -22,6 +22,8 @@ import defaultAvatar from '@/assets/images/user_profile/default-avatar.png'
 import ArrowRight from '@/components/icons/ArrowRight.vue'
 import { gsap } from 'gsap'
 import { Draggable } from 'gsap/Draggable'
+import { useUiStore } from '@/stores/uiStore'
+const uiStore = useUiStore()
 
 // Daftarkan plugin GSAP
 gsap.registerPlugin(Draggable)
@@ -65,6 +67,11 @@ const monthOptions = ref([
   { label: 'Nov', value: 11 },
   { label: 'Dec', value: 12 },
 ])
+
+function openImageModal(reviewImages, clickedImageIndex) {
+  const imageUrls = reviewImages.map((img) => img.image)
+  uiStore.openLightbox(imageUrls, clickedImageIndex)
+}
 
 function fetchReviews() {
   if (destination.value) {
@@ -674,9 +681,10 @@ const googleMapsEmbedUrl = computed(() => {
             </p>
             <div class="flex gap-2" v-if="review.images && review.images.length > 0">
               <img
-                v-for="img in review.images"
+                v-for="(img, index) in review.images"
                 :key="img.id"
                 :src="img.image"
+                @click="openImageModal(review.images, index)"
                 class="size-16 sm:size-24 rounded-lg sm:rounded-xl border border-neu-200 object-cover cursor-pointer"
               />
             </div>
